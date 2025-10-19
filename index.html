@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Noub - Pharaoh's Legacy (v12.0 - Modular)</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+</head>
+<body>
+
+    <!-- Authentication Overlay -->
+    <div id="auth-overlay">
+        <div class="auth-form" id="login-form">
+            <h2>Login to "Noub"</h2>
+            <div class="auth-error" id="login-error"></div>
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button id="login-button">Login</button>
+            <div class="switch-form" onclick="showRegisterForm()">No account? Sign up now</div>
+        </div>
+        <div class="auth-form hidden" id="register-form">
+            <h2>Create New Account</h2>
+            <div class="auth-error" id="register-error"></div>
+            <input type="text" id="register-username" placeholder="Username" required>
+            <input type="email" id="register-email" placeholder="Email" required>
+            <input type="password" id="register-password" placeholder="Password" required>
+            <button id="register-button">Sign Up</button>
+            <div class="switch-form" onclick="showLoginForm()">Already have an account? Login</div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="hidden">
+        <header>
+            <div class="balance-bar">
+                <div class="currency-display"><span class="icon">☥</span> <span id="ankh-display">0</span></div>
+                <div class="currency-display"><span class="icon">👑</span> <span id="prestige-display">0</span></div>
+                <div class="currency-display"><span class="icon">✨</span> <span id="blessing-display">0</span></div>
+                <div id="connectButton"></div>
+            </div>
+        </header>
+
+        <main id="content-container">
+            <!-- My Collection Screen -->
+            <div id="collection-screen" class="screen">
+                <h2>My Collection</h2>
+                <div class="card-grid" id="collection-container"></div>
+            </div>
+            
+            <!-- Other screens (placeholders for now) -->
+            <div id="resources-screen" class="screen hidden"><h2>Resources</h2></div>
+            <div id="factories-screen" class="screen hidden"><h2>Workshops</h2></div>
+            <div id="stock-screen" class="screen hidden"><h2>Stock</h2></div>
+            <div id="contracts-screen" class="screen hidden"><h2>Royal Decrees</h2></div>
+            <div id="albums-screen" class="screen hidden"><h2>Albums</h2></div>
+            
+            <!-- Profile Screen -->
+            <div id="profile-screen" class="screen hidden">
+                 <div class="profile-container">
+                    <div class="profile-header">
+                        <img src="images/user_avatar.png" alt="Avatar" class="avatar" id="player-avatar-img">
+                        <h2 id="player-name">Player</h2>
+                    </div>
+                    <div class="profile-power">
+                        <p class="label">Power Score</p>
+                        <div id="player-power-score" class="power-score">0</div>
+                    </div>
+                    <div class="profile-stats-grid">
+                        <div class="stat-box"><div id="stat-total-cards" class="value">0</div><div class="label">Total Cards</div></div>
+                        <div class="stat-box"><div id="stat-contracts" class="value">0</div><div class="label">Completed Contracts</div></div>
+                    </div>
+                    <button id="logout-btn" class="action-button danger">Logout</button>
+                </div>
+            </div>
+
+            <!-- Chat Screen -->
+            <div id="chat-screen" class="screen hidden">
+                <div id="chat-header">Eve <img src="images/eve_avatar.png" alt="Eve Avatar" class="avatar"></div>
+                <div id="chat-messages"></div>
+                <div id="chat-input">
+                    <input type="text" id="chat-input-field" placeholder="Type your message...">
+                    <button id="chat-send-button">Send</button>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Modals -->
+        <div id="shop-modal" class="modal-overlay hidden"></div>
+        <div id="toast-container"></div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
+        <a class="nav-item" data-target="resources-screen" title="Resources"><div class="icon">⛏️</div><span>Resources</span></a>
+        <a class="nav-item" data-target="factories-screen" title="Workshops"><div class="icon">⚒️</div><span>Workshops</span></a>
+        <a class="nav-item active" data-target="collection-screen" title="My Collection"><div class="icon">🏛️</div><span>My Cards</span></a>
+        <a class="nav-item" id="shop-nav-btn" title="Shop"><div class="icon">💰</div><span>Shop</span></a>
+        <a class="nav-item" data-target="profile-screen" title="My Profile"><div class="icon">👤</div><span>Profile</span></a>
+        <a class="nav-item" data-target="albums-screen" title="Albums"><div class="icon">📖</div><span>Albums</span></a>
+        <a class="nav-item" id="chat-nav-btn" title="Chat with Eve"><div class="icon">💬</div><span>Eve</span></a>
+    </nav>
+    
+    <script type="module" src="js/main.js"></script> 
+</body>
+</html>
