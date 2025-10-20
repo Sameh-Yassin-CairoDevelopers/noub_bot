@@ -4,6 +4,7 @@ import { showToast } from '../ui.js';
 
 let productionInterval;
 
+// --- Utility Functions ---
 function formatTime(seconds) {
     if (seconds < 0) seconds = 0;
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -12,8 +13,9 @@ function formatTime(seconds) {
     return `${h}:${m}:${s}`;
 }
 
+// --- Event Handlers & Modal Logic ---
+
 async function handleClaimProduction(playerFactory, masterFactoryData) {
-    // *** FIX: The output item data is nested inside the masterFactoryData ***
     const outputItem = masterFactoryData.items;
     
     if (!outputItem) {
@@ -36,9 +38,8 @@ async function handleClaimProduction(playerFactory, masterFactoryData) {
         console.error(error);
     } else {
         showToast(`Claimed 1 ${outputItem.name}!`, 'success');
-        closeModal('production-modal');
+        window.closeModal('production-modal');
         renderResources();
-        // We should also update the stock screen if it's active
         if(!document.getElementById('stock-screen').classList.contains('hidden')) {
             renderStock();
         }
@@ -80,7 +81,7 @@ async function handleStartProduction(playerFactory) {
         console.error(error);
     } else {
         showToast('Production started!', 'success');
-        closeModal('production-modal');
+        window.closeModal('production-modal');
         renderResources();
     }
 }
@@ -89,7 +90,6 @@ function openProductionModal(playerFactory) {
     const productionModal = document.getElementById('production-modal');
     clearInterval(productionInterval);
     
-    // The master factory data is nested inside the player factory object
     const factoryInfo = playerFactory.factories;
     const outputItem = factoryInfo.items;
     const isProducing = playerFactory.production_start_time !== null;
@@ -138,10 +138,10 @@ async function renderFactories(container, type) {
     if (!state.currentUser || !container) return;
     container.innerHTML = 'Loading buildings...';
 
-    const { data: playerFactories, error } = await api.fetchPlayerFactories(state.currentUser.id);
-
-    if (error) {
-        container.innerHTML = `<p class="error-message">Error loading your buildings: ${error.message}</p>`;
+    const { data: playerFactories, error: playerError } = await api.fetchPlayerFactories(state.currentUser.id);
+    
+    if (playerError) {
+        container.innerHTML = `<p class="error-message">Error loading your buildings: ${playerError.message}</p>`;
         return;
     }
 
@@ -173,7 +173,6 @@ async function renderFactories(container, type) {
 }
 
 export async function renderStock() {
-    // ... (This function remains unchanged, but I'll include it for completeness)
     const stockResourcesContainer = document.getElementById('stock-resources');
     const stockMaterialsContainer = document.getElementById('stock-materials');
     const stockGoodsContainer = document.getElementById('stock-goods');
@@ -223,6 +222,7 @@ export async function renderStock() {
     }
 }
 
+// Exported functions to be called by the UI module
 export function renderResources() {
     const resourcesContainer = document.getElementById('resources-container');
     if (resourcesContainer) {
