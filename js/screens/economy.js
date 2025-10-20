@@ -1,9 +1,45 @@
-
 import { state } from '../state.js';
 import * as api from '../api.js';
-// ... other imports remain the same
+import { showToast } from '../ui.js';
 
-// ... (other functions in the file like formatTime, handleClaim, etc., remain the same)
+// DOM element references
+const resourcesContainer = document.getElementById('resources-container');
+const workshopsContainer = document.getElementById('workshops-container');
+const productionModal = document.getElementById('production-modal');
+
+// Holds the setInterval timer to be cleared later
+let productionInterval;
+
+// --- Utility Functions ---
+function formatTime(seconds) {
+    if (seconds < 0) seconds = 0;
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+// --- Event Handlers & Modal Logic ---
+async function handleClaimProduction(playerFactory, outputItem) {
+    // This function will be re-connected after we confirm rendering works.
+    showToast('Claim functionality coming soon!');
+}
+
+function updateProductionModal(playerFactory) {
+    // This function will be re-connected after we confirm rendering works.
+}
+
+async function handleStartProduction(playerFactory) {
+    // This function will be re-connected after we confirm rendering works.
+    showToast('Start production functionality coming soon!');
+}
+
+function openProductionModal(playerFactory, factoryInfo) {
+    // This function will be re-connected after we confirm rendering works.
+    console.log("Opening modal for:", factoryInfo.name);
+}
+
+// --- Core Rendering Functions ---
 
 /**
  * REFACTORED: This function now uses two simple queries instead of one complex one.
@@ -18,30 +54,28 @@ async function renderFactories(container, type) {
     // Step 1: Fetch the player's specific factory data (e.g., id, level)
     const { data: playerFactories, error: playerError } = await api.fetchPlayerFactories(state.currentUser.id);
     if (playerError) {
-        container.innerHTML = `Error loading your buildings: ${playerError.message}`;
+        container.innerHTML = `<p class="error-message">Error loading your buildings: ${playerError.message}</p>`;
         return;
     }
 
     if (playerFactories.length === 0) {
-        container.innerHTML = `<p>You don't own any buildings yet.</p>`;
+        container.innerHTML = `<p style="grid-column: 1 / -1; text-align: center;">You don't own any buildings yet.</p>`;
         return;
     }
 
     // Step 2: Fetch the master data for ALL factories (e.g., name, image)
     const { data: masterFactories, error: masterError } = await api.fetchAllMasterFactories();
     if (masterError) {
-        container.innerHTML = 'Error loading factory definitions.';
+        container.innerHTML = '<p class="error-message">Error loading factory definitions.</p>';
         return;
     }
 
     // Now, combine the data on the client-side
     container.innerHTML = '';
     playerFactories.forEach(pf => {
-        // Find the matching master data for this player factory
         const factoryInfo = masterFactories.find(f => f.id === pf.factory_id);
         
-        // This check is important, although it should always pass
-        if (factoryInfo /*&& factoryInfo.type === type*/) { // We can add the type filter later
+        if (factoryInfo /* && factoryInfo.type === type */) { // Type filter can be added later
             const card = document.createElement('div');
             card.className = 'building-card';
             card.innerHTML = `
@@ -50,12 +84,32 @@ async function renderFactories(container, type) {
                 <span class="level">Level ${pf.level}</span>
                 <div class="status">${pf.production_start_time ? 'Producing...' : 'Idle'}</div>
             `;
-            // card.onclick = () => openProductionModal(...); // We will reconnect this next
+            // Re-enable interaction later
+            // card.onclick = () => openProductionModal(pf, factoryInfo);
             container.appendChild(card);
         }
     });
 }
 
+export async function renderStock() {
+    const stockResourcesContainer = document.getElementById('stock-resources');
+    stockResourcesContainer.innerHTML = 'Loading stock...';
+    
+    const { data: inventory, error } = await api.fetchPlayerInventory(state.currentUser.id);
+    if (error) {
+        stockResourcesContainer.innerHTML = '<p class="error-message">Error loading stock.</p>';
+        return;
+    }
+    
+    if (inventory.length === 0) {
+        stockResourcesContainer.innerHTML = '<p>Your stockpile is empty.</p>';
+        return;
+    }
+
+    stockResourcesContainer.innerHTML = '';
+    // ... rendering logic will be added here
+}
+
+// Exported functions to be called by the UI module
 export function renderResources() { renderFactories(resourcesContainer, 'RESOURCE'); }
-export function renderWorkshops() { workshopsContainer.innerHTML = 'Workshops coming soon!'; }
-export function renderStock() { /* ... same as before ... */ }
+export function renderWorkshops() { workshopsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">Workshops coming soon!</p>'; }
