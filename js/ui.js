@@ -27,7 +27,6 @@ export function navigateTo(targetId) {
     navItems.forEach(i => i.classList.toggle('active', i.dataset.target === targetId));
 
     // Call the specific render function for the newly displayed screen
-    // This decouples navigation from rendering logic.
     switch (targetId) {
         case 'collection-screen':
             renderCollection();
@@ -60,7 +59,7 @@ export function updateHeaderUI() {
 /**
  * Displays a short-lived notification message (toast) to the user.
  * @param {string} message - The text to display in the toast.
- * @param {string} [type='info'] - The type of toast (e.g., 'success', 'error'). Not currently used for styling but can be extended.
+ * @param {string} [type='info'] - The type of toast.
  */
 export function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
@@ -73,8 +72,19 @@ export function showToast(message, type = 'info') {
 }
 
 /**
+ * Closes a modal window by its ID.
+ * This function is exported to be used by other modules.
+ * @param {string} modalId - The ID of the modal to close.
+ */
+export function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
  * Sets up global event listeners for the application, primarily for navigation.
- * This should be called once when the application starts.
  */
 export function setupEventListeners() {
     // Standard navigation items
@@ -84,6 +94,6 @@ export function setupEventListeners() {
         }
     });
 
-    // Special navigation items that open modals instead of screens
+    // Special navigation items that open modals
     document.getElementById('shop-nav-btn').addEventListener('click', openShopModal);
 }
