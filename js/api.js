@@ -1,6 +1,6 @@
 import { supabaseClient } from './config.js';
 
-// --- Player and Card Functions ---
+// --- Player and Card Functions (Unchanged) ---
 
 export async function fetchProfile(userId) {
     return await supabaseClient.from('profiles').select('*').eq('id', userId).single();
@@ -26,8 +26,8 @@ export async function addCardToPlayerCollection(playerId, cardId) {
 // --- Economy API Functions ---
 
 /**
- * DEFINITIVE FINAL: Fetches all factories owned by a player.
- * This query is now corrected and complete, including the explicit JOIN hint.
+ * DEFINITIVE FINAL FIX: The query structure is now corrected to follow the proper relationship path:
+ * player_factories -> factories -> factory_recipes / items
  */
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
@@ -43,25 +43,25 @@ export async function fetchPlayerFactories(playerId) {
                 base_production_time, 
                 image_url, 
                 output_item_id, 
-                items!factories_output_item_id_fkey (id, name, image_url)
-            ),
-            factory_recipes (
-                input_quantity,
-                items (id, name, image_url)
+                items!factories_output_item_id_fkey (id, name, image_url),
+                factory_recipes (
+                    input_quantity,
+                    items (id, name, image_url)
+                )
             )
         `)
         .eq('player_id', playerId);
 }
 
 /**
- * Fetches all master data for factories.
+ * Fetches all master data for factories. (Unchanged)
  */
 export async function fetchAllMasterFactories() {
     return await supabaseClient.from('factories').select('*');
 }
 
 /**
- * Fetches a player's entire inventory, joining with the master item data.
+ * Fetches a player's entire inventory. (Unchanged)
  */
 export async function fetchPlayerInventory(playerId) {
     return await supabaseClient
@@ -74,7 +74,7 @@ export async function fetchPlayerInventory(playerId) {
 }
 
 /**
- * Starts the production timer for a specific player-owned factory.
+ * Starts the production timer. (Unchanged)
  */
 export async function startProduction(playerFactoryId, startTime) {
     return await supabaseClient
@@ -84,7 +84,7 @@ export async function startProduction(playerFactoryId, startTime) {
 }
 
 /**
- * Claims the finished product from a factory, updates the player's inventory, and resets the timer.
+ * Claims the finished product. (Unchanged)
  */
 export async function claimProduction(playerId, playerFactoryId, itemId, newQuantity) {
     const { error: upsertError } = await supabaseClient
@@ -103,8 +103,7 @@ export async function claimProduction(playerId, playerFactoryId, itemId, newQuan
 }
 
 /**
- * Updates the quantity of a specific item in the player's inventory.
- * Used for consuming resources during crafting.
+ * Updates the quantity of an item. (Unchanged)
  */
 export async function updateItemQuantity(playerId, itemId, newQuantity) {
     return await supabaseClient
