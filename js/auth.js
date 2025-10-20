@@ -3,16 +3,23 @@ import { state } from './state.js';
 import { fetchProfile } from './api.js';
 import { navigateTo, updateHeaderUI } from './ui.js';
 
+// DOM element references
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
 
+/**
+ * Initializes the main application view after a successful login.
+ * @param {object} user - The user object from Supabase Auth.
+ */
 async function initializeApp(user) {
     state.currentUser = user;
     
     let { data: profile, error } = await fetchProfile(user.id);
 
+    // This retry logic handles the slight delay that can occur between user creation
+    // and the database trigger that creates the corresponding profile.
     if (error && error.code === 'PGRST116') {
-        console.log('Profile not found, retrying in 1.5 seconds...');
+        console.log('Profile not found on first attempt, retrying...');
         await new Promise(resolve => setTimeout(resolve, 1500));
         const retryResult = await fetchProfile(user.id);
         profile = retryResult.data;
@@ -30,7 +37,7 @@ async function initializeApp(user) {
     authOverlay.classList.add('hidden');
     appContainer.classList.remove('hidden');
     updateHeaderUI();
-    navigateTo('collection-screen');
+    navigateTo('collection-screen'); // Default screen after login
 }
 
 async function login(email, password) {
@@ -41,6 +48,8 @@ async function login(email, password) {
 }
 
 async function signUp(email, password, username) {
+    // The database trigger 'on_auth_user_created' is responsible for creating the
+    // profile row. We just pass the username in the metadata.
     return await supabaseClient.auth.signUp({
         email,
         password,
@@ -56,8 +65,10 @@ export async function logout() {
     authOverlay.classList.remove('hidden');
 }
 
+/**
+ * Sets up event listeners for the authentication forms (login, signup, logout).
+ */
 export function setupAuthEventListeners() {
-    // Login
     document.getElementById('login-button').addEventListener('click', async () => {
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
@@ -67,7 +78,6 @@ export function setupAuthEventListeners() {
         if (error) errorDiv.textContent = 'Login Error: ' + error.message;
     });
 
-    // Sign Up
     document.getElementById('register-button').addEventListener('click', async () => {
         const email = document.getElementById('register-email').value;
         const password = document.getElementById('register-password').value;
@@ -84,10 +94,12 @@ export function setupAuthEventListeners() {
         }
     });
 
-    // Logout
     document.getElementById('logout-btn').addEventListener('click', logout);
 }
 
+/**
+ * Checks for an active session when the app loads and initializes the app if found.
+ */
 export async function handleInitialSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
