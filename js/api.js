@@ -1,84 +1,50 @@
-
 import { supabaseClient } from './config.js';
 
 // --- Player and Card Functions ---
 
-/**
- * Fetches a single player profile by their user ID.
- * @param {string} userId - The UUID of the user.
- * @returns {Promise} A Supabase query promise.
- */
 export async function fetchProfile(userId) {
     return await supabaseClient.from('profiles').select('*').eq('id', userId).single();
 }
 
-/**
- * Fetches all cards owned by a specific player, joining with the master card data.
- * @param {string} playerId - The UUID of the player.
- * @returns {Promise} A Supabase query promise.
- */
 export async function fetchPlayerCards(playerId) {
     return await supabaseClient.from('player_cards').select('cards(*)').eq('player_id', playerId);
 }
 
-/**
- * Fetches the IDs of all cards from the master list. Used for randomly awarding a card.
- * @returns {Promise} A Supabase query promise.
- */
 export async function fetchAllMasterCards() {
     return await supabaseClient.from('cards').select('id');
 }
 
-/**
- * Updates the player's primary score (Ankh).
- * @param {string} playerId - The UUID of the player.
- * @param {number} newScore - The new score value.
- * @returns {Promise} A Supabase query promise.
- */
 export async function updatePlayerScore(playerId, newScore) {
     return await supabaseClient.from('profiles').update({ score: newScore }).eq('id', playerId);
 }
 
-/**
- * Adds a new card to a player's collection.
- * @param {string} playerId - The UUID of the player.
- * @param {number} cardId - The ID of the card from the master list.
- * @returns {Promise} A Supabase query promise.
- */
 export async function addCardToPlayerCollection(playerId, cardId) {
     return await supabaseClient.from('player_cards').insert({ player_id: playerId, card_id: cardId });
 }
 
 
-// --- Economy API Functions ---
+// --- REFACTORED Economy API Functions for Stability ---
 
 /**
- * Fetches all factories owned by a player, including joined data about the factory type and its recipes.
- * This is a complex query that uses Supabase's joining capabilities.
+ * REFACTORED: Fetches the player's owned factory data. This is a simple, reliable query.
+ * We will fetch the master data separately in the screen logic.
  * @param {string} playerId - The UUID of the player.
  * @returns {Promise} A Supabase query promise.
  */
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
         .from('player_factories')
-        .select(`
-            id,
-            level,
-            production_start_time,
-            factories (
-                name, 
-                type, 
-                base_production_time, 
-                image_url, 
-                output_item_id, 
-                items (id, name, image_url)
-            ),
-            factory_recipes (
-                input_quantity, 
-                items (id, name, image_url)
-            )
-        `)
+        .select('*')
         .eq('player_id', playerId);
+}
+
+/**
+ * Fetches all master data for factories.
+ * This keeps the queries simple and separate.
+ * @returns {Promise}
+ */
+export async function fetchAllMasterFactories() {
+    return await supabaseClient.from('factories').select('*');
 }
 
 /**
@@ -118,21 +84,17 @@ export async function startProduction(playerFactoryId, startTime) {
  * @returns {Promise} A Supabase query promise for the final step.
  */
 export async function claimProduction(playerId, playerFactoryId, itemId, newQuantity) {
-    // This function performs two database operations.
-
-    // 1. Upsert inventory: Update the item quantity if it exists, or insert if it's new.
-    // *** CRITICAL FIX APPLIED HERE: Using the correct 'playerId' (the UUID) for the row's owner. ***
+    // 1. Upsert inventory.
     const { error: upsertError } = await supabaseClient
         .from('player_inventory')
         .upsert({ player_id: playerId, item_id: itemId, quantity: newQuantity });
     
     if (upsertError) {
-        // Log the critical error for debugging and return it.
         console.error("CRITICAL ERROR during inventory upsert:", upsertError);
         return { error: upsertError };
     }
     
-    // 2. Clear production timer in the player's factory to make it idle again.
+    // 2. Clear production timer.
     return await supabaseClient
         .from('player_factories')
         .update({ production_start_time: null })
