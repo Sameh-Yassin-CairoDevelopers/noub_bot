@@ -4,7 +4,6 @@ import { showToast } from '../ui.js';
 
 let productionInterval;
 
-// --- Utility Functions ---
 function formatTime(seconds) {
     if (seconds < 0) seconds = 0;
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -12,8 +11,6 @@ function formatTime(seconds) {
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
 }
-
-// --- Event Handlers & Modal Logic ---
 
 async function handleClaimProduction(playerFactory, masterFactoryData) {
     const outputItem = masterFactoryData.items;
@@ -39,9 +36,11 @@ async function handleClaimProduction(playerFactory, masterFactoryData) {
     } else {
         showToast(`Claimed 1 ${outputItem.name}!`, 'success');
         window.closeModal('production-modal');
-        renderResources();
-        if(!document.getElementById('stock-screen').classList.contains('hidden')) {
-            renderStock();
+        // Refresh the correct screen (resources or workshops)
+        if (masterFactoryData.type === 'RESOURCE') {
+            renderResources();
+        } else {
+            renderWorkshops();
         }
     }
 }
@@ -73,26 +72,70 @@ function updateProductionModal(playerFactory, masterFactoryData) {
     }
 }
 
-async function handleStartProduction(playerFactory) {
+async function handleStartProduction(playerFactory, recipe) {
     showToast('Starting production...');
-    const { error } = await api.startProduction(playerFactory.id, new Date().toISOString());
-    if (error) {
+
+    // If it's a crafting recipe (requires input)
+    if (recipe) {
+        const inputItem = recipe.items;
+        const requiredQty = recipe.input_quantity;
+
+        const { data: inventory } = await api.fetchPlayerInventory(state.currentUser.id);
+        const inventoryItem = inventory.find(i => i.items && i.items.id === inputItem.id);
+        const newQuantity = inventoryItem.quantity - requiredQty;
+
+        const { error: consumeError } = await api.updateItemQuantity(state.currentUser.id, inputItem.id, newQuantity);
+
+        if (consumeError) {
+            showToast('Error consuming resources!', 'error');
+            console.error(consumeError);
+            return;
+        }
+    }
+
+    const { error: startError } = await api.startProduction(playerFactory.id, new Date().toISOString());
+    if (startError) {
         showToast('Error starting production!', 'error');
-        console.error(error);
+        console.error(startError);
     } else {
         showToast('Production started!', 'success');
         window.closeModal('production-modal');
-        renderResources();
+        // Refresh the correct screen
+        if (playerFactory.factories.type === 'RESOURCE') {
+            renderResources();
+        } else {
+            renderWorkshops();
+        }
     }
 }
 
-function openProductionModal(playerFactory) {
+async function openProductionModal(playerFactory) {
     const productionModal = document.getElementById('production-modal');
     clearInterval(productionInterval);
     
     const factoryInfo = playerFactory.factories;
     const outputItem = factoryInfo.items;
     const isProducing = playerFactory.production_start_time !== null;
+
+    const recipe = playerFactory.factory_recipes[0];
+    let inputHTML = '<p>None</p>';
+    let canAfford = true;
+
+    if (recipe) {
+        const inputItem = recipe.items;
+        const requiredQty = recipe.input_quantity;
+        
+        const { data: inventory } = await api.fetchPlayerInventory(state.currentUser.id);
+        const inventoryItem = inventory.find(i => i.items && i.items.id === inputItem.id);
+        const playerQty = inventoryItem ? inventoryItem.quantity : 0;
+
+        canAfford = playerQty >= requiredQty;
+        
+        inputHTML = `
+            <img src="${inputItem.image_url || 'images/default_item.png'}" alt="${inputItem.name}">
+            <p style="color: ${canAfford ? 'white' : 'red'};">${playerQty} / ${requiredQty}</p>
+        `;
+    }
 
     let modalHTML = `
         <div class="modal-content">
@@ -104,13 +147,9 @@ function openProductionModal(playerFactory) {
             </div>
             <div class="prod-modal-body">
                 <div class="prod-io">
-                    <div class="prod-item"> <span class="label">Input</span> <p>None</p> </div>
+                    <div class="prod-item"> <span class="label">Input</span> ${inputHTML} </div>
                     <div class="arrow">→</div>
-                    <div class="prod-item">
-                        <span class="label">Output</span>
-                        <img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}">
-                        <p>1 x ${outputItem.name}</p>
-                    </div>
+                    <div class="prod-item"> <span class="label">Output</span> <img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}"> <p>1 x ${outputItem.name}</p> </div>
                 </div>
                 <div class="prod-timer">
                     <div id="time-left" class="time-left">${formatTime(factoryInfo.base_production_time)}</div>
@@ -130,7 +169,10 @@ function openProductionModal(playerFactory) {
         productionInterval = setInterval(() => updateProductionModal(playerFactory, factoryInfo), 1000);
         actionBtn.onclick = () => handleClaimProduction(playerFactory, factoryInfo);
     } else {
-        actionBtn.onclick = () => handleStartProduction(playerFactory);
+        actionBtn.onclick = () => handleStartProduction(playerFactory, recipe);
+        if (!canAfford) {
+            actionBtn.disabled = true;
+        }
     }
 }
 
@@ -138,10 +180,10 @@ async function renderFactories(container, type) {
     if (!state.currentUser || !container) return;
     container.innerHTML = 'Loading buildings...';
 
-    const { data: playerFactories, error: playerError } = await api.fetchPlayerFactories(state.currentUser.id);
-    
-    if (playerError) {
-        container.innerHTML = `<p class="error-message">Error loading your buildings: ${playerError.message}</p>`;
+    const { data: playerFactories, error } = await api.fetchPlayerFactories(state.currentUser.id);
+
+    if (error) {
+        container.innerHTML = `<p class="error-message">Error loading your buildings: ${error.message}</p>`;
         return;
     }
 
@@ -222,7 +264,6 @@ export async function renderStock() {
     }
 }
 
-// Exported functions to be called by the UI module
 export function renderResources() {
     const resourcesContainer = document.getElementById('resources-container');
     if (resourcesContainer) {
