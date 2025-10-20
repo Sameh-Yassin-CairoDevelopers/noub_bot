@@ -1,11 +1,9 @@
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, closeModal } from '../ui.js'; // IMPORT closeModal HERE
+import { showToast } from '../ui.js';
 
-// Holds the setInterval timer to be cleared later
 let productionInterval;
 
-// --- Utility Functions ---
 function formatTime(seconds) {
     if (seconds < 0) seconds = 0;
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -14,10 +12,15 @@ function formatTime(seconds) {
     return `${h}:${m}:${s}`;
 }
 
-// --- Event Handlers & Modal Logic ---
 async function handleClaimProduction(playerFactory, masterFactoryData) {
-    // This is a placeholder for the more complex logic that will fetch the specific item
-    const outputItem = { id: masterFactoryData.output_item_id, name: masterFactoryData.name.replace('Quarry', '').replace('Farm', '').trim() };
+    // *** FIX: The output item data is nested inside the masterFactoryData ***
+    const outputItem = masterFactoryData.items;
+    
+    if (!outputItem) {
+        console.error("Could not find output item data for factory:", masterFactoryData);
+        showToast('Error: Missing item data!', 'error');
+        return;
+    }
     
     showToast('Claiming...');
 
@@ -35,6 +38,10 @@ async function handleClaimProduction(playerFactory, masterFactoryData) {
         showToast(`Claimed 1 ${outputItem.name}!`, 'success');
         closeModal('production-modal');
         renderResources();
+        // We should also update the stock screen if it's active
+        if(!document.getElementById('stock-screen').classList.contains('hidden')) {
+            renderStock();
+        }
     }
 }
 
@@ -78,18 +85,18 @@ async function handleStartProduction(playerFactory) {
     }
 }
 
-function openProductionModal(playerFactory, masterFactoryData) {
+function openProductionModal(playerFactory) {
     const productionModal = document.getElementById('production-modal');
     clearInterval(productionInterval);
     
-    const factoryInfo = masterFactoryData;
+    // The master factory data is nested inside the player factory object
+    const factoryInfo = playerFactory.factories;
+    const outputItem = factoryInfo.items;
     const isProducing = playerFactory.production_start_time !== null;
-    const outputItemName = factoryInfo.name.replace('Quarry', '').replace('Farm', '').trim();
 
-    // Dynamically create the modal's inner HTML
     let modalHTML = `
         <div class="modal-content">
-            <button class="modal-close-btn" id="production-modal-close-btn">&times;</button>
+            <button class="modal-close-btn" onclick="closeModal('production-modal')">&times;</button>
             <div class="prod-modal-header">
                 <img src="${factoryInfo.image_url || 'images/default_building.png'}" alt="${factoryInfo.name}">
                 <h3>${factoryInfo.name}</h3>
@@ -99,7 +106,11 @@ function openProductionModal(playerFactory, masterFactoryData) {
                 <div class="prod-io">
                     <div class="prod-item"> <span class="label">Input</span> <p>None</p> </div>
                     <div class="arrow">→</div>
-                    <div class="prod-item"> <span class="label">Output</span> <p>1 x ${outputItemName}</p> </div>
+                    <div class="prod-item">
+                        <span class="label">Output</span>
+                        <img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}">
+                        <p>1 x ${outputItem.name}</p>
+                    </div>
                 </div>
                 <div class="prod-timer">
                     <div id="time-left" class="time-left">${formatTime(factoryInfo.base_production_time)}</div>
@@ -112,9 +123,6 @@ function openProductionModal(playerFactory, masterFactoryData) {
     productionModal.innerHTML = modalHTML;
     productionModal.classList.remove('hidden');
     
-    // Programmatically add event listeners instead of using onclick in HTML
-    document.getElementById('production-modal-close-btn').addEventListener('click', () => closeModal('production-modal'));
-    
     const actionBtn = document.getElementById('prod-action-btn');
 
     if (isProducing) {
@@ -126,14 +134,14 @@ function openProductionModal(playerFactory, masterFactoryData) {
     }
 }
 
-// --- Core Rendering Functions ---
 async function renderFactories(container, type) {
     if (!state.currentUser || !container) return;
     container.innerHTML = 'Loading buildings...';
 
-    const { data: playerFactories, error: playerError } = await api.fetchPlayerFactories(state.currentUser.id);
-    if (playerError) {
-        container.innerHTML = `<p class="error-message">Error loading your buildings: ${playerError.message}</p>`;
+    const { data: playerFactories, error } = await api.fetchPlayerFactories(state.currentUser.id);
+
+    if (error) {
+        container.innerHTML = `<p class="error-message">Error loading your buildings: ${error.message}</p>`;
         return;
     }
 
@@ -141,45 +149,80 @@ async function renderFactories(container, type) {
         container.innerHTML = `<p style="grid-column: 1 / -1; text-align: center;">You don't own any ${type.toLowerCase()} buildings yet.</p>`;
         return;
     }
-
-    const { data: masterFactories, error: masterError } = await api.fetchAllMasterFactories();
-    if (masterError) {
-        container.innerHTML = '<p class="error-message">Error loading factory definitions.</p>';
-        return;
-    }
-
-    container.innerHTML = '';
-    const filteredFactories = playerFactories.filter(pf => {
-        const factoryInfo = masterFactories.find(f => f.id === pf.factory_id);
-        return factoryInfo && factoryInfo.type === type;
-    });
-
+    
+    const filteredFactories = playerFactories.filter(pf => pf.factories && pf.factories.type === type);
+    
     if (filteredFactories.length === 0) {
         container.innerHTML = `<p style="grid-column: 1 / -1; text-align: center;">You don't own any ${type.toLowerCase()} buildings yet.</p>`;
         return;
     }
 
+    container.innerHTML = '';
     filteredFactories.forEach(pf => {
-        const factoryInfo = masterFactories.find(f => f.id === pf.factory_id);
         const card = document.createElement('div');
         card.className = 'building-card';
         card.innerHTML = `
-            <img src="${factoryInfo.image_url || 'images/default_building.png'}" alt="${factoryInfo.name}">
-            <h4>${factoryInfo.name}</h4>
+            <img src="${pf.factories.image_url || 'images/default_building.png'}" alt="${pf.factories.name}">
+            <h4>${pf.factories.name}</h4>
             <span class="level">Level ${pf.level}</span>
             <div class="status">${pf.production_start_time ? 'Producing...' : 'Idle'}</div>
         `;
-        card.onclick = () => openProductionModal(pf, factoryInfo);
+        card.onclick = () => openProductionModal(pf);
         container.appendChild(card);
     });
 }
 
 export async function renderStock() {
+    // ... (This function remains unchanged, but I'll include it for completeness)
     const stockResourcesContainer = document.getElementById('stock-resources');
-    // ... (rest of the function remains unchanged)
+    const stockMaterialsContainer = document.getElementById('stock-materials');
+    const stockGoodsContainer = document.getElementById('stock-goods');
+
+    if (!stockResourcesContainer) return;
+
+    stockResourcesContainer.innerHTML = 'Loading stock...';
+    stockMaterialsContainer.innerHTML = '';
+    stockGoodsContainer.innerHTML = '';
+
+    const { data: inventory, error } = await api.fetchPlayerInventory(state.currentUser.id);
+    if (error) {
+        stockResourcesContainer.innerHTML = '<p class="error-message">Error loading stock.</p>';
+        return;
+    }
+    
+    if (!inventory || inventory.length === 0) {
+        stockResourcesContainer.innerHTML = '<p>Your stockpile is empty.</p>';
+        return;
+    }
+
+    stockResourcesContainer.innerHTML = '';
+    
+    let resourceCount = 0;
+    inventory.forEach(invItem => {
+        const item = invItem.items;
+        if (!item) return;
+
+        const itemEl = document.createElement('div');
+        itemEl.className = 'stock-item';
+        itemEl.innerHTML = `
+            <img src="${item.image_url}" alt="${item.name}">
+            <div class="details">
+                <h4>${item.name}</h4>
+            </div>
+            <span class="quantity">${invItem.quantity}</span>
+        `;
+
+        if (item.type === 'RESOURCE') {
+            stockResourcesContainer.appendChild(itemEl);
+            resourceCount++;
+        }
+    });
+
+    if (resourceCount === 0) {
+        stockResourcesContainer.innerHTML = '<p>No raw resources in stockpile.</p>';
+    }
 }
 
-// Exported functions to be called by the UI module
 export function renderResources() {
     const resourcesContainer = document.getElementById('resources-container');
     if (resourcesContainer) {
