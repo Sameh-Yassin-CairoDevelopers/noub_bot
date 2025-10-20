@@ -26,11 +26,7 @@ export async function addCardToPlayerCollection(playerId, cardId) {
 // --- Economy API Functions ---
 
 /**
- * DEFINITIVE FIX: Fetches all factories owned by a player.
- * This version resolves the "more than one relationship" ambiguity by explicitly
- * telling Supabase which foreign key to use for the 'items' join: 'factories_output_item_id_fkey'.
- * @param {string} playerId - The UUID of the player.
- * @returns {Promise} A Supabase query promise.
+ * DEFINITIVE FIX: Corrected a typo in the 'image_url' column name within the 'factories' join.
  */
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
