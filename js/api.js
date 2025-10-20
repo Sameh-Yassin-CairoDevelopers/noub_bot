@@ -1,3 +1,4 @@
+
 import { supabaseClient } from './config.js';
 
 // --- Player and Card Functions ---
@@ -17,7 +18,6 @@ export async function fetchProfile(userId) {
  * @returns {Promise} A Supabase query promise.
  */
 export async function fetchPlayerCards(playerId) {
-    // Selects all columns from the 'cards' table for each entry in 'player_cards'
     return await supabaseClient.from('player_cards').select('cards(*)').eq('player_id', playerId);
 }
 
@@ -50,7 +50,7 @@ export async function addCardToPlayerCollection(playerId, cardId) {
 }
 
 
-// --- NEW: Economy API Functions ---
+// --- Economy API Functions ---
 
 /**
  * Fetches all factories owned by a player, including joined data about the factory type and its recipes.
@@ -71,11 +71,11 @@ export async function fetchPlayerFactories(playerId) {
                 base_production_time, 
                 image_url, 
                 output_item_id, 
-                items (name, image_url)
+                items (id, name, image_url)
             ),
             factory_recipes (
                 input_quantity, 
-                items (name, image_url)
+                items (id, name, image_url)
             )
         `)
         .eq('player_id', playerId);
@@ -111,7 +111,7 @@ export async function startProduction(playerFactoryId, startTime) {
 
 /**
  * Claims the finished product from a factory, updates the player's inventory, and resets the timer.
- * @param {string} playerId - The UUID of the player.
+ * @param {string} playerId - The UUID of the player. (CRITICAL: This is the user's main ID)
  * @param {number} playerFactoryId - The ID of the player_factories row.
  * @param {number} itemId - The ID of the item being claimed.
  * @param {number} newQuantity - The new total quantity of the item in the inventory.
@@ -120,11 +120,17 @@ export async function startProduction(playerFactoryId, startTime) {
 export async function claimProduction(playerId, playerFactoryId, itemId, newQuantity) {
     // This function performs two database operations.
 
-    // 1. Upsert inventory: Update the item quantity if it exists, or insert it if it's new.
-    // 'upsert' is a powerful Supabase feature that simplifies this logic.
-    await supabaseClient
+    // 1. Upsert inventory: Update the item quantity if it exists, or insert if it's new.
+    // *** CRITICAL FIX APPLIED HERE: Using the correct 'playerId' (the UUID) for the row's owner. ***
+    const { error: upsertError } = await supabaseClient
         .from('player_inventory')
         .upsert({ player_id: playerId, item_id: itemId, quantity: newQuantity });
+    
+    if (upsertError) {
+        // Log the critical error for debugging and return it.
+        console.error("CRITICAL ERROR during inventory upsert:", upsertError);
+        return { error: upsertError };
+    }
     
     // 2. Clear production timer in the player's factory to make it idle again.
     return await supabaseClient
