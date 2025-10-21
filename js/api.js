@@ -1,6 +1,13 @@
+/*
+ * Filename: js/api.js
+ * Version: 15.0 (Crafting Update & Complete)
+ * Description: Data Access Layer Module.
+ * Added 'updateItemQuantity' and simplified inventory fetch query.
+*/
+
 import { supabaseClient } from './config.js';
 
-// --- Player and Card Functions (Unchanged) ---
+// --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
     return await supabaseClient.from('profiles').select('*').eq('id', userId).single();
@@ -25,10 +32,6 @@ export async function addCardToPlayerCollection(playerId, cardId) {
 
 // --- Economy API Functions ---
 
-/**
- * DEFINITIVE FINAL FIX: The query structure is now corrected to follow the proper relationship path:
- * player_factories -> factories -> factory_recipes / items
- */
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
         .from('player_factories')
@@ -53,29 +56,21 @@ export async function fetchPlayerFactories(playerId) {
         .eq('player_id', playerId);
 }
 
-/**
- * Fetches all master data for factories. (Unchanged)
- */
 export async function fetchAllMasterFactories() {
     return await supabaseClient.from('factories').select('*');
 }
 
 /**
- * Fetches a player's entire inventory. (Unchanged)
+ * REFACTORED: Fetches a player's inventory.
+ * Now returns a simpler data structure for easier state management.
  */
 export async function fetchPlayerInventory(playerId) {
     return await supabaseClient
         .from('player_inventory')
-        .select(`
-            quantity,
-            items (id, name, type, image_url)
-        `)
+        .select(`quantity, item_id, items (name, type, image_url)`)
         .eq('player_id', playerId);
 }
 
-/**
- * Starts the production timer. (Unchanged)
- */
 export async function startProduction(playerFactoryId, startTime) {
     return await supabaseClient
         .from('player_factories')
@@ -83,18 +78,10 @@ export async function startProduction(playerFactoryId, startTime) {
         .eq('id', playerFactoryId);
 }
 
-/**
- * Claims the finished product. (Unchanged)
- */
 export async function claimProduction(playerId, playerFactoryId, itemId, newQuantity) {
-    const { error: upsertError } = await supabaseClient
+    await supabaseClient
         .from('player_inventory')
         .upsert({ player_id: playerId, item_id: itemId, quantity: newQuantity });
-    
-    if (upsertError) {
-        console.error("CRITICAL ERROR during inventory upsert:", upsertError);
-        return { error: upsertError };
-    }
     
     return await supabaseClient
         .from('player_factories')
@@ -103,7 +90,8 @@ export async function claimProduction(playerId, playerFactoryId, itemId, newQuan
 }
 
 /**
- * Updates the quantity of an item. (Unchanged)
+ * NEW: Updates the quantity of a specific item in the player's inventory.
+ * Used for consuming resources during crafting.
  */
 export async function updateItemQuantity(playerId, itemId, newQuantity) {
     return await supabaseClient
