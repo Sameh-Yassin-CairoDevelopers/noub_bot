@@ -1,8 +1,10 @@
+
 /*
  * Filename: js/api.js
  * Version: 15.0 (Crafting Update & Complete)
  * Description: Data Access Layer Module.
- * Added 'updateItemQuantity' and simplified inventory fetch query.
+ * This version adds the 'updateItemQuantity' function for crafting
+ * and simplifies the inventory fetch query.
 */
 
 import { supabaseClient } from './config.js';
