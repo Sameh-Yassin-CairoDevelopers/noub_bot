@@ -1,25 +1,27 @@
+
+/*
+ * Filename: js/auth.js
+ * Version: 15.0 (Crafting Update & Complete)
+ * Description: Authentication Module.
+ * Now fetches and populates the player's inventory into the shared state upon login.
+*/
+
 import { supabaseClient } from './config.js';
 import { state } from './state.js';
-import { fetchProfile } from './api.js';
+import { fetchProfile, fetchPlayerInventory } from './api.js';
 import { navigateTo, updateHeaderUI } from './ui.js';
 
-// DOM element references
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
 
-/**
- * Initializes the main application view after a successful login.
- * @param {object} user - The user object from Supabase Auth.
- */
 async function initializeApp(user) {
     state.currentUser = user;
     
+    // Step 1: Fetch profile and handle potential trigger delay
     let { data: profile, error } = await fetchProfile(user.id);
 
-    // This retry logic handles the slight delay that can occur between user creation
-    // and the database trigger that creates the corresponding profile.
     if (error && error.code === 'PGRST116') {
-        console.log('Profile not found on first attempt, retrying...');
+        console.log('Profile not found, retrying...');
         await new Promise(resolve => setTimeout(resolve, 1500));
         const retryResult = await fetchProfile(user.id);
         profile = retryResult.data;
@@ -32,12 +34,24 @@ async function initializeApp(user) {
         await logout();
         return;
     }
-    
     state.playerProfile = profile;
+
+    // Step 2: Fetch inventory and populate the state
+    const { data: inventoryData, error: inventoryError } = await fetchPlayerInventory(user.id);
+    if (inventoryError) {
+        console.error("Error fetching inventory:", inventoryError);
+    } else {
+        state.inventory.clear();
+        inventoryData.forEach(item => {
+            state.inventory.set(item.item_id, item.quantity);
+        });
+    }
+    
+    // Step 3: Show the app and navigate to the home screen
     authOverlay.classList.add('hidden');
     appContainer.classList.remove('hidden');
     updateHeaderUI();
-    navigateTo('collection-screen'); // Default screen after login
+    navigateTo('collection-screen');
 }
 
 async function login(email, password) {
@@ -48,8 +62,6 @@ async function login(email, password) {
 }
 
 async function signUp(email, password, username) {
-    // The database trigger 'on_auth_user_created' is responsible for creating the
-    // profile row. We just pass the username in the metadata.
     return await supabaseClient.auth.signUp({
         email,
         password,
@@ -61,13 +73,11 @@ export async function logout() {
     await supabaseClient.auth.signOut();
     state.currentUser = null;
     state.playerProfile = {};
+    state.inventory.clear();
     appContainer.classList.add('hidden');
     authOverlay.classList.remove('hidden');
 }
 
-/**
- * Sets up event listeners for the authentication forms (login, signup, logout).
- */
 export function setupAuthEventListeners() {
     document.getElementById('login-button').addEventListener('click', async () => {
         const email = document.getElementById('login-email').value;
@@ -97,9 +107,6 @@ export function setupAuthEventListeners() {
     document.getElementById('logout-btn').addEventListener('click', logout);
 }
 
-/**
- * Checks for an active session when the app loads and initializes the app if found.
- */
 export async function handleInitialSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
