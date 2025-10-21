@@ -1,3 +1,11 @@
+
+/*
+ * Filename: js/screens/economy.js
+ * Version: 15.0 (Full Crafting Loop & Complete)
+ * Description: Implemented the full crafting loop, including recipe display, 
+ * resource checking from state, and consumption.
+*/
+
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast } from '../ui.js';
@@ -23,9 +31,7 @@ async function handleClaimProduction(playerFactory, masterFactoryData) {
     
     showToast('Claiming...');
 
-    const { data: inventory } = await api.fetchPlayerInventory(state.currentUser.id);
-    const existingItem = inventory.find(i => i.items && i.items.id === outputItem.id);
-    const currentQuantity = existingItem ? existingItem.quantity : 0;
+    const currentQuantity = state.inventory.get(outputItem.id) || 0;
     const newQuantity = currentQuantity + 1;
 
     const { error } = await api.claimProduction(state.currentUser.id, playerFactory.id, outputItem.id, newQuantity);
@@ -34,9 +40,9 @@ async function handleClaimProduction(playerFactory, masterFactoryData) {
         showToast('Error claiming production!', 'error');
         console.error(error);
     } else {
+        state.inventory.set(outputItem.id, newQuantity);
         showToast(`Claimed 1 ${outputItem.name}!`, 'success');
         window.closeModal('production-modal');
-        // Refresh the correct screen (resources or workshops)
         if (masterFactoryData.type === 'RESOURCE') {
             renderResources();
         } else {
@@ -75,22 +81,19 @@ function updateProductionModal(playerFactory, masterFactoryData) {
 async function handleStartProduction(playerFactory, recipe) {
     showToast('Starting production...');
 
-    // If it's a crafting recipe (requires input)
     if (recipe) {
         const inputItem = recipe.items;
         const requiredQty = recipe.input_quantity;
-
-        const { data: inventory } = await api.fetchPlayerInventory(state.currentUser.id);
-        const inventoryItem = inventory.find(i => i.items && i.items.id === inputItem.id);
-        const newQuantity = inventoryItem.quantity - requiredQty;
+        const currentQty = state.inventory.get(inputItem.id) || 0;
+        const newQuantity = currentQty - requiredQty;
 
         const { error: consumeError } = await api.updateItemQuantity(state.currentUser.id, inputItem.id, newQuantity);
-
         if (consumeError) {
             showToast('Error consuming resources!', 'error');
             console.error(consumeError);
             return;
         }
+        state.inventory.set(inputItem.id, newQuantity);
     }
 
     const { error: startError } = await api.startProduction(playerFactory.id, new Date().toISOString());
@@ -100,7 +103,6 @@ async function handleStartProduction(playerFactory, recipe) {
     } else {
         showToast('Production started!', 'success');
         window.closeModal('production-modal');
-        // Refresh the correct screen
         if (playerFactory.factories.type === 'RESOURCE') {
             renderResources();
         } else {
@@ -117,17 +119,14 @@ async function openProductionModal(playerFactory) {
     const outputItem = factoryInfo.items;
     const isProducing = playerFactory.production_start_time !== null;
 
-    const recipe = playerFactory.factory_recipes[0];
+    const recipe = factoryInfo.factory_recipes[0];
     let inputHTML = '<p>None</p>';
     let canAfford = true;
 
     if (recipe) {
         const inputItem = recipe.items;
         const requiredQty = recipe.input_quantity;
-        
-        const { data: inventory } = await api.fetchPlayerInventory(state.currentUser.id);
-        const inventoryItem = inventory.find(i => i.items && i.items.id === inputItem.id);
-        const playerQty = inventoryItem ? inventoryItem.quantity : 0;
+        const playerQty = state.inventory.get(inputItem.id) || 0;
 
         canAfford = playerQty >= requiredQty;
         
@@ -222,44 +221,40 @@ export async function renderStock() {
     if (!stockResourcesContainer) return;
 
     stockResourcesContainer.innerHTML = 'Loading stock...';
-    stockMaterialsContainer.innerHTML = '';
-    stockGoodsContainer.innerHTML = '';
+    stockMaterialsContainer.innerHTML = 'Materials coming soon!';
+    stockGoodsContainer.innerHTML = 'Goods coming soon!';
 
-    const { data: inventory, error } = await api.fetchPlayerInventory(state.currentUser.id);
+    const { data: inventoryData, error } = await api.fetchPlayerInventory(state.currentUser.id);
     if (error) {
         stockResourcesContainer.innerHTML = '<p class="error-message">Error loading stock.</p>';
         return;
     }
-    
-    if (!inventory || inventory.length === 0) {
-        stockResourcesContainer.innerHTML = '<p>Your stockpile is empty.</p>';
-        return;
-    }
+
+    state.inventory.clear();
+    inventoryData.forEach(item => {
+        state.inventory.set(item.item_id, {qty: item.quantity, details: item.items});
+    });
 
     stockResourcesContainer.innerHTML = '';
     
-    let resourceCount = 0;
-    inventory.forEach(invItem => {
-        const item = invItem.items;
-        if (!item) return;
-
-        const itemEl = document.createElement('div');
-        itemEl.className = 'stock-item';
-        itemEl.innerHTML = `
-            <img src="${item.image_url}" alt="${item.name}">
-            <div class="details">
-                <h4>${item.name}</h4>
-            </div>
-            <span class="quantity">${invItem.quantity}</span>
-        `;
-
-        if (item.type === 'RESOURCE') {
+    let hasResources = false;
+    for (const [itemId, itemData] of state.inventory.entries()) {
+        if (itemData.details && itemData.details.type === 'RESOURCE') {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'stock-item';
+            itemEl.innerHTML = `
+                <img src="${itemData.details.image_url}" alt="${itemData.details.name}">
+                <div class="details">
+                    <h4>${itemData.details.name}</h4>
+                </div>
+                <span class="quantity">${itemData.qty}</span>
+            `;
             stockResourcesContainer.appendChild(itemEl);
-            resourceCount++;
+            hasResources = true;
         }
-    });
+    }
 
-    if (resourceCount === 0) {
+    if (!hasResources) {
         stockResourcesContainer.innerHTML = '<p>No raw resources in stockpile.</p>';
     }
 }
