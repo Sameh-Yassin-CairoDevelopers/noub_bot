@@ -1,8 +1,7 @@
 /*
  * Filename: js/ui.js
- * Version: 16.2 (CRITICAL EXPORT FIX)
- * Description: UI Controller Module.
- * FIX: Correctly exported the closeModal function.
+ * Version: 16.3 (Definitive Global Fix - Complete)
+ * Description: UI Controller Module. closeModal is now globally accessible.
 */
 
 import { renderCollection } from './screens/collection.js';
@@ -14,18 +13,19 @@ import { state } from './state.js';
 const contentContainer = document.getElementById('content-container');
 const navItems = document.querySelectorAll('.nav-item');
 
+// Make this function globally available for onclick attributes in HTML
+// This definitively solves the "closeModal is not defined" error.
+window.closeModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
 export function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('hidden');
-    }
-}
-
-// *** THE FIX IS HERE: Add 'export' to make this function available to other modules ***
-export function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.add('hidden');
     }
 }
 
@@ -72,15 +72,15 @@ function setupNavEvents() {
 
 function setupMoreMenuEvents() {
     document.getElementById('more-profile-btn').addEventListener('click', () => {
-        closeModal('more-modal');
+        window.closeModal('more-modal');
         navigateTo('profile-screen');
     });
     document.getElementById('more-albums-btn').addEventListener('click', () => {
-        closeModal('more-modal');
+        window.closeModal('more-modal');
         navigateTo('albums-screen');
     });
     document.getElementById('more-eve-btn').addEventListener('click', () => {
-        closeModal('more-modal');
+        window.closeModal('more-modal');
         navigateTo('chat-screen');
     });
 }
