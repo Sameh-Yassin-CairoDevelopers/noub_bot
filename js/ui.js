@@ -1,9 +1,8 @@
-
 /*
  * Filename: js/ui.js
- * Version: 16.0 (Refined UI)
- * Description: UI Controller Module. Major refactor to handle the new unified
- * production screen and the "More" hamburger menu, improving navigation logic.
+ * Version: 16.2 (CRITICAL EXPORT FIX)
+ * Description: UI Controller Module.
+ * FIX: Correctly exported the closeModal function.
 */
 
 import { renderCollection } from './screens/collection.js';
@@ -15,10 +14,6 @@ import { state } from './state.js';
 const contentContainer = document.getElementById('content-container');
 const navItems = document.querySelectorAll('.nav-item');
 
-/**
- * Opens a modal window by its ID.
- * @param {string} modalId - The ID of the modal element to open.
- */
 export function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -26,21 +21,14 @@ export function openModal(modalId) {
     }
 }
 
-/**
- * Closes a modal window by its ID. Now globally available.
- * @param {string} modalId - The ID of the modal element to close.
- */
-window.closeModal = function(modalId) {
+// *** THE FIX IS HERE: Add 'export' to make this function available to other modules ***
+export function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('hidden');
     }
 }
 
-/**
- * Handles navigation between different screens.
- * @param {string} targetId - The ID of the screen element to display.
- */
 export function navigateTo(targetId) {
     contentContainer.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     const screen = document.getElementById(targetId);
@@ -49,25 +37,13 @@ export function navigateTo(targetId) {
     navItems.forEach(i => i.classList.toggle('active', i.dataset.target === targetId));
 
     switch (targetId) {
-        case 'collection-screen':
-            renderCollection();
-            break;
-        case 'production-screen':
-            renderProduction();
-            break;
-        case 'stock-screen':
-            renderStock();
-            break;
-        case 'profile-screen':
-            renderProfile();
-            break;
-        // Add cases for contracts, albums, eve later
+        case 'collection-screen': renderCollection(); break;
+        case 'production-screen': renderProduction(); break;
+        case 'stock-screen': renderStock(); break;
+        case 'profile-screen': renderProfile(); break;
     }
 }
 
-/**
- * Updates the header UI with the latest player currency data.
- */
 export function updateHeaderUI() {
     if (!state.playerProfile) return;
     document.getElementById('ankh-display').textContent = state.playerProfile.score || 0;
@@ -75,11 +51,6 @@ export function updateHeaderUI() {
     document.getElementById('blessing-display').textContent = state.playerProfile.blessing || 0;
 }
 
-/**
- * Displays a short-lived notification message (toast).
- * @param {string} message - The text to display.
- * @param {string} [type='info'] - The type of toast.
- */
 export function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
     const toast = document.createElement('div');
@@ -89,24 +60,16 @@ export function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 3000);
 }
 
-/**
- * Sets up event listeners for the primary bottom navigation bar.
- */
 function setupNavEvents() {
     navItems.forEach(item => {
         if (item.dataset.target) {
             item.addEventListener('click', () => navigateTo(item.dataset.target));
         }
     });
-
-    // Handle special buttons that open modals
     document.getElementById('shop-nav-btn').addEventListener('click', openShopModal);
     document.getElementById('more-nav-btn').addEventListener('click', () => openModal('more-modal'));
 }
 
-/**
- * Sets up event listeners for the buttons inside the "More" menu modal.
- */
 function setupMoreMenuEvents() {
     document.getElementById('more-profile-btn').addEventListener('click', () => {
         closeModal('more-modal');
@@ -122,9 +85,6 @@ function setupMoreMenuEvents() {
     });
 }
 
-/**
- * Main setup function for all UI-related event listeners.
- */
 export function setupEventListeners() {
     setupNavEvents();
     setupMoreMenuEvents();
