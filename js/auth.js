@@ -1,8 +1,8 @@
+
 /*
  * Filename: js/auth.js
- * Version: 16.1 (CRITICAL SPLASH SCREEN FIX)
- * Description: Authentication Module.
- * FIX: Correctly exported showRegisterForm and showLoginForm to prevent main.js from failing to load.
+ * Version: 16.3 (Definitive Global Fix - Complete)
+ * Description: Authentication Module. Form-switching functions are now globally accessible.
 */
 
 import { supabaseClient } from './config.js';
@@ -16,14 +16,14 @@ const splashScreen = document.getElementById('splash-screen');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
-// *** THE FIX IS HERE: Export the functions needed by main.js and index.html ***
-export function showRegisterForm() {
+// Make these functions globally available for onclick attributes in the auth overlay
+window.showRegisterForm = function() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
         registerForm.classList.remove('hidden');
     }
 }
-export function showLoginForm() {
+window.showLoginForm = function() {
     if (loginForm && registerForm) {
         registerForm.classList.add('hidden');
         loginForm.classList.remove('hidden');
@@ -127,7 +127,7 @@ export function setupAuthEventListeners() {
             errorDiv.textContent = 'Signup Error: ' + error.message;
         } else {
             alert('Account created successfully! Please check your email for confirmation, then log in.');
-            showLoginForm();
+            window.showLoginForm();
         }
         e.target.disabled = false;
     });
@@ -137,11 +137,15 @@ export function setupAuthEventListeners() {
 
 export async function handleInitialSession() {
     setTimeout(() => {
-        splashScreen.style.opacity = '0';
-        setTimeout(() => {
-            splashScreen.classList.add('hidden');
-            state.isSplashFinished = true;
-        }, 500);
+        if (splashScreen) {
+            splashScreen.style.opacity = '0';
+            setTimeout(() => {
+                splashScreen.classList.add('hidden');
+                state.isSplashFinished = true;
+            }, 500);
+        } else {
+            state.isSplashFinished = true; // Splash screen might not exist, so flag as done
+        }
     }, 2000);
 
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -149,6 +153,6 @@ export async function handleInitialSession() {
         await initializeApp(session.user);
     } else {
         await waitForSplash();
-        authOverlay.classList.remove('hidden');
+        if(authOverlay) authOverlay.classList.remove('hidden');
     }
 }
