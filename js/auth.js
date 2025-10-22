@@ -1,8 +1,8 @@
-
 /*
  * Filename: js/auth.js
- * Version: 16.3 (Definitive Global Fix - Complete)
- * Description: Authentication Module. Form-switching functions are now globally accessible.
+ * Version: 17.0 (Stable & Splash-Screen-Removed)
+ * Description: Authentication Module. All logic related to the splash screen
+ * has been removed to ensure reliable and direct startup.
 */
 
 import { supabaseClient } from './config.js';
@@ -12,7 +12,6 @@ import { navigateTo, updateHeaderUI } from './ui.js';
 
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
-const splashScreen = document.getElementById('splash-screen');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
@@ -30,28 +29,16 @@ window.showLoginForm = function() {
     }
 }
 
-async function waitForSplash() {
-    if (state.isSplashFinished) {
-        return Promise.resolve();
-    }
-    return new Promise(resolve => {
-        const check = setInterval(() => {
-            if (state.isSplashFinished) {
-                clearInterval(check);
-                resolve();
-            }
-        }, 100);
-    });
-}
-
 async function initializeApp(user) {
     state.currentUser = user;
     
+    // Fetch profile and inventory in parallel for faster loading
     const [profileResult, inventoryResult] = await Promise.all([
         fetchProfile(user.id),
         fetchPlayerInventory(user.id)
     ]);
     
+    // Handle profile fetching result
     let { data: profile, error } = profileResult;
     if (error) {
         console.error("Critical error fetching profile:", error);
@@ -61,6 +48,7 @@ async function initializeApp(user) {
     }
     state.playerProfile = profile;
 
+    // Handle inventory fetching result
     const { data: inventoryData, error: inventoryError } = inventoryResult;
     if (inventoryError) {
         console.error("Error fetching inventory:", inventoryError);
@@ -70,8 +58,6 @@ async function initializeApp(user) {
             state.inventory.set(item.item_id, { qty: item.quantity, details: item.items });
         });
     }
-
-    await waitForSplash();
     
     authOverlay.classList.add('hidden');
     appContainer.classList.remove('hidden');
@@ -135,24 +121,16 @@ export function setupAuthEventListeners() {
     document.getElementById('logout-btn').addEventListener('click', logout);
 }
 
+/**
+ * Checks for an active session and initializes the app or shows the login screen.
+ * Simplified to remove all splash screen logic.
+ */
 export async function handleInitialSession() {
-    setTimeout(() => {
-        if (splashScreen) {
-            splashScreen.style.opacity = '0';
-            setTimeout(() => {
-                splashScreen.classList.add('hidden');
-                state.isSplashFinished = true;
-            }, 500);
-        } else {
-            state.isSplashFinished = true; // Splash screen might not exist, so flag as done
-        }
-    }, 2000);
-
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         await initializeApp(session.user);
     } else {
-        await waitForSplash();
-        if(authOverlay) authOverlay.classList.remove('hidden');
+        // If there's no session, the auth overlay is already visible by default.
+        // No action needed.
     }
 }
