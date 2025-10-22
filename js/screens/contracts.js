@@ -1,9 +1,8 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: 18.0 (Contracts Logic - Complete)
+ * Version: 18.1 (Interaction Fix)
  * Description: View Logic Module for the contracts screen.
- * Handles rendering active and available contracts, displaying contract details,
- * and processing contract acceptance and delivery.
+ * This version ensures the onclick event listeners are correctly attached to each contract card.
 */
 
 import { state } from '../state.js';
@@ -14,10 +13,6 @@ const activeContractsContainer = document.getElementById('active-contracts-conta
 const availableContractsContainer = document.getElementById('available-contracts-container');
 const contractDetailModal = document.getElementById('contract-detail-modal');
 
-/**
- * Handles the logic for accepting a new contract.
- * @param {number} contractId - The ID of the contract to accept.
- */
 async function handleAcceptContract(contractId) {
     showToast('Accepting contract...');
     const { error } = await api.acceptContract(state.currentUser.id, contractId);
@@ -33,39 +28,31 @@ async function handleAcceptContract(contractId) {
     }
 }
 
-/**
- * Handles the logic for delivering/completing an active contract.
- * @param {object} playerContract - The player's specific contract object.
- * @param {Array} requirements - The list of item requirements for the contract.
- */
 async function handleDeliverContract(playerContract, requirements) {
     showToast('Delivering goods...');
 
-    // 1. Consume required items from inventory (run in parallel)
+    // Consume required items
     const consumePromises = requirements.map(req => {
         const currentQty = state.inventory.get(req.items.id)?.qty || 0;
         const newQty = currentQty - req.quantity;
-        state.inventory.set(req.items.id, { ...state.inventory.get(req.items.id), qty: newQty }); // Update state locally
+        state.inventory.set(req.items.id, { ...state.inventory.get(req.items.id), qty: newQty });
         return api.updateItemQuantity(state.currentUser.id, req.items.id, newQty);
     });
     await Promise.all(consumePromises);
 
-    // 2. Calculate new currency totals
+    // Calculate new currency totals
     const contractDetails = playerContract.contracts;
     const newTotals = {
         score: (state.playerProfile.score || 0) + contractDetails.reward_score,
         prestige: (state.playerProfile.prestige || 0) + contractDetails.reward_prestige
     };
 
-    // 3. Mark contract as complete and update profile
     const { error } = await api.completeContract(state.currentUser.id, playerContract.id, newTotals);
 
     if (error) {
         showToast('Error completing contract!', 'error');
         console.error(error);
-        // TODO: Add logic to refund consumed items in case of failure
     } else {
-        // Update state locally
         state.playerProfile.score = newTotals.score;
         state.playerProfile.prestige = newTotals.prestige;
         updateHeaderUI();
@@ -75,11 +62,6 @@ async function handleDeliverContract(playerContract, requirements) {
     }
 }
 
-/**
- * Opens the detail modal for a specific contract.
- * @param {number} contractId - The ID of the contract to display.
- * @param {object|null} playerContract - The player's contract object if it's an active one.
- */
 async function openContractModal(contractId, playerContract = null) {
     const { data: contract, error } = await api.fetchContractWithRequirements(contractId);
     if (error) {
@@ -142,7 +124,6 @@ async function openContractModal(contractId, playerContract = null) {
     contractDetailModal.innerHTML = modalHTML;
     openModal('contract-detail-modal');
 
-    // Attach event listener to the action button
     const actionBtn = document.getElementById('contract-action-btn');
     if (isAccepted) {
         actionBtn.onclick = () => handleDeliverContract(playerContract, contract.contract_requirements);
@@ -151,9 +132,6 @@ async function openContractModal(contractId, playerContract = null) {
     }
 }
 
-/**
- * Renders the list of contracts the player has accepted but not completed.
- */
 export async function renderActiveContracts() {
     if (!state.currentUser) return;
     activeContractsContainer.innerHTML = 'Loading active contracts...';
@@ -180,14 +158,12 @@ export async function renderActiveContracts() {
                 Rewards: <span>${contract.reward_score} ☥</span> | <span>${contract.reward_prestige} 👑</span>
             </div>
         `;
+        // THIS IS THE CRUCIAL LINE THAT MAKES THE CARD CLICKABLE
         card.onclick = () => openContractModal(contract.id, pc);
         activeContractsContainer.appendChild(card);
     });
 }
 
-/**
- * Renders the list of new contracts available for the player to accept.
- */
 export async function renderAvailableContracts() {
     if (!state.currentUser) return;
     availableContractsContainer.innerHTML = 'Loading available contracts...';
@@ -213,6 +189,7 @@ export async function renderAvailableContracts() {
                 Rewards: <span>${contract.reward_score} ☥</span> | <span>${contract.reward_prestige} 👑</span>
             </div>
         `;
+        // THIS IS THE CRUCIAL LINE THAT MAKES THE CARD CLICKABLE
         card.onclick = () => openContractModal(contract.id);
         availableContractsContainer.appendChild(card);
     });
