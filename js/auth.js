@@ -1,9 +1,8 @@
-
 /*
  * Filename: js/auth.js
- * Version: 16.0 (Refined UI)
- * Description: Authentication Module. Now manages the splash screen transition
- * and fixes the previously unresponsive sign-up button.
+ * Version: 16.1 (CRITICAL SPLASH SCREEN FIX)
+ * Description: Authentication Module.
+ * FIX: Correctly exported showRegisterForm and showLoginForm to prevent main.js from failing to load.
 */
 
 import { supabaseClient } from './config.js';
@@ -14,15 +13,27 @@ import { navigateTo, updateHeaderUI } from './ui.js';
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
 const splashScreen = document.getElementById('splash-screen');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
 
-/**
- * Waits for the splash screen animation to complete.
- */
+// *** THE FIX IS HERE: Export the functions needed by main.js and index.html ***
+export function showRegisterForm() {
+    if (loginForm && registerForm) {
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+    }
+}
+export function showLoginForm() {
+    if (loginForm && registerForm) {
+        registerForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+    }
+}
+
 async function waitForSplash() {
     if (state.isSplashFinished) {
         return Promise.resolve();
     }
-    // If splash is not finished, wait for it
     return new Promise(resolve => {
         const check = setInterval(() => {
             if (state.isSplashFinished) {
@@ -33,20 +44,14 @@ async function waitForSplash() {
     });
 }
 
-/**
- * Initializes the main application view after a successful login.
- * @param {object} user - The user object from Supabase Auth.
- */
 async function initializeApp(user) {
     state.currentUser = user;
     
-    // Fetch profile and inventory in parallel for faster loading
     const [profileResult, inventoryResult] = await Promise.all([
         fetchProfile(user.id),
         fetchPlayerInventory(user.id)
     ]);
     
-    // Handle profile fetching result
     let { data: profile, error } = profileResult;
     if (error) {
         console.error("Critical error fetching profile:", error);
@@ -56,7 +61,6 @@ async function initializeApp(user) {
     }
     state.playerProfile = profile;
 
-    // Handle inventory fetching result
     const { data: inventoryData, error: inventoryError } = inventoryResult;
     if (inventoryError) {
         console.error("Error fetching inventory:", inventoryError);
@@ -67,7 +71,6 @@ async function initializeApp(user) {
         });
     }
 
-    // Wait for splash screen to finish before showing the app
     await waitForSplash();
     
     authOverlay.classList.add('hidden');
@@ -100,9 +103,6 @@ export async function logout() {
     authOverlay.classList.remove('hidden');
 }
 
-/**
- * Sets up event listeners for the authentication forms (login, signup, logout).
- */
 export function setupAuthEventListeners() {
     document.getElementById('login-button').addEventListener('click', async (e) => {
         e.target.disabled = true;
@@ -127,7 +127,7 @@ export function setupAuthEventListeners() {
             errorDiv.textContent = 'Signup Error: ' + error.message;
         } else {
             alert('Account created successfully! Please check your email for confirmation, then log in.');
-            window.showLoginForm();
+            showLoginForm();
         }
         e.target.disabled = false;
     });
@@ -135,18 +135,12 @@ export function setupAuthEventListeners() {
     document.getElementById('logout-btn').addEventListener('click', logout);
 }
 
-/**
- * Handles the initial splash screen and session check.
- */
 export async function handleInitialSession() {
-    // Start splash screen fade out after 2 seconds
     setTimeout(() => {
         splashScreen.style.opacity = '0';
-        // After fade out, remove it and show auth screen
         setTimeout(() => {
             splashScreen.classList.add('hidden');
             state.isSplashFinished = true;
-            // Show auth screen only if no session is found later
         }, 500);
     }, 2000);
 
@@ -154,7 +148,7 @@ export async function handleInitialSession() {
     if (session) {
         await initializeApp(session.user);
     } else {
-        await waitForSplash(); // Wait for splash to finish before showing login
+        await waitForSplash();
         authOverlay.classList.remove('hidden');
     }
 }
