@@ -1,17 +1,16 @@
 /*
  * Filename: js/screens/economy.js
- * Version: 18.1 (Interaction Fix - Complete)
+ * Version: 18.2 (Definitive Interaction Fix - Complete)
  * Description: View Logic Module for economy screens.
- * This version adds the logic for the stockpile tabs to be interactive.
+ * This version ensures all interactions (building clicks, stockpile tabs) are fully functional.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast } from '../ui.js';
+import { showToast, updateHeaderUI, openModal } from '../ui.js';
 
 let productionInterval;
 
-// --- Utility Functions ---
 function formatTime(seconds) {
     if (seconds < 0) seconds = 0;
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -20,7 +19,6 @@ function formatTime(seconds) {
     return `${h}:${m}:${s}`;
 }
 
-// --- Event Handlers & Modal Logic ---
 async function handleClaimProduction(playerFactory, masterFactoryData) {
     const outputItem = masterFactoryData.items;
     if (!outputItem) {
@@ -37,16 +35,11 @@ async function handleClaimProduction(playerFactory, masterFactoryData) {
 
     if (error) {
         showToast('Error claiming production!', 'error');
-        console.error(error);
     } else {
         state.inventory.set(outputItem.id, { qty: newQuantity, details: outputItem });
         showToast(`Claimed 1 ${outputItem.name}!`, 'success');
         window.closeModal('production-modal');
-        if (masterFactoryData.type === 'RESOURCE') {
-            renderResources();
-        } else {
-            renderWorkshops();
-        }
+        renderProduction();
     }
 }
 
@@ -89,7 +82,6 @@ async function handleStartProduction(playerFactory, recipe) {
         const { error: consumeError } = await api.updateItemQuantity(state.currentUser.id, inputItem.id, newQuantity);
         if (consumeError) {
             showToast('Error consuming resources!', 'error');
-            console.error(consumeError);
             return;
         }
         state.inventory.set(inputItem.id, { ...state.inventory.get(inputItem.id), qty: newQuantity });
@@ -98,15 +90,10 @@ async function handleStartProduction(playerFactory, recipe) {
     const { error: startError } = await api.startProduction(playerFactory.id, new Date().toISOString());
     if (startError) {
         showToast('Error starting production!', 'error');
-        console.error(startError);
     } else {
         showToast('Production started!', 'success');
         window.closeModal('production-modal');
-        if (playerFactory.factories.type === 'RESOURCE') {
-            renderResources();
-        } else {
-            renderWorkshops();
-        }
+        renderProduction();
     }
 }
 
@@ -126,7 +113,6 @@ async function openProductionModal(playerFactory) {
         const inputItem = recipe.items;
         const requiredQty = recipe.input_quantity;
         const playerQty = state.inventory.get(inputItem.id)?.qty || 0;
-
         canAfford = playerQty >= requiredQty;
         
         inputHTML = `
@@ -239,12 +225,13 @@ export async function renderStock() {
     stockMaterialsContainer.innerHTML = '';
     stockGoodsContainer.innerHTML = '';
     
+    // Fetch latest data to ensure state is synced, especially on first load
     const { data: inventoryData, error } = await api.fetchPlayerInventory(state.currentUser.id);
     if (error) {
         stockResourcesContainer.innerHTML = '<p class="error-message">Error loading stock.</p>';
         return;
     }
-
+    // Update the shared state
     state.inventory.clear();
     inventoryData.forEach(item => {
         state.inventory.set(item.item_id, { qty: item.quantity, details: item.items });
@@ -262,16 +249,15 @@ export async function renderStock() {
     stockGoodsContainer.innerHTML = '';
     
     let resourceCount = 0, materialCount = 0, goodCount = 0;
-    for (const [itemId, itemData] of state.inventory.entries()) {
+
+    for (const itemData of state.inventory.values()) {
         const itemDetails = itemData.details;
         if (itemDetails) {
             const itemEl = document.createElement('div');
             itemEl.className = 'stock-item';
             itemEl.innerHTML = `
                 <img src="${itemDetails.image_url || 'images/default_item.png'}" alt="${itemDetails.name}">
-                <div class="details">
-                    <h4>${itemDetails.name}</h4>
-                </div>
+                <div class="details"><h4>${itemDetails.name}</h4></div>
                 <span class="quantity">${itemData.qty}</span>
             `;
 
@@ -303,6 +289,3 @@ export function renderProduction() {
     if (resourcesContainer) renderFactories(resourcesContainer, 'RESOURCE');
     if (workshopsContainer) renderFactories(workshopsContainer, 'FACTORY');
 }
-
-export function renderResources() {}
-export function renderWorkshops() {}
