@@ -1,30 +1,22 @@
 /*
  * Filename: js/ui.js
- * Version: 18.0 (Contracts UI)
- * Description: UI Controller Module. Updated to handle navigation to the new contracts screen.
+ * Version: 18.2 (Definitive Interaction Fix)
+ * Description: UI Controller Module.
+ * FIX: Re-established window.closeModal to be globally accessible, fixing all broken modals.
 */
 
 import { renderCollection } from './screens/collection.js';
 import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
-import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js'; // NEW import
-import { state } from './state.js';
+import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
 
-// Make key functions globally available for onclick attributes in HTML
+// Make closeModal globally available for all onclick attributes in dynamically generated HTML
 window.closeModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('hidden');
     }
-}
-window.showRegisterForm = function() {
-    document.getElementById('login-form').classList.add('hidden');
-    document.getElementById('register-form').classList.remove('hidden');
-}
-window.showLoginForm = function() {
-    document.getElementById('register-form').classList.add('hidden');
-    document.getElementById('login-form').classList.remove('hidden');
 }
 
 const contentContainer = document.getElementById('content-container');
@@ -44,7 +36,6 @@ export function navigateTo(targetId) {
 
     navItems.forEach(i => i.classList.toggle('active', i.dataset.target === targetId));
 
-    // Updated switch to include the new contracts screen logic
     switch (targetId) {
         case 'collection-screen':
             renderCollection();
@@ -58,18 +49,18 @@ export function navigateTo(targetId) {
         case 'profile-screen':
             renderProfile();
             break;
-        case 'contracts-screen': // NEW case
+        case 'contracts-screen':
             renderActiveContracts();
             renderAvailableContracts();
             break;
     }
 }
 
-export function updateHeaderUI() {
-    if (!state.playerProfile) return;
-    document.getElementById('ankh-display').textContent = state.playerProfile.score || 0;
-    document.getElementById('prestige-display').textContent = state.playerProfile.prestige || 0;
-    document.getElementById('blessing-display').textContent = state.playerProfile.blessing || 0;
+export function updateHeaderUI(profile) {
+    if (!profile) return;
+    document.getElementById('ankh-display').textContent = profile.score || 0;
+    document.getElementById('prestige-display').textContent = profile.prestige || 0;
+    document.getElementById('blessing-display').textContent = profile.blessing || 0;
 }
 
 export function showToast(message, type = 'info') {
