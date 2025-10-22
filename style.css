@@ -1,3 +1,13 @@
+/*
+ * Filename: style.css
+ * Version: 16.0 (Refined UI & Complete)
+ * Description: Main stylesheet for the "Noub" game.
+ * This version adds styles for the splash screen, hamburger menu,
+ * and the unified production screen.
+*/
+
+
+/* --- Global Settings & Variables --- */
 :root {
     --background-dark: #121212;
     --surface-dark: #1e1e1e;
@@ -11,7 +21,7 @@
 
 * {
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent; /* Removes blue highlight on tap for mobile */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -19,7 +29,6 @@ body {
     background-color: var(--background-dark);
     color: var(--text-primary);
     margin: 0;
-    /* Add padding to prevent content from hiding behind fixed header/nav bars */
     padding: 75px 15px 95px 15px;
     direction: ltr;
 }
@@ -33,8 +42,43 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* --- Splash Screen --- */
+#splash-screen {
+    position: fixed;
+    inset: 0;
+    background-color: var(--background-dark);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    opacity: 1;
+    transition: opacity 0.5s ease-out;
+}
+.splash-logo {
+    font-size: 48px;
+    font-weight: bold;
+    color: var(--primary-accent);
+    letter-spacing: 5px;
+    animation: fadeInUp 0.8s ease-out;
+}
+.splash-subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    margin-top: 10px;
+    animation: fadeInUp 0.8s ease-out 0.2s;
+    animation-fill-mode: both;
 }
 
 
@@ -81,7 +125,7 @@ header {
     bottom: 0;
     display: flex;
     justify-content: space-around;
-    padding: 10px 0 15px 0;
+    padding: 10px 0 20px 0;
     border-top: 1px solid #3a3a3c;
     overflow-x: auto;
 }
@@ -96,7 +140,7 @@ header {
     cursor: pointer;
     user-select: none;
     flex-shrink: 0;
-    padding: 0 10px;
+    padding: 0 12px;
 }
 
 .nav-item.active {
@@ -109,7 +153,11 @@ header {
 }
 
 
-/* --- Generic Content & Cards --- */
+/* --- General Content Styles --- */
+.screen h2 {
+    margin-bottom: 25px;
+}
+
 .screen-description {
     color: var(--text-secondary);
     text-align: center;
@@ -117,74 +165,69 @@ header {
     margin-bottom: 20px;
 }
 
-.card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
+.error-message {
+    color: var(--danger-color);
 }
 
-.card-stack {
+.buildings-grid, .card-grid {
+    padding-bottom: 20px;
+}
+
+
+/* --- Production Screen --- */
+.production-section {
+    margin-bottom: 40px;
+}
+.production-section h3 {
+    color: var(--primary-accent);
+    margin-bottom: 15px;
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 10px;
+}
+
+
+/* --- Cards & Grids --- */
+.card-grid, .buildings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+}
+
+.card-stack, .building-card {
     background-color: var(--surface-dark);
-    border-radius: 16px;
-    padding: 10px;
+    border-radius: 12px;
+    padding: 8px;
     position: relative;
-    border: 3px solid transparent;
+    border: 2px solid #3a3a3c;
     cursor: pointer;
     text-align: center;
+    transition: transform 0.2s, border-color 0.2s;
+}
+.building-card:hover, .card-stack:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-accent);
 }
 
-/* Rarity border colors */
-.rarity-0 { border-color: #95a5a6; }
+.rarity-0 { border-color: #7f8c8d; }
 .rarity-2 { border-color: #3498db; }
 .rarity-4 { border-color: #9b59b6; }
 .rarity-6 { border-color: #f39c12; }
 .rarity-8 { border-color: #f1c40f; }
 
-.card-stack .card-image {
+.card-stack .card-image, .building-card img {
     width: 100%;
     aspect-ratio: 1 / 1;
-    border-radius: 12px;
+    border-radius: 8px;
     object-fit: cover;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
-.card-stack h4 {
-    margin: 0;
-    font-size: 16px;
-}
-
-
-/* --- Economy Screens (Resources, Workshops) --- */
-.buildings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
-}
-
-.building-card {
-    background-color: var(--surface-dark);
-    border-radius: 16px;
-    padding: 15px;
-    text-align: center;
-    cursor: pointer;
-    border: 2px solid #3a3a3c;
-    transition: transform 0.2s, border-color 0.2s;
-}
-
-.building-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--primary-accent);
-}
-
-.building-card img {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 10px;
-}
-
-.building-card h4 {
+.card-stack h4, .building-card h4 {
     margin: 5px 0;
-    font-size: 1em;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .building-card .level {
@@ -196,8 +239,8 @@ header {
 .building-card .status {
     font-size: 0.8em;
     color: var(--success-color);
-    margin-top: 5px;
-    min-height: 1.2em; /* Prevents layout shift when text appears */
+    margin-top: 4px;
+    min-height: 1.2em;
 }
 
 
@@ -208,7 +251,6 @@ header {
     border-bottom: 1px solid #3a3a3c;
     justify-content: center;
 }
-
 .stock-tab {
     padding: 10px 20px;
     border: none;
@@ -217,20 +259,12 @@ header {
     font-size: 1.1em;
     cursor: pointer;
 }
-
 .stock-tab.active {
     color: var(--primary-accent);
     border-bottom: 2px solid var(--primary-accent);
 }
-
-.stock-content {
-    display: none;
-}
-
-.stock-content.active {
-    display: block;
-}
-
+.stock-content { display: none; }
+.stock-content.active { display: block; }
 .stock-item {
     display: flex;
     align-items: center;
@@ -239,21 +273,13 @@ header {
     border-radius: 8px;
     margin-bottom: 10px;
 }
-
 .stock-item img {
     width: 40px;
     height: 40px;
     margin-right: 15px;
 }
-
-.stock-item .details {
-    flex-grow: 1;
-}
-
-.stock-item .quantity {
-    font-size: 1.2em;
-    font-weight: bold;
-}
+.stock-item .details { flex-grow: 1; }
+.stock-item .quantity { font-size: 1.2em; font-weight: bold; }
 
 
 /* --- Production Modal --- */
@@ -266,6 +292,7 @@ header {
 .prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 15px; border-radius: 10px; }
 .prod-item { text-align: center; }
 .prod-item img { width: 50px; height: 50px; }
+.prod-item p { margin: 5px 0 0 0; }
 .prod-item .label { font-size: 0.8em; color: var(--text-secondary); }
 .arrow { font-size: 2em; color: var(--primary-accent); }
 
@@ -275,7 +302,7 @@ header {
 .progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
 
 
-/* --- Modals & Overlays --- */
+/* --- Modals --- */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -298,6 +325,7 @@ header {
     overflow-y: auto;
     position: relative;
     border: 1px solid var(--primary-accent);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 .modal-close-btn {
@@ -309,6 +337,32 @@ header {
     background: none;
     border: none;
     color: var(--text-secondary);
+}
+
+/* --- "More" Menu (Hamburger) --- */
+.more-menu .more-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #3a3a3c;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-primary);
+}
+.more-menu .more-menu-item:last-child {
+    border-bottom: none;
+}
+.more-menu .more-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.more-menu .more-menu-item .icon {
+    font-size: 24px;
+    margin-right: 20px;
+    color: var(--primary-accent);
+}
+.more-menu .more-menu-item span {
+    font-size: 1.1em;
+    font-weight: bold;
 }
 
 
@@ -338,11 +392,11 @@ header {
 .buy-btn:disabled { background: var(--text-secondary); cursor: not-allowed; }
 
 
-/* --- General Buttons & Auth Form --- */
+/* --- Buttons & Auth Form --- */
 .action-button {
     width: 100%;
     margin-top: 15px;
-    padding: 12px;
+    padding: 15px;
     border: none;
     border-radius: 10px;
     font-weight: bold;
@@ -351,13 +405,13 @@ header {
     cursor: pointer;
     color: #121212;
     background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
-
 .action-button.danger {
     background: var(--danger-color);
     color: white;
 }
-
 #auth-overlay {
     position: fixed;
     inset: 0;
@@ -368,17 +422,14 @@ header {
     justify-content: center;
     padding: 20px;
 }
-
 .auth-form {
     width: 100%;
     max-width: 400px;
     text-align: center;
 }
-
 .auth-form h2 {
     color: var(--primary-accent);
 }
-
 .auth-form input {
     width: 100%;
     padding: 12px;
@@ -390,13 +441,11 @@ header {
     font-size: 1.1em;
     text-align: left;
 }
-
 .switch-form {
     color: var(--ankh-color);
     cursor: pointer;
     margin-top: 20px;
 }
-
 .auth-error {
     color: var(--danger-color);
     margin-bottom: 15px;
