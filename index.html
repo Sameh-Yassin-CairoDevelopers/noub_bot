@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Noub - Pharaoh's Legacy (v16.0 - Refined UI)</title>
+    <title>Noub - Pharaoh's Legacy (v17.0 - Stable)</title>
     
     <link rel="stylesheet" href="style.css">
     
@@ -16,14 +16,8 @@
 </head>
 <body>
 
-    <!-- Splash Screen: Shows on initial load -->
-    <div id="splash-screen">
-        <div class="splash-logo">NOUB</div>
-        <div class="splash-subtitle">PHARAOH'S LEGACY</div>
-    </div>
-
-    <!-- Authentication Overlay -->
-    <div id="auth-overlay" class="hidden">
+    <!-- Authentication Overlay - NO LONGER HIDDEN BY DEFAULT -->
+    <div id="auth-overlay">
         <div class="auth-form" id="login-form">
             <h2>Login to "Noub"</h2>
             <div class="auth-error" id="login-error"></div>
@@ -57,13 +51,11 @@
 
         <main id="content-container">
             
-            <!-- My Collection Screen -->
             <div id="collection-screen" class="screen">
                 <h2>My Collection</h2>
                 <div class="card-grid" id="collection-container"></div>
             </div>
             
-            <!-- NEW: Unified Production Screen -->
             <div id="production-screen" class="screen hidden">
                 <h2>Production</h2>
                 <div class="production-section">
@@ -76,7 +68,6 @@
                 </div>
             </div>
 
-            <!-- Stockpile Screen -->
             <div id="stock-screen" class="screen hidden">
                 <h2>Stockpile</h2>
                 <div class="stock-tabs">
@@ -89,11 +80,9 @@
                 <div id="stock-goods" class="stock-content"></div>
             </div>
 
-            <!-- Placeholder Screens -->
             <div id="contracts-screen" class="screen hidden"><h2>Royal Decrees</h2></div>
             <div id="albums-screen" class="screen hidden"><h2>Albums</h2></div>
             
-            <!-- Profile Screen -->
             <div id="profile-screen" class="screen hidden">
                  <div class="profile-container">
                     <div class="profile-header">
@@ -112,16 +101,13 @@
                 </div>
             </div>
 
-            <!-- Chat Screen -->
             <div id="chat-screen" class="screen hidden"><h2>Chat with Eve</h2></div>
         </main>
         
-        <!-- Modals -->
         <div id="shop-modal" class="modal-overlay hidden"></div>
         <div id="toast-container"></div>
         <div id="production-modal" class="modal-overlay hidden"></div>
 
-        <!-- NEW: "More" Menu Modal (Hamburger Menu) -->
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
                 <a class="more-menu-item" id="more-profile-btn">
@@ -141,7 +127,6 @@
         </div>
     </div>
 
-    <!-- REFINED Bottom Navigation Bar -->
     <nav class="bottom-nav">
         <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
         <a class="nav-item" data-target="production-screen" title="Production"><div class="icon">⛏️</div><span>Production</span></a>
