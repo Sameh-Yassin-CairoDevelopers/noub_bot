@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/economy.js
- * Version: 16.0 (Refined UI & Complete)
+ * Version: 18.1 (Interaction Fix - Complete)
  * Description: View Logic Module for economy screens.
- * Refactored to handle the unified production screen and improved state management.
+ * This version adds the logic for the stockpile tabs to be interactive.
 */
 
 import { state } from '../state.js';
@@ -11,6 +11,7 @@ import { showToast } from '../ui.js';
 
 let productionInterval;
 
+// --- Utility Functions ---
 function formatTime(seconds) {
     if (seconds < 0) seconds = 0;
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -19,6 +20,7 @@ function formatTime(seconds) {
     return `${h}:${m}:${s}`;
 }
 
+// --- Event Handlers & Modal Logic ---
 async function handleClaimProduction(playerFactory, masterFactoryData) {
     const outputItem = masterFactoryData.items;
     if (!outputItem) {
@@ -40,7 +42,11 @@ async function handleClaimProduction(playerFactory, masterFactoryData) {
         state.inventory.set(outputItem.id, { qty: newQuantity, details: outputItem });
         showToast(`Claimed 1 ${outputItem.name}!`, 'success');
         window.closeModal('production-modal');
-        renderProduction();
+        if (masterFactoryData.type === 'RESOURCE') {
+            renderResources();
+        } else {
+            renderWorkshops();
+        }
     }
 }
 
@@ -96,7 +102,11 @@ async function handleStartProduction(playerFactory, recipe) {
     } else {
         showToast('Production started!', 'success');
         window.closeModal('production-modal');
-        renderProduction();
+        if (playerFactory.factories.type === 'RESOURCE') {
+            renderResources();
+        } else {
+            renderWorkshops();
+        }
     }
 }
 
@@ -148,7 +158,7 @@ async function openProductionModal(playerFactory) {
         </div>
     `;
     productionModal.innerHTML = modalHTML;
-    productionModal.classList.remove('hidden');
+    openModal('production-modal');
     
     const actionBtn = document.getElementById('prod-action-btn');
 
@@ -202,25 +212,28 @@ async function renderFactories(container, type) {
     });
 }
 
-/**
- * Renders both resource and workshop sections on the unified production screen.
- */
-export function renderProduction() {
-    const resourcesContainer = document.getElementById('resources-container');
-    const workshopsContainer = document.getElementById('workshops-container');
-    if (resourcesContainer) renderFactories(resourcesContainer, 'RESOURCE');
-    if (workshopsContainer) renderFactories(workshopsContainer, 'FACTORY');
+function setupStockpileTabs() {
+    const stockTabs = document.querySelectorAll('.stock-tab');
+    stockTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            stockTabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.stock-content').forEach(c => c.classList.remove('active'));
+            
+            const targetId = tab.dataset.target;
+            tab.classList.add('active');
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
 }
 
-/**
- * Renders the player's inventory, now distributing items into correct tabs.
- */
 export async function renderStock() {
     const stockResourcesContainer = document.getElementById('stock-resources');
     const stockMaterialsContainer = document.getElementById('stock-materials');
     const stockGoodsContainer = document.getElementById('stock-goods');
 
     if (!stockResourcesContainer) return;
+
+    setupStockpileTabs();
 
     stockResourcesContainer.innerHTML = 'Loading stock...';
     stockMaterialsContainer.innerHTML = '';
@@ -284,6 +297,12 @@ export async function renderStock() {
     if (goodCount === 0) stockGoodsContainer.innerHTML = '<p>No goods in stockpile.</p>';
 }
 
-// These are legacy and no longer directly called by navigation, but are kept for potential future use.
+export function renderProduction() {
+    const resourcesContainer = document.getElementById('resources-container');
+    const workshopsContainer = document.getElementById('workshops-container');
+    if (resourcesContainer) renderFactories(resourcesContainer, 'RESOURCE');
+    if (workshopsContainer) renderFactories(workshopsContainer, 'FACTORY');
+}
+
 export function renderResources() {}
 export function renderWorkshops() {}
