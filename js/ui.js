@@ -1,26 +1,34 @@
 /*
  * Filename: js/ui.js
- * Version: 16.3 (Definitive Global Fix - Complete)
- * Description: UI Controller Module. closeModal is now globally accessible.
+ * Version: 18.0 (Contracts UI)
+ * Description: UI Controller Module. Updated to handle navigation to the new contracts screen.
 */
 
 import { renderCollection } from './screens/collection.js';
 import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
+import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js'; // NEW import
 import { state } from './state.js';
 
-const contentContainer = document.getElementById('content-container');
-const navItems = document.querySelectorAll('.nav-item');
-
-// Make this function globally available for onclick attributes in HTML
-// This definitively solves the "closeModal is not defined" error.
+// Make key functions globally available for onclick attributes in HTML
 window.closeModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('hidden');
     }
 }
+window.showRegisterForm = function() {
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('register-form').classList.remove('hidden');
+}
+window.showLoginForm = function() {
+    document.getElementById('register-form').classList.add('hidden');
+    document.getElementById('login-form').classList.remove('hidden');
+}
+
+const contentContainer = document.getElementById('content-container');
+const navItems = document.querySelectorAll('.nav-item');
 
 export function openModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -36,11 +44,24 @@ export function navigateTo(targetId) {
 
     navItems.forEach(i => i.classList.toggle('active', i.dataset.target === targetId));
 
+    // Updated switch to include the new contracts screen logic
     switch (targetId) {
-        case 'collection-screen': renderCollection(); break;
-        case 'production-screen': renderProduction(); break;
-        case 'stock-screen': renderStock(); break;
-        case 'profile-screen': renderProfile(); break;
+        case 'collection-screen':
+            renderCollection();
+            break;
+        case 'production-screen':
+            renderProduction();
+            break;
+        case 'stock-screen':
+            renderStock();
+            break;
+        case 'profile-screen':
+            renderProfile();
+            break;
+        case 'contracts-screen': // NEW case
+            renderActiveContracts();
+            renderAvailableContracts();
+            break;
     }
 }
 
