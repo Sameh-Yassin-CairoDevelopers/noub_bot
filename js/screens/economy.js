@@ -1,9 +1,8 @@
-
 /*
  * Filename: js/screens/economy.js
- * Version: 15.0 (Full Crafting Loop & Complete)
- * Description: Implemented the full crafting loop, including recipe display, 
- * resource checking from state, and consumption.
+ * Version: 16.0 (Refined UI & Complete)
+ * Description: View Logic Module for economy screens.
+ * Refactored to handle the unified production screen and improved state management.
 */
 
 import { state } from '../state.js';
@@ -22,16 +21,14 @@ function formatTime(seconds) {
 
 async function handleClaimProduction(playerFactory, masterFactoryData) {
     const outputItem = masterFactoryData.items;
-    
     if (!outputItem) {
-        console.error("Could not find output item data for factory:", masterFactoryData);
         showToast('Error: Missing item data!', 'error');
         return;
     }
     
     showToast('Claiming...');
 
-    const currentQuantity = state.inventory.get(outputItem.id) || 0;
+    const currentQuantity = state.inventory.get(outputItem.id)?.qty || 0;
     const newQuantity = currentQuantity + 1;
 
     const { error } = await api.claimProduction(state.currentUser.id, playerFactory.id, outputItem.id, newQuantity);
@@ -40,14 +37,10 @@ async function handleClaimProduction(playerFactory, masterFactoryData) {
         showToast('Error claiming production!', 'error');
         console.error(error);
     } else {
-        state.inventory.set(outputItem.id, newQuantity);
+        state.inventory.set(outputItem.id, { qty: newQuantity, details: outputItem });
         showToast(`Claimed 1 ${outputItem.name}!`, 'success');
         window.closeModal('production-modal');
-        if (masterFactoryData.type === 'RESOURCE') {
-            renderResources();
-        } else {
-            renderWorkshops();
-        }
+        renderProduction();
     }
 }
 
@@ -84,7 +77,7 @@ async function handleStartProduction(playerFactory, recipe) {
     if (recipe) {
         const inputItem = recipe.items;
         const requiredQty = recipe.input_quantity;
-        const currentQty = state.inventory.get(inputItem.id) || 0;
+        const currentQty = state.inventory.get(inputItem.id)?.qty || 0;
         const newQuantity = currentQty - requiredQty;
 
         const { error: consumeError } = await api.updateItemQuantity(state.currentUser.id, inputItem.id, newQuantity);
@@ -93,7 +86,7 @@ async function handleStartProduction(playerFactory, recipe) {
             console.error(consumeError);
             return;
         }
-        state.inventory.set(inputItem.id, newQuantity);
+        state.inventory.set(inputItem.id, { ...state.inventory.get(inputItem.id), qty: newQuantity });
     }
 
     const { error: startError } = await api.startProduction(playerFactory.id, new Date().toISOString());
@@ -103,11 +96,7 @@ async function handleStartProduction(playerFactory, recipe) {
     } else {
         showToast('Production started!', 'success');
         window.closeModal('production-modal');
-        if (playerFactory.factories.type === 'RESOURCE') {
-            renderResources();
-        } else {
-            renderWorkshops();
-        }
+        renderProduction();
     }
 }
 
@@ -126,7 +115,7 @@ async function openProductionModal(playerFactory) {
     if (recipe) {
         const inputItem = recipe.items;
         const requiredQty = recipe.input_quantity;
-        const playerQty = state.inventory.get(inputItem.id) || 0;
+        const playerQty = state.inventory.get(inputItem.id)?.qty || 0;
 
         canAfford = playerQty >= requiredQty;
         
@@ -213,6 +202,19 @@ async function renderFactories(container, type) {
     });
 }
 
+/**
+ * Renders both resource and workshop sections on the unified production screen.
+ */
+export function renderProduction() {
+    const resourcesContainer = document.getElementById('resources-container');
+    const workshopsContainer = document.getElementById('workshops-container');
+    if (resourcesContainer) renderFactories(resourcesContainer, 'RESOURCE');
+    if (workshopsContainer) renderFactories(workshopsContainer, 'FACTORY');
+}
+
+/**
+ * Renders the player's inventory, now distributing items into correct tabs.
+ */
 export async function renderStock() {
     const stockResourcesContainer = document.getElementById('stock-resources');
     const stockMaterialsContainer = document.getElementById('stock-materials');
@@ -221,9 +223,9 @@ export async function renderStock() {
     if (!stockResourcesContainer) return;
 
     stockResourcesContainer.innerHTML = 'Loading stock...';
-    stockMaterialsContainer.innerHTML = 'Materials coming soon!';
-    stockGoodsContainer.innerHTML = 'Goods coming soon!';
-
+    stockMaterialsContainer.innerHTML = '';
+    stockGoodsContainer.innerHTML = '';
+    
     const { data: inventoryData, error } = await api.fetchPlayerInventory(state.currentUser.id);
     if (error) {
         stockResourcesContainer.innerHTML = '<p class="error-message">Error loading stock.</p>';
@@ -232,43 +234,56 @@ export async function renderStock() {
 
     state.inventory.clear();
     inventoryData.forEach(item => {
-        state.inventory.set(item.item_id, {qty: item.quantity, details: item.items});
+        state.inventory.set(item.item_id, { qty: item.quantity, details: item.items });
     });
 
+    if (state.inventory.size === 0) {
+        stockResourcesContainer.innerHTML = '<p>Your stockpile is empty.</p>';
+        stockMaterialsContainer.innerHTML = '<p>Your stockpile is empty.</p>';
+        stockGoodsContainer.innerHTML = '<p>Your stockpile is empty.</p>';
+        return;
+    }
+
     stockResourcesContainer.innerHTML = '';
+    stockMaterialsContainer.innerHTML = '';
+    stockGoodsContainer.innerHTML = '';
     
-    let hasResources = false;
+    let resourceCount = 0, materialCount = 0, goodCount = 0;
     for (const [itemId, itemData] of state.inventory.entries()) {
-        if (itemData.details && itemData.details.type === 'RESOURCE') {
+        const itemDetails = itemData.details;
+        if (itemDetails) {
             const itemEl = document.createElement('div');
             itemEl.className = 'stock-item';
             itemEl.innerHTML = `
-                <img src="${itemData.details.image_url}" alt="${itemData.details.name}">
+                <img src="${itemDetails.image_url || 'images/default_item.png'}" alt="${itemDetails.name}">
                 <div class="details">
-                    <h4>${itemData.details.name}</h4>
+                    <h4>${itemDetails.name}</h4>
                 </div>
                 <span class="quantity">${itemData.qty}</span>
             `;
-            stockResourcesContainer.appendChild(itemEl);
-            hasResources = true;
+
+            switch (itemDetails.type) {
+                case 'RESOURCE':
+                    stockResourcesContainer.appendChild(itemEl);
+                    resourceCount++;
+                    break;
+                case 'MATERIAL':
+                    stockMaterialsContainer.appendChild(itemEl);
+                    materialCount++;
+                    break;
+                case 'GOOD':
+                    stockGoodsContainer.appendChild(itemEl);
+                    goodCount++;
+                    break;
+            }
         }
     }
 
-    if (!hasResources) {
-        stockResourcesContainer.innerHTML = '<p>No raw resources in stockpile.</p>';
-    }
+    if (resourceCount === 0) stockResourcesContainer.innerHTML = '<p>No raw resources in stockpile.</p>';
+    if (materialCount === 0) stockMaterialsContainer.innerHTML = '<p>No materials in stockpile.</p>';
+    if (goodCount === 0) stockGoodsContainer.innerHTML = '<p>No goods in stockpile.</p>';
 }
 
-export function renderResources() {
-    const resourcesContainer = document.getElementById('resources-container');
-    if (resourcesContainer) {
-        renderFactories(resourcesContainer, 'RESOURCE');
-    }
-}
-
-export function renderWorkshops() {
-    const workshopsContainer = document.getElementById('workshops-container');
-    if (workshopsContainer) {
-        renderFactories(workshopsContainer, 'FACTORY');
-    }
-}
+// These are legacy and no longer directly called by navigation, but are kept for potential future use.
+export function renderResources() {}
+export function renderWorkshops() {}
