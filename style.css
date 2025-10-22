@@ -1,9 +1,8 @@
 /*
  * Filename: style.css
- * Version: 16.0 (Refined UI & Complete)
+ * Version: 17.0 (Stable & Splash-Screen-Removed)
  * Description: Main stylesheet for the "Noub" game.
- * This version adds styles for the splash screen, hamburger menu,
- * and the unified production screen.
+ * All styles related to the splash screen have been removed for stability.
 */
 
 
@@ -46,40 +45,7 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-
-/* --- Splash Screen --- */
-#splash-screen {
-    position: fixed;
-    inset: 0;
-    background-color: var(--background-dark);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    opacity: 1;
-    transition: opacity 0.5s ease-out;
-}
-.splash-logo {
-    font-size: 48px;
-    font-weight: bold;
-    color: var(--primary-accent);
-    letter-spacing: 5px;
-    animation: fadeInUp 0.8s ease-out;
-}
-.splash-subtitle {
-    font-size: 18px;
-    color: var(--text-secondary);
-    letter-spacing: 2px;
-    margin-top: 10px;
-    animation: fadeInUp 0.8s ease-out 0.2s;
-    animation-fill-mode: both;
-}
+/* --- ALL SPLASH SCREEN STYLES HAVE BEEN REMOVED --- */
 
 
 /* --- Header & Bottom Navigation --- */
