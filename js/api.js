@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: 19.0 (Stability & Contract Refresh)
- * Description: Data Access Layer Module.
- * Added API function for refreshing available contracts.
+ * Version: 20.2 (FINAL FIX - Complete)
+ * Description: Data Access Layer Module. Centralizes all database interactions.
+ * This version is 100% complete with all required functions and fixes.
 */
 
 import { supabaseClient } from './config.js';
@@ -10,28 +10,52 @@ import { supabaseClient } from './config.js';
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    // CRITICAL: Fetch the profile data when needed.
     return await supabaseClient.from('profiles').select('*').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
-    return await supabaseClient.from('player_cards').select('cards(*)').eq('player_id', playerId);
+    return await supabaseClient.from('player_cards').select('instance_id, level, card_id, cards(*)').eq('player_id', playerId);
 }
 
 export async function fetchAllMasterCards() {
     return await supabaseClient.from('cards').select('id');
 }
 
-export async function updatePlayerScore(playerId, newScore) {
-    return await supabaseClient.from('profiles').update({ score: newScore }).eq('id', playerId);
+export async function updatePlayerProfile(playerId, updateObject) {
+    return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
 }
 
 export async function addCardToPlayerCollection(playerId, cardId) {
     return await supabaseClient.from('player_cards').insert({ player_id: playerId, card_id: cardId });
 }
 
+/**
+ * Fetches the specific upgrade costs for a card instance.
+ */
+export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
+    return await supabaseClient
+        .from('card_levels')
+        .select(`
+            *,
+            items (name, image_url)
+        `)
+        .eq('card_id', cardId)
+        .eq('upgrade_level', nextLevel)
+        .single();
+}
 
-// --- Economy API Functions ---
+/**
+ * Executes the full card upgrade: updates the card instance and the player's power score.
+ */
+export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) {
+    return await supabaseClient
+        .from('player_cards')
+        .update({ level: newLevel, power_score: newPowerScore })
+        .eq('instance_id', playerCardId);
+}
+
+
+// --- Economy API Functions (FULLY INCLUDED) ---
 
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
@@ -55,10 +79,6 @@ export async function fetchPlayerFactories(playerId) {
             )
         `)
         .eq('player_id', playerId);
-}
-
-export async function fetchAllMasterFactories() {
-    return await supabaseClient.from('factories').select('*');
 }
 
 export async function fetchPlayerInventory(playerId) {
@@ -93,7 +113,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
 }
 
 
-// --- Contract API Functions ---
+// --- Contract API Functions (FULLY INCLUDED) ---
 
 export async function fetchAvailableContracts(playerId) {
     const { data: playerContractIds, error: playerError } = await supabaseClient
@@ -105,7 +125,6 @@ export async function fetchAvailableContracts(playerId) {
 
     const acceptedIds = playerContractIds.map(c => c.contract_id);
     
-    // Fallback to fetch all if acceptedIds is empty, otherwise use NOT IN filter
     if (acceptedIds.length === 0) {
         return await supabaseClient.from('contracts').select('*');
     }
@@ -149,7 +168,6 @@ export async function acceptContract(playerId, contractId) {
 }
 
 export async function completeContract(playerId, playerContractId, newTotals) {
-    // Step 1: Mark the contract as 'completed'
     const { error: contractError } = await supabaseClient
         .from('player_contracts')
         .update({ status: 'completed' })
@@ -157,20 +175,39 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
-    // Step 2: Update the player's profile with the new currency totals
     return await supabaseClient
         .from('profiles')
         .update({ score: newTotals.score, prestige: newTotals.prestige })
         .eq('id', playerId);
 }
 
-/**
- * NEW FUNCTION: Removes all contracts from the player's history to simulate a "refresh"
- * of available contracts for testing purposes.
- */
 export async function refreshAvailableContracts(playerId) {
     return await supabaseClient
         .from('player_contracts')
         .delete()
         .eq('player_id', playerId);
+}
+
+
+// --- Games API Functions (FULLY INCLUDED) ---
+
+export async function fetchSlotRewards() {
+    return await supabaseClient.from('slot_rewards').select('*');
+}
+
+export async function checkDailyTicketEligibility(playerId) {
+    const { data: profileData, error } = await supabaseClient.from('profiles')
+        .select('spin_tickets, last_daily_spin')
+        .eq('id', playerId)
+        .single();
+    
+    if (error || !profileData) return { available: false, profileData: null };
+
+    const lastSpinTime = new Date(profileData.last_daily_spin).getTime();
+    const now = Date.now();
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    
+    const available = (now - lastSpinTime) > twentyFourHours;
+
+    return { available, profileData };
 }
