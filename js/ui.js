@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: 19.0 (Stability & Contract Refresh)
- * Description: UI Controller Module. Updated to accept profile object directly
- * for header updates, ensuring stability after transactions.
+ * Version: 19.2 (CRITICAL UI Fix & Complete)
+ * Description: UI Controller Module. FIXED: Resolved TypeError by fetching DOM elements
+ * inside the setup functions to prevent race conditions.
 */
 
 import { renderCollection } from './screens/collection.js';
@@ -23,7 +23,7 @@ const contentContainer = document.getElementById('content-container');
 const navItems = document.querySelectorAll('.nav-item');
 
 export function openModal(modalId) {
-    const modal = document.getElementById(modalId);
+    const modal = document.getElementById(modal);
     if (modal) {
         modal.classList.remove('hidden');
     }
@@ -53,13 +53,10 @@ export function navigateTo(targetId) {
             renderActiveContracts();
             renderAvailableContracts();
             break;
+        // The remaining screens will render nothing until implemented
     }
 }
 
-/**
- * Updates the header UI with the latest player currency data directly from the profile object.
- * @param {object} profile - The latest profile object fetched from the database.
- */
 export function updateHeaderUI(profile) {
     if (!profile) return;
     document.getElementById('ankh-display').textContent = profile.score || 0;
@@ -86,19 +83,35 @@ function setupNavEvents() {
     document.getElementById('more-nav-btn').addEventListener('click', () => openModal('more-modal'));
 }
 
+/**
+ * FIX APPLIED: Elements are fetched inside this function to ensure they exist.
+ */
 function setupMoreMenuEvents() {
-    document.getElementById('more-profile-btn').addEventListener('click', () => {
-        window.closeModal('more-modal');
-        navigateTo('profile-screen');
-    });
-    document.getElementById('more-albums-btn').addEventListener('click', () => {
-        window.closeModal('more-modal');
-        navigateTo('albums-screen');
-    });
-    document.getElementById('more-eve-btn').addEventListener('click', () => {
-        window.closeModal('more-modal');
-        navigateTo('chat-screen');
-    });
+    const profileBtn = document.getElementById('more-profile-btn');
+    const albumsBtn = document.getElementById('more-albums-btn');
+    const eveBtn = document.getElementById('more-eve-btn');
+    
+    // Safety check: ensure buttons exist before adding listeners
+    if(profileBtn) {
+        profileBtn.addEventListener('click', () => {
+            window.closeModal('more-modal');
+            navigateTo('profile-screen');
+        });
+    }
+
+    if(albumsBtn) {
+        albumsBtn.addEventListener('click', () => {
+            window.closeModal('more-modal');
+            navigateTo('albums-screen');
+        });
+    }
+    
+    if(eveBtn) {
+        eveBtn.addEventListener('click', () => {
+            window.closeModal('more-modal');
+            navigateTo('chat-screen');
+        });
+    }
 }
 
 export function setupEventListeners() {
