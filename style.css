@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: 19.0 (Full Loop & Contract Refresh - Complete)
+ * Version: 20.1 (Games, Upgrades, UI Fixes - Complete)
  * Description: Main stylesheet for the "Noub" game.
- * Added styles for the new "Refresh Contracts" button.
+ * FIX: Corrected repetitive styles and ensured proper z-indexing.
 */
 
 
@@ -16,6 +16,11 @@
     --ankh-color: #29b6f6;
     --success-color: #34c759;
     --danger-color: #ff453a;
+    --rarity-common: #7f8c8d;
+    --rarity-rare: #3498db;
+    --rarity-epic: #9b59b6;
+    --rarity-legendary: #f39c12;
+    --rarity-diamond: #f1c40f;
 }
 
 * {
@@ -200,6 +205,7 @@ header {
     color: var(--primary-accent);
 }
 
+
 /* --- Contract Detail Modal --- */
 .contract-modal-header { text-align: center; }
 .contract-modal-header h3 { color: var(--primary-accent); font-size: 1.5em; margin: 0 0 10px 0; }
@@ -276,11 +282,12 @@ header {
     border-color: var(--primary-accent);
 }
 
-.rarity-0 { border-color: #7f8c8d; }
-.rarity-2 { border-color: #3498db; }
-.rarity-4 { border-color: #9b59b6; }
-.rarity-6 { border-color: #f39c12; }
-.rarity-8 { border-color: #f1c40f; }
+/* Card Rarity Aura/Border */
+.card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
+.card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
+.card-stack[data-rarity="4"] { border-color: var(--rarity-epic); }
+.card-stack[data-rarity="6"] { border-color: var(--rarity-legendary); }
+.card-stack[data-rarity="8"] { border-color: var(--rarity-diamond); }
 
 .card-stack .card-image, .building-card img {
     width: 100%;
@@ -297,6 +304,19 @@ header {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.card-stack .card-details {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+.card-stack .card-level {
+    font-weight: bold;
+    color: var(--primary-accent);
+}
+
 
 .building-card .level {
     font-size: 0.8em;
@@ -370,6 +390,114 @@ header {
 .progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
 
 
+/* --- Upgrade Screen --- */
+.upgrade-select-area {
+    margin-bottom: 40px;
+}
+.upgrade-select-area h3 {
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #3a3a3c;
+}
+
+.upgrade-detail-area {
+    background-color: var(--surface-dark);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 20px;
+    text-align: center;
+}
+.upgrade-card-target {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 20px auto;
+    border-radius: 12px;
+    background-color: #333;
+}
+.upgrade-cost-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.cost-item {
+    background-color: #1a1a1a;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+.cost-item .value {
+    font-weight: bold;
+    display: block;
+    margin-top: 5px;
+    color: var(--text-primary);
+}
+.cost-item .material-icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+.upgrade-cost-grid img {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 5px;
+}
+
+/* --- Games Screen (Slots) --- */
+.games-section {
+    margin-bottom: 40px;
+}
+.games-section h3 {
+    color: var(--primary-accent);
+    margin-bottom: 15px;
+}
+.game-container {
+    background-color: var(--surface-dark);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+.balance-info {
+    font-weight: bold;
+    color: var(--ankh-color);
+    margin-bottom: 15px;
+}
+.reels-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.reel {
+    width: 60px;
+    height: 90px;
+    overflow: hidden;
+    border: 2px solid var(--primary-accent);
+    border-radius: 8px;
+    background-color: #000;
+}
+.reel-inner {
+    width: 100%;
+    height: 1000px; 
+    transition: transform 0.5s ease-out; 
+}
+.reel-item {
+    width: 100%;
+    height: 90px;
+    line-height: 90px;
+    font-size: 30px;
+    color: var(--primary-accent);
+}
+.action-button.small {
+    padding: 10px 15px;
+    font-size: 1em;
+    width: auto;
+}
+
+
 /* --- Modals --- */
 .modal-overlay {
     position: fixed;
@@ -382,6 +510,12 @@ header {
     justify-content: center;
     padding: 20px;
 }
+
+/* CRITICAL FIX: Hamburger menu z-index must be higher than other overlays */
+#more-modal {
+    z-index: 300; 
+}
+
 
 .modal-content {
     background-color: var(--surface-dark);
