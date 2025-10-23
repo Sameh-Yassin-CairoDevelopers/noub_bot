@@ -1,47 +1,44 @@
 /*
  * Filename: js/auth.js
- * Version: 19.0 (Stability & Contract Refresh)
- * Description: Authentication Module. Now manages full state refresh to prevent
- * race conditions (the "zeroing out" currency bug).
+ * Version: 19.1 (CRITICAL FIX for Login Forms)
+ * Description: Authentication Module. FIXED: Made showRegisterForm/showLoginForm globally accessible.
 */
 
 import { supabaseClient } from './config.js';
 import { state } from './state.js';
 import * as api from './api.js';
-import { navigateTo, updateHeaderUI } from './ui.js';
+import { navigateTo, updateHeaderUI } from './ui.js'; // Note: updateHeaderUI now takes a profile object
 
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
-window.showRegisterForm = function() {
+// --- FIX --- Exported these functions and made them globally accessible
+export function showRegisterForm() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
         registerForm.classList.remove('hidden');
     }
 }
-window.showLoginForm = function() {
+export function showLoginForm() {
     if (loginForm && registerForm) {
         registerForm.classList.add('hidden');
         loginForm.classList.remove('hidden');
     }
 }
+window.showRegisterForm = showRegisterForm;
+window.showLoginForm = showLoginForm;
 
-/**
- * CRITICAL FUNCTION: Refreshes the player's profile and inventory from the database
- * and updates the UI header. Used after every major transaction (e.g., contract completion).
- */
+
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Fetch fresh profile and inventory data simultaneously
     const [profileResult, inventoryResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id)
     ]);
 
-    // Update Profile State and UI
     if (!profileResult.error && profileResult.data) {
         state.playerProfile = profileResult.data;
         updateHeaderUI(state.playerProfile);
@@ -49,7 +46,6 @@ export async function refreshPlayerState() {
         console.error("Error refreshing profile data.");
     }
     
-    // Update Inventory State
     if (!inventoryResult.error && inventoryResult.data) {
         state.inventory.clear();
         inventoryResult.data.forEach(item => {
@@ -62,7 +58,6 @@ export async function refreshPlayerState() {
 async function initializeApp(user) {
     state.currentUser = user;
     
-    // Initial fetch of all player state
     await refreshPlayerState();
 
     if (!state.playerProfile) {
