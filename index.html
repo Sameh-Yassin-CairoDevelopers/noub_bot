@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Noub - Pharaoh's Legacy (v19.0 - Full Loop)</title>
+    <title>Noub - Pharaoh's Legacy (v20.1 - Games & Upgrades)</title>
     
     <link rel="stylesheet" href="style.css">
     
@@ -16,6 +16,7 @@
 </head>
 <body>
 
+    <!-- Authentication Overlay - Initially Visible -->
     <div id="auth-overlay">
         <div class="auth-form" id="login-form">
             <h2>Login to "Noub"</h2>
@@ -36,24 +37,30 @@
         </div>
     </div>
 
+    <!-- Main App Container - Initially Hidden -->
     <div id="app-container" class="hidden">
         
         <header>
             <div class="balance-bar">
+                <!-- Ankh (العنخ) -->
                 <div class="currency-display"><span class="icon">☥</span> <span id="ankh-display">0</span></div>
-                <div class="currency-display"><span class="icon">👑</span> <span id="prestige-display">0</span></div>
-                <div class="currency-display"><span class="icon">✨</span> <span id="blessing-display">0</span></div>
+                <!-- Prestige (الخنفساء) -->
+                <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
+                <!-- Blessing (الخنجر) -->
+                <div class="currency-display"><span class="icon">🗡️</span> <span id="blessing-display">0</span></div>
                 <div id="connectButton"></div>
             </div>
         </header>
 
         <main id="content-container">
             
+            <!-- My Collection Screen -->
             <div id="collection-screen" class="screen">
                 <h2>My Collection</h2>
                 <div class="card-grid" id="collection-container"></div>
             </div>
             
+            <!-- Unified Production Screen -->
             <div id="production-screen" class="screen hidden">
                 <h2>Production</h2>
                 <div class="production-section">
@@ -66,6 +73,7 @@
                 </div>
             </div>
 
+            <!-- Stockpile Screen -->
             <div id="stock-screen" class="screen hidden">
                 <h2>Stockpile</h2>
                 <div class="stock-tabs">
@@ -78,25 +86,59 @@
                 <div id="stock-goods" class="stock-content"></div>
             </div>
 
+            <!-- Contracts Screen -->
             <div id="contracts-screen" class="screen hidden">
                 <h2>Royal Decrees</h2>
-                
+                <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
                 <div class="contracts-section">
-                    <h3>Active Contracts</h3>
-                    <div id="active-contracts-container" class="contracts-list"></div>
-                </div>
-
-                <div class="contracts-section">
-                    <div class="contracts-header">
-                        <h3>Available Contracts</h3>
-                        <button id="refresh-contracts-btn" class="text-button">Refresh</button>
-                    </div>
+                    <div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div>
                     <div id="available-contracts-container" class="contracts-list"></div>
                 </div>
             </div>
 
+            <!-- NEW: Card Upgrade Screen -->
+            <div id="card-upgrade-screen" class="screen hidden">
+                <h2>Card Upgrades</h2>
+                <div class="upgrade-select-area">
+                    <h3>Select Card to Upgrade:</h3>
+                    <div id="upgrade-card-selection-container" class="card-grid">
+                        <!-- Card list will be rendered here by JS -->
+                    </div>
+                </div>
+                <div id="upgrade-detail-area" class="upgrade-detail-area hidden">
+                    <!-- Detailed upgrade view for the selected card -->
+                </div>
+            </div>
+
+            <!-- NEW: Games Screen -->
+            <div id="games-screen" class="screen hidden">
+                <h2>Games</h2>
+                <div class="games-section">
+                    <h3>Tomb of Treasures (Slot)</h3>
+                    <div id="slot-machine-container" class="game-container">
+                        <div class="balance-info">Spins Available: <span id="spin-ticket-display">0</span> 🗡️</div>
+                        <div class="reels-container">
+                            <div class="reel" id="reel-1"></div>
+                            <div class="reel" id="reel-2"></div>
+                            <div class="reel" id="reel-3"></div>
+                        </div>
+                        <button id="spin-button" class="action-button small">SPIN (1 🗡️)</button>
+                    </div>
+                </div>
+                
+                <div class="games-section" style="margin-top: 40px;">
+                    <h3>Valley of the Kings (KV Game)</h3>
+                    <div id="kv-game-container" class="game-container">
+                        <p class="screen-description">Uncover the gates to receive bonus rewards.</p>
+                        <button class="action-button small disabled">Start KV Game (Coming Soon)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholder Screens -->
             <div id="albums-screen" class="screen hidden"><h2>Albums</h2></div>
             
+            <!-- Profile Screen Content -->
             <div id="profile-screen" class="screen hidden">
                  <div class="profile-container">
                     <div class="profile-header">
@@ -114,17 +156,33 @@
                     <button id="logout-btn" class="action-button danger">Logout</button>
                 </div>
             </div>
-
+            <!-- Chat Screen -->
             <div id="chat-screen" class="screen hidden"><h2>Chat with Eve</h2></div>
         </main>
         
+        <!-- Modals -->
         <div id="shop-modal" class="modal-overlay hidden"></div>
         <div id="toast-container"></div>
         <div id="production-modal" class="modal-overlay hidden"></div>
-        <div id="more-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
+
+        <!-- NEW: "More" Menu Modal (Hamburger Menu) -->
+        <div id="more-modal" class="modal-overlay hidden">
+            <div class="modal-content more-menu">
+                <!-- Links to new screens -->
+                <a class="more-menu-item" id="more-games-btn"><div class="icon">🎰</div><span>Games</span></a>
+                <a class="more-menu-item" id="more-upgrade-btn"><div class="icon">✨</div><span>Card Upgrades</span></a>
+                <!-- Links to old screens -->
+                <a class="more-menu-item" id="more-profile-btn"><div class="icon">👤</div><span>Profile</span></a>
+                <a class="more-menu-item" id="more-albums-btn"><div class="icon">📖</div><span>Albums</span></a>
+                <a class="more-menu-item" id="more-eve-btn"><div class="icon">💬</div><span>Chat with Eve</span></a>
+                <a class="more-menu-item"><div class="icon">⚙️</div><span>Settings</span></a>
+                <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
+            </div>
+        </div>
     </div>
 
+    <!-- Refined Bottom Navigation Bar -->
     <nav class="bottom-nav">
         <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
         <a class="nav-item" data-target="production-screen" title="Production"><div class="icon">⛏️</div><span>Production</span></a>
