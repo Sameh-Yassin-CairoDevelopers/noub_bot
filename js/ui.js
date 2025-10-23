@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: 18.2 (Definitive Interaction Fix)
- * Description: UI Controller Module.
- * FIX: Re-established window.closeModal to be globally accessible, fixing all broken modals.
+ * Version: 19.0 (Stability & Contract Refresh)
+ * Description: UI Controller Module. Updated to accept profile object directly
+ * for header updates, ensuring stability after transactions.
 */
 
 import { renderCollection } from './screens/collection.js';
@@ -56,6 +56,10 @@ export function navigateTo(targetId) {
     }
 }
 
+/**
+ * Updates the header UI with the latest player currency data directly from the profile object.
+ * @param {object} profile - The latest profile object fetched from the database.
+ */
 export function updateHeaderUI(profile) {
     if (!profile) return;
     document.getElementById('ankh-display').textContent = profile.score || 0;
