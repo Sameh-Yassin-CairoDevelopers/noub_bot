@@ -1,25 +1,29 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: 18.2 (Definitive Interaction Fix - Complete)
+ * Version: 19.0 (Stability & Contract Refresh)
  * Description: View Logic Module for the contracts screen.
- * This version ensures all interactions are fully functional with the global closeModal.
+ * Implemented contract refresh button and adopted full state refresh upon delivery.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
+import { showToast, openModal } from '../ui.js';
+import { refreshPlayerState } from '../auth.js'; // NEW IMPORT
 
 const activeContractsContainer = document.getElementById('active-contracts-container');
 const availableContractsContainer = document.getElementById('available-contracts-container');
 const contractDetailModal = document.getElementById('contract-detail-modal');
+const refreshBtn = document.getElementById('refresh-contracts-btn');
 
+/**
+ * Handles the logic for accepting a new contract.
+ */
 async function handleAcceptContract(contractId) {
     showToast('Accepting contract...');
     const { error } = await api.acceptContract(state.currentUser.id, contractId);
 
     if (error) {
         showToast('Error accepting contract!', 'error');
-        console.error(error);
     } else {
         showToast('Contract Accepted!', 'success');
         window.closeModal('contract-detail-modal');
@@ -28,38 +32,69 @@ async function handleAcceptContract(contractId) {
     }
 }
 
+/**
+ * Handles the logic for delivering/completing an active contract.
+ */
 async function handleDeliverContract(playerContract, requirements) {
     showToast('Delivering goods...');
 
+    // 1. Consume required items from inventory
     const consumePromises = requirements.map(req => {
         const currentQty = state.inventory.get(req.items.id)?.qty || 0;
         const newQty = currentQty - req.quantity;
-        state.inventory.set(req.items.id, { ...state.inventory.get(req.items.id), qty: newQty });
+        state.inventory.set(req.items.id, { ...state.inventory.get(req.items.id), qty: newQty }); // Update state locally
         return api.updateItemQuantity(state.currentUser.id, req.items.id, newQty);
     });
     await Promise.all(consumePromises);
 
+    // 2. Calculate new currency totals
     const contractDetails = playerContract.contracts;
     const newTotals = {
         score: (state.playerProfile.score || 0) + contractDetails.reward_score,
         prestige: (state.playerProfile.prestige || 0) + contractDetails.reward_prestige
     };
 
+    // 3. Mark contract as complete and update profile
     const { error } = await api.completeContract(state.currentUser.id, playerContract.id, newTotals);
 
     if (error) {
         showToast('Error completing contract!', 'error');
-        console.error(error);
+        // IMPORTANT: The state is refreshed below, which will fix the currency if the update failed.
     } else {
-        state.playerProfile.score = newTotals.score;
-        state.playerProfile.prestige = newTotals.prestige;
-        updateHeaderUI(state.playerProfile);
         showToast('Contract Completed! Rewards received.', 'success');
-        window.closeModal('contract-detail-modal');
-        renderActiveContracts();
     }
+
+    // CRITICAL FIX: Refresh all player state from the database after transaction
+    await refreshPlayerState();
+
+    window.closeModal('contract-detail-modal');
+    renderActiveContracts();
 }
 
+/**
+ * NEW FUNCTION: Handles the "Refresh" button click, clearing old contracts for testing.
+ */
+async function handleRefreshContracts() {
+    refreshBtn.disabled = true;
+    showToast('Refreshing available contracts...');
+    
+    // In a real game, this would generate new contracts. Here, we delete old history.
+    const { error } = await api.refreshAvailableContracts(state.currentUser.id);
+
+    if (error) {
+        showToast('Error refreshing contracts!', 'error');
+        console.error(error);
+    } else {
+        showToast('Contracts refreshed!', 'success');
+        renderAvailableContracts();
+    }
+
+    refreshBtn.disabled = false;
+}
+
+/**
+ * Opens the detail modal for a specific contract.
+ */
 async function openContractModal(contractId, playerContract = null) {
     const { data: contract, error } = await api.fetchContractWithRequirements(contractId);
     if (error) {
@@ -67,6 +102,7 @@ async function openContractModal(contractId, playerContract = null) {
         return;
     }
 
+    // Check inventory for requirements
     let allRequirementsMet = true;
     const requirementsHTML = contract.contract_requirements.map(req => {
         const playerQty = state.inventory.get(req.items.id)?.qty || 0;
@@ -130,6 +166,9 @@ async function openContractModal(contractId, playerContract = null) {
     }
 }
 
+/**
+ * Renders the list of contracts the player has accepted but not completed.
+ */
 export async function renderActiveContracts() {
     if (!state.currentUser) return;
     activeContractsContainer.innerHTML = 'Loading active contracts...';
@@ -161,9 +200,15 @@ export async function renderActiveContracts() {
     });
 }
 
+/**
+ * Renders the list of new contracts available for the player to accept.
+ */
 export async function renderAvailableContracts() {
     if (!state.currentUser) return;
     availableContractsContainer.innerHTML = 'Loading available contracts...';
+
+    // Attach refresh event listener
+    refreshBtn.addEventListener('click', handleRefreshContracts);
 
     const { data: contracts, error } = await api.fetchAvailableContracts(state.currentUser.id);
     
