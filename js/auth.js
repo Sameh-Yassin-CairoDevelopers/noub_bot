@@ -1,13 +1,13 @@
 /*
  * Filename: js/auth.js
- * Version: 17.0 (Stable & Splash-Screen-Removed)
- * Description: Authentication Module. All logic related to the splash screen
- * has been removed to ensure reliable and direct startup.
+ * Version: 19.0 (Stability & Contract Refresh)
+ * Description: Authentication Module. Now manages full state refresh to prevent
+ * race conditions (the "zeroing out" currency bug).
 */
 
 import { supabaseClient } from './config.js';
 import { state } from './state.js';
-import { fetchProfile, fetchPlayerInventory } from './api.js';
+import * as api from './api.js';
 import { navigateTo, updateHeaderUI } from './ui.js';
 
 const authOverlay = document.getElementById('auth-overlay');
@@ -15,7 +15,6 @@ const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
-// Make these functions globally available for onclick attributes in the auth overlay
 window.showRegisterForm = function() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
@@ -29,39 +28,51 @@ window.showLoginForm = function() {
     }
 }
 
+/**
+ * CRITICAL FUNCTION: Refreshes the player's profile and inventory from the database
+ * and updates the UI header. Used after every major transaction (e.g., contract completion).
+ */
+export async function refreshPlayerState() {
+    if (!state.currentUser) return;
+    
+    // Fetch fresh profile and inventory data simultaneously
+    const [profileResult, inventoryResult] = await Promise.all([
+        api.fetchProfile(state.currentUser.id),
+        api.fetchPlayerInventory(state.currentUser.id)
+    ]);
+
+    // Update Profile State and UI
+    if (!profileResult.error && profileResult.data) {
+        state.playerProfile = profileResult.data;
+        updateHeaderUI(state.playerProfile);
+    } else {
+        console.error("Error refreshing profile data.");
+    }
+    
+    // Update Inventory State
+    if (!inventoryResult.error && inventoryResult.data) {
+        state.inventory.clear();
+        inventoryResult.data.forEach(item => {
+            state.inventory.set(item.item_id, { qty: item.quantity, details: item.items });
+        });
+    }
+}
+
+
 async function initializeApp(user) {
     state.currentUser = user;
     
-    // Fetch profile and inventory in parallel for faster loading
-    const [profileResult, inventoryResult] = await Promise.all([
-        fetchProfile(user.id),
-        fetchPlayerInventory(user.id)
-    ]);
-    
-    // Handle profile fetching result
-    let { data: profile, error } = profileResult;
-    if (error) {
-        console.error("Critical error fetching profile:", error);
-        alert("Critical error loading your profile data. Please try logging in again.");
+    // Initial fetch of all player state
+    await refreshPlayerState();
+
+    if (!state.playerProfile) {
+        alert("Critical error loading your profile data.");
         await logout();
         return;
-    }
-    state.playerProfile = profile;
-
-    // Handle inventory fetching result
-    const { data: inventoryData, error: inventoryError } = inventoryResult;
-    if (inventoryError) {
-        console.error("Error fetching inventory:", inventoryError);
-    } else {
-        state.inventory.clear();
-        inventoryData.forEach(item => {
-            state.inventory.set(item.item_id, { qty: item.quantity, details: item.items });
-        });
     }
     
     authOverlay.classList.add('hidden');
     appContainer.classList.remove('hidden');
-    updateHeaderUI();
     navigateTo('collection-screen');
 }
 
@@ -121,16 +132,11 @@ export function setupAuthEventListeners() {
     document.getElementById('logout-btn').addEventListener('click', logout);
 }
 
-/**
- * Checks for an active session and initializes the app or shows the login screen.
- * Simplified to remove all splash screen logic.
- */
 export async function handleInitialSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         await initializeApp(session.user);
     } else {
-        // If there's no session, the auth overlay is already visible by default.
-        // No action needed.
+        authOverlay.classList.remove('hidden');
     }
 }
