@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: 20.2 (FINAL FIX - Complete)
+ * Version: 20.3 (Games API Name Fix - Complete)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * This version is 100% complete with all required functions and fixes.
+ * FIXED: Renamed checkDailyTicketEligibility to getDailySpinTickets.
 */
 
 import { supabaseClient } from './config.js';
@@ -14,6 +14,7 @@ export async function fetchProfile(userId) {
 }
 
 export async function fetchPlayerCards(playerId) {
+    // CRITICAL: Ensure instance_id is selected for upgrade screen
     return await supabaseClient.from('player_cards').select('instance_id, level, card_id, cards(*)').eq('player_id', playerId);
 }
 
@@ -29,9 +30,6 @@ export async function addCardToPlayerCollection(playerId, cardId) {
     return await supabaseClient.from('player_cards').insert({ player_id: playerId, card_id: cardId });
 }
 
-/**
- * Fetches the specific upgrade costs for a card instance.
- */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
         .from('card_levels')
@@ -44,9 +42,6 @@ export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
         .single();
 }
 
-/**
- * Executes the full card upgrade: updates the card instance and the player's power score.
- */
 export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) {
     return await supabaseClient
         .from('player_cards')
@@ -55,7 +50,7 @@ export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) 
 }
 
 
-// --- Economy API Functions (FULLY INCLUDED) ---
+// --- Economy API Functions ---
 
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
@@ -113,7 +108,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
 }
 
 
-// --- Contract API Functions (FULLY INCLUDED) ---
+// --- Contract API Functions ---
 
 export async function fetchAvailableContracts(playerId) {
     const { data: playerContractIds, error: playerError } = await supabaseClient
@@ -189,13 +184,17 @@ export async function refreshAvailableContracts(playerId) {
 }
 
 
-// --- Games API Functions (FULLY INCLUDED) ---
+// --- Games API Functions (CRITICAL FIX applied here) ---
 
 export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('*');
 }
 
-export async function checkDailyTicketEligibility(playerId) {
+/**
+ * Checks if the player is eligible for the daily spin ticket reward.
+ * CRITICAL FIX: The name is fixed to align with the call in games.js.
+ */
+export async function getDailySpinTickets(playerId) {
     const { data: profileData, error } = await supabaseClient.from('profiles')
         .select('spin_tickets, last_daily_spin')
         .eq('id', playerId)
