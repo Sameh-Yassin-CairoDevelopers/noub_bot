@@ -1,12 +1,12 @@
 /*
  * Filename: js/main.js
- * Version: 18.0 (Contracts UI)
+ * Version: 19.0 (Stability & Contract Refresh)
  * Description: The main entry point for the "Noub" application.
 */
 
 import { setupEventListeners } from './ui.js';
 import { setupAuthEventListeners, handleInitialSession } from './auth.js';
-import './screens/contracts.js'; // Import the new module to ensure it's loaded
+import './screens/contracts.js'; // Ensure contracts module is loaded
 
 // The 'DOMContentLoaded' event ensures that the entire HTML document has been loaded
 // and parsed before our main script logic runs.
