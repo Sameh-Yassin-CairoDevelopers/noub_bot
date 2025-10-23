@@ -1,8 +1,9 @@
 /*
  * Filename: js/ui.js
- * Version: 19.3 (Definitive UI Stability Fix)
+ * Version: 20.2 (FINAL UI Stability Fix)
  * Description: UI Controller Module. Applied safety checks to all DOM element listeners
  * to prevent the "Cannot read properties of null" error and ensure clean startup.
+ * Fixed the More Menu closing logic.
 */
 
 import { renderCollection } from './screens/collection.js';
@@ -10,6 +11,8 @@ import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
 import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
+import { renderGames } from './screens/games.js'; // New Import
+import { renderUpgrade } from './screens/upgrade.js'; // New Import
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
 window.closeModal = function(modalId) {
@@ -53,6 +56,12 @@ export function navigateTo(targetId) {
             renderActiveContracts();
             renderAvailableContracts();
             break;
+        case 'games-screen': // New Screen
+            renderGames();
+            break;
+        case 'card-upgrade-screen': // New Screen
+            renderUpgrade();
+            break;
     }
 }
 
@@ -61,6 +70,7 @@ export function updateHeaderUI(profile) {
     document.getElementById('ankh-display').textContent = profile.score || 0;
     document.getElementById('prestige-display').textContent = profile.prestige || 0;
     document.getElementById('blessing-display').textContent = profile.blessing || 0;
+    document.getElementById('spin-ticket-display').textContent = profile.spin_tickets || 0; // Update Spin Ticket Display
 }
 
 export function showToast(message, type = 'info') {
@@ -96,27 +106,20 @@ function setupMoreMenuEvents() {
     const profileBtn = document.getElementById('more-profile-btn');
     const albumsBtn = document.getElementById('more-albums-btn');
     const eveBtn = document.getElementById('more-eve-btn');
+    const gamesBtn = document.getElementById('more-games-btn');
+    const upgradeBtn = document.getElementById('more-upgrade-btn');
     
-    if (profileBtn) {
-        profileBtn.addEventListener('click', () => {
-            window.closeModal('more-modal');
-            navigateTo('profile-screen');
-        });
-    }
+    // Helper function to close modal and navigate
+    const handleMoreClick = (targetId) => {
+        window.closeModal('more-modal');
+        navigateTo(targetId);
+    };
 
-    if (albumsBtn) {
-        albumsBtn.addEventListener('click', () => {
-            window.closeModal('more-modal');
-            navigateTo('albums-screen');
-        });
-    }
-    
-    if (eveBtn) {
-        eveBtn.addEventListener('click', () => {
-            window.closeModal('more-modal');
-            navigateTo('chat-screen');
-        });
-    }
+    if (profileBtn) profileBtn.addEventListener('click', () => handleMoreClick('profile-screen'));
+    if (albumsBtn) albumsBtn.addEventListener('click', () => handleMoreClick('albums-screen'));
+    if (eveBtn) eveBtn.addEventListener('click', () => handleMoreClick('chat-screen'));
+    if (gamesBtn) gamesBtn.addEventListener('click', () => handleMoreClick('games-screen'));
+    if (upgradeBtn) upgradeBtn.addEventListener('click', () => handleMoreClick('card-upgrade-screen'));
 }
 
 export function setupEventListeners() {
