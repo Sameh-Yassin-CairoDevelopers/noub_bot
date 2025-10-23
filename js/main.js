@@ -1,6 +1,6 @@
 /*
  * Filename: js/main.js
- * Version: 19.0 (Stability & Contract Refresh)
+ * Version: 19.1 (CRITICAL FIX for Login Forms)
  * Description: The main entry point for the "Noub" application.
 */
 
