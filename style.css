@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: 18.0 (Contracts UI - Complete)
+ * Version: 19.0 (Full Loop & Contract Refresh - Complete)
  * Description: Main stylesheet for the "Noub" game.
- * This version adds all necessary styles for the new contracts system.
+ * Added styles for the new "Refresh Contracts" button.
 */
 
 
@@ -48,36 +48,6 @@ body {
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
-}
-
-
-/* --- Splash Screen --- */
-#splash-screen {
-    position: fixed;
-    inset: 0;
-    background-color: var(--background-dark);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    opacity: 1;
-    transition: opacity 0.5s ease-out;
-}
-.splash-logo {
-    font-size: 48px;
-    font-weight: bold;
-    color: var(--primary-accent);
-    letter-spacing: 5px;
-    animation: fadeInUp 0.8s ease-out;
-}
-.splash-subtitle {
-    font-size: 18px;
-    color: var(--text-secondary);
-    letter-spacing: 2px;
-    margin-top: 10px;
-    animation: fadeInUp 0.8s ease-out 0.2s;
-    animation-fill-mode: both;
 }
 
 
@@ -195,6 +165,11 @@ header {
     border-bottom: 1px solid #3a3a3c;
     padding-bottom: 10px;
 }
+.contracts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 .contracts-list {
     display: grid;
     grid-template-columns: 1fr;
@@ -270,6 +245,12 @@ header {
     display: flex;
     justify-content: space-around;
     text-align: center;
+}
+.reward-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
 }
 
 
@@ -499,6 +480,18 @@ header {
     background: var(--danger-color);
     color: white;
 }
+.text-button {
+    background: none;
+    border: none;
+    color: var(--ankh-color);
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 5px;
+}
+.text-button:hover {
+    text-decoration: underline;
+}
+
 #auth-overlay {
     position: fixed;
     inset: 0;
