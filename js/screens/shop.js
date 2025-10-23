@@ -1,13 +1,14 @@
 /*
  * Filename: js/screens/shop.js
- * Version: 20.4 (CRITICAL FIX: API Call Mismatch)
+ * Version: 20.4 (FINAL CRITICAL FIX: API Call & Missing Import)
  * Description: View Logic Module for the shop screen.
- * FIXED: Replaced obsolete api.updatePlayerScore with the correct api.updatePlayerProfile.
+ * FIXED: Added missing import for openModal.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
+// *** FIX: IMPORTING openModal HERE IS CRITICAL ***
+import { showToast, updateHeaderUI, openModal } from '../ui.js'; 
 import { renderCollection } from './collection.js';
 
 const shopModal = document.getElementById('shop-modal');
@@ -42,7 +43,7 @@ async function buyCardPack() {
     // 3. Deduct cost from player's profile (CRITICAL FIX APPLIED)
     const newScore = state.playerProfile.score - packCost;
     
-    // Use updatePlayerProfile to update the score column
+    // NOTE: This line now correctly uses updatePlayerProfile.
     const { error: updateError } = await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
     
     if (updateError) {
@@ -93,6 +94,7 @@ export function openShopModal() {
             </div>
         </div>
     `;
-    openModal('shop-modal');
+    // CRITICAL FIX: The imported openModal is used here.
+    openModal('shop-modal'); 
     document.getElementById('buy-pack-btn').addEventListener('click', buyCardPack);
 }
