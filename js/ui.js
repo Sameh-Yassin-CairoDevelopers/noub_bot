@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: 19.2 (CRITICAL UI Fix & Complete)
- * Description: UI Controller Module. FIXED: Resolved TypeError by fetching DOM elements
- * inside the setup functions to prevent race conditions.
+ * Version: 19.3 (Definitive UI Stability Fix)
+ * Description: UI Controller Module. Applied safety checks to all DOM element listeners
+ * to prevent the "Cannot read properties of null" error and ensure clean startup.
 */
 
 import { renderCollection } from './screens/collection.js';
@@ -23,7 +23,7 @@ const contentContainer = document.getElementById('content-container');
 const navItems = document.querySelectorAll('.nav-item');
 
 export function openModal(modalId) {
-    const modal = document.getElementById(modal);
+    const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('hidden');
     }
@@ -53,7 +53,6 @@ export function navigateTo(targetId) {
             renderActiveContracts();
             renderAvailableContracts();
             break;
-        // The remaining screens will render nothing until implemented
     }
 }
 
@@ -73,40 +72,46 @@ export function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 3000);
 }
 
+/**
+ * FIX APPLIED: Added safety checks for shop and more buttons.
+ */
 function setupNavEvents() {
     navItems.forEach(item => {
         if (item.dataset.target) {
             item.addEventListener('click', () => navigateTo(item.dataset.target));
         }
     });
-    document.getElementById('shop-nav-btn').addEventListener('click', openShopModal);
-    document.getElementById('more-nav-btn').addEventListener('click', () => openModal('more-modal'));
+
+    const shopBtn = document.getElementById('shop-nav-btn');
+    if (shopBtn) shopBtn.addEventListener('click', openShopModal);
+
+    const moreBtn = document.getElementById('more-nav-btn');
+    if (moreBtn) moreBtn.addEventListener('click', () => openModal('more-modal'));
 }
 
 /**
- * FIX APPLIED: Elements are fetched inside this function to ensure they exist.
+ * FIX APPLIED: Added safety checks for all menu buttons.
  */
 function setupMoreMenuEvents() {
     const profileBtn = document.getElementById('more-profile-btn');
     const albumsBtn = document.getElementById('more-albums-btn');
     const eveBtn = document.getElementById('more-eve-btn');
     
-    // Safety check: ensure buttons exist before adding listeners
-    if(profileBtn) {
+    if (profileBtn) {
         profileBtn.addEventListener('click', () => {
             window.closeModal('more-modal');
             navigateTo('profile-screen');
         });
     }
 
-    if(albumsBtn) {
+    if (albumsBtn) {
         albumsBtn.addEventListener('click', () => {
             window.closeModal('more-modal');
             navigateTo('albums-screen');
         });
     }
     
-    if(eveBtn) {
+    if (eveBtn) {
         eveBtn.addEventListener('click', () => {
             window.closeModal('more-modal');
             navigateTo('chat-screen');
