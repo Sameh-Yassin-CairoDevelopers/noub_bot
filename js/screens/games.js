@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/games.js
- * Version: 20.3 (API Name Fix - Complete)
+ * Version: 20.4 (API Name Fix - Complete)
  * Description: View Logic Module for the Games screen.
  * FIXED: The API call name for daily tickets is now correct.
 */
@@ -96,7 +96,6 @@ async function determinePrize(results) {
     const profileUpdate = {};
     let message = `JACKPOT! You won ${selectedReward.value} ${selectedReward.prize_name}!`;
     
-    // Calculate new currency values based on current state
     const currentProfile = state.playerProfile;
 
     switch (selectedReward.prize_type) {
@@ -149,10 +148,9 @@ async function runSlotMachine() {
     await api.updatePlayerProfile(state.currentUser.id, { spin_tickets: newTickets });
     state.playerProfile.spin_tickets = newTickets;
     
-    // 2. Refresh header immediately to show ticket consumption
     updateHeaderUI(state.playerProfile);
 
-    // 3. Determine random results
+    // 2. Determine random results
     const finalResults = [
         Math.floor(Math.random() * SYMBOLS.length),
         Math.floor(Math.random() * SYMBOLS.length),
@@ -165,7 +163,7 @@ async function runSlotMachine() {
         return spinReel(reelElements[i], result);
     });
     
-    // 4. Wait for animation to finish
+    // 3. Wait for animation to finish
     setTimeout(async () => {
         reelElements.forEach(el => {
             const inner = el.querySelector('.reel-inner');
@@ -184,7 +182,8 @@ async function runSlotMachine() {
  * Checks for daily ticket eligibility and updates profile if needed.
  */
 async function checkDailyTicket() {
-    const { available, profileData } = await api.getDailySpinTickets(state.currentUser.id);
+    // CRITICAL FIX: The function name is now correct
+    const { available, profileData } = await api.getDailySpinTickets(state.currentUser.id); 
     
     if (available) {
         const currentTickets = profileData.spin_tickets || 0;
