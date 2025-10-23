@@ -1,12 +1,12 @@
 /*
  * Filename: js/screens/collection.js
- * Version: 20.1 (Card Display Update)
+ * Version: 20.2 (Card Display Update - Complete)
  * Description: View Logic Module for My Collection screen.
  * Updated to display card level and stack count, and support the new upgrade flow.
 */
 
 import { state } from '../state.js';
-import { fetchPlayerCards } from '../api.js';
+import * as api from '../api.js';
 
 const collectionContainer = document.getElementById('collection-container');
 
@@ -15,7 +15,7 @@ export async function renderCollection() {
     collectionContainer.innerHTML = 'Loading...';
 
     // Fetch cards with level and master details
-    const { data: playerCards, error } = await fetchPlayerCards(state.currentUser.id);
+    const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
 
     if (error) {
         collectionContainer.innerHTML = 'Error fetching cards.';
@@ -28,26 +28,25 @@ export async function renderCollection() {
         return;
     }
 
-    // Group cards to display stack count
+    // Group cards to display stack count (by card ID and level for unique visual stacks)
     const cardMap = new Map();
     playerCards.forEach(pc => {
-        const cardId = pc.cards.id;
-        if (!cardMap.has(cardId)) {
-            cardMap.set(cardId, {
+        const key = `${pc.cards.id}-${pc.level}`; // Group by card type AND level
+        if (!cardMap.has(key)) {
+            cardMap.set(key, {
                 master: pc.cards,
-                instances: [],
-                count: 0
+                level: pc.level,
+                count: 0,
+                instance_id: pc.instance_id // Keep one instance ID for reference
             });
         }
-        cardMap.get(cardId).instances.push(pc);
-        cardMap.get(cardId).count++;
+        cardMap.get(key).count++;
     });
 
     collectionContainer.innerHTML = '';
 
-    for (const [cardId, data] of cardMap.entries()) {
+    for (const [key, data] of cardMap.entries()) {
         const card = data.master;
-        const firstInstance = data.instances[0]; // Use the first instance for level/instance_id
         
         const cardElement = document.createElement('div');
         cardElement.className = `card-stack`;
@@ -57,16 +56,14 @@ export async function renderCollection() {
             <img src="${card.image_url || 'images/default_card.png'}" alt="${card.name}" class="card-image">
             <h4>${card.name}</h4>
             <div class="card-details">
-                <span class="card-level">LVL ${firstInstance.level}</span>
+                <span class="card-level">LVL ${data.level}</span>
                 <span class="card-count">x${data.count}</span>
             </div>
         `;
         
-        // Example: Add onclick handler to select for viewing details or upgrade
-        // This links the collection viewing to the upgrade flow
+        // Add onclick handler to view details (simple alert for now)
         cardElement.onclick = () => {
-             alert(`Card: ${card.name}, Level: ${firstInstance.level}, Power: ${card.power_score}`);
-             // Later: navigateTo('card-upgrade-screen', { cardId: card.id, instanceId: firstInstance.instance_id });
+             alert(`Card: ${card.name}, Level: ${data.level}, Power: ${card.power_score}. Instances: ${data.count}`);
         };
         
         collectionContainer.appendChild(cardElement);
