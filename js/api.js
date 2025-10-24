@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: 20.4 (Final API Integration - Complete)
+ * Version: 20.5 (FINAL CRITICAL UPGRADE FIX - Complete)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * This is the 100% complete file required for all features.
+ * FIX: Now correctly updates the 'power_score' column in player_cards for upgrades.
 */
 
 import { supabaseClient } from './config.js';
@@ -14,8 +14,7 @@ export async function fetchProfile(userId) {
 }
 
 export async function fetchPlayerCards(playerId) {
-    // CRITICAL: Ensure instance_id is selected for upgrade screen
-    return await supabaseClient.from('player_cards').select('instance_id, level, card_id, cards(*)').eq('player_id', playerId);
+    return await supabaseClient.from('player_cards').select('instance_id, level, card_id, power_score, cards(*)').eq('player_id', playerId);
 }
 
 export async function fetchAllMasterCards() {
@@ -27,9 +26,20 @@ export async function updatePlayerProfile(playerId, updateObject) {
 }
 
 export async function addCardToPlayerCollection(playerId, cardId) {
-    return await supabaseClient.from('player_cards').insert({ player_id: playerId, card_id: cardId });
+    // When adding a new card, we must set its initial power_score to the master card's base score
+    const { data: cardDetails } = await supabaseClient.from('cards').select('power_score').eq('id', cardId).single();
+    const initialPower = cardDetails ? cardDetails.power_score : 1;
+    
+    return await supabaseClient.from('player_cards').insert({ 
+        player_id: playerId, 
+        card_id: cardId,
+        power_score: initialPower // Initialize power score
+    });
 }
 
+/**
+ * Fetches the specific upgrade costs for a card instance.
+ */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
         .from('card_levels')
@@ -42,10 +52,14 @@ export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
         .single();
 }
 
+/**
+ * Executes the full card upgrade: updates the card instance level and power score.
+ * CRITICAL FIX: power_score is now included in the update object.
+ */
 export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) {
     return await supabaseClient
         .from('player_cards')
-        .update({ level: newLevel, power_score: newPowerScore })
+        .update({ level: newLevel, power_score: newPowerScore }) 
         .eq('instance_id', playerCardId);
 }
 
@@ -108,7 +122,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
 }
 
 
-// --- Contract API Functions (unchanged) ---
+// --- Contract API Functions ---
 
 export async function fetchAvailableContracts(playerId) {
     const { data: playerContractIds, error: playerError } = await supabaseClient
@@ -184,16 +198,12 @@ export async function refreshAvailableContracts(playerId) {
 }
 
 
-// --- Games API Functions (CRITICAL FIX applied here) ---
+// --- Games API Functions ---
 
 export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('*');
 }
 
-/**
- * Checks if the player is eligible for the daily spin ticket reward.
- * CRITICAL FIX: The name is fixed to align with the call in games.js.
- */
 export async function getDailySpinTickets(playerId) {
     const { data: profileData, error } = await supabaseClient.from('profiles')
         .select('spin_tickets, last_daily_spin')
