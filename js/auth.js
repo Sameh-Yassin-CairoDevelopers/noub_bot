@@ -1,7 +1,8 @@
 /*
  * Filename: js/auth.js
- * Version: 20.7 (FINAL AUTH FIX - Complete)
- * Description: Authentication Module. FIXED: Added safety checks to event listeners.
+ * Version: 21.0 (Final Stability & UCP Integration - Complete)
+ * Description: Authentication Module. Ensures login forms work and integrates new
+ * UCP and Consumables data fetching into the state refresh flow.
 */
 
 import { supabaseClient } from './config.js';
@@ -14,7 +15,7 @@ const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
-// Make these functions globally available for onclick attributes in the auth overlay
+// CRITICAL FIX: Make these functions globally available for onclick attributes in index.html
 export function showRegisterForm() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
@@ -32,15 +33,18 @@ window.showLoginForm = showLoginForm;
 
 
 /**
- * Refreshes the player's profile and inventory from the database
+ * CRITICAL FUNCTION: Refreshes the player's entire state (profile, inventory, UCP data)
+ * from the database and updates the UI header.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Fetch fresh profile and inventory data simultaneously
-    const [profileResult, inventoryResult] = await Promise.all([
+    // Fetch all critical data simultaneously for maximum speed
+    const [profileResult, inventoryResult, consumablesResult, ucpResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
-        api.fetchPlayerInventory(state.currentUser.id)
+        api.fetchPlayerInventory(state.currentUser.id),
+        api.fetchKVGameConsumables(state.currentUser.id),
+        api.fetchUCPProtocol(state.currentUser.id)
     ]);
 
     // Update Profile State and UI
@@ -56,6 +60,23 @@ export async function refreshPlayerState() {
         state.inventory.clear();
         inventoryResult.data.forEach(item => {
             state.inventory.set(item.item_id, { qty: item.quantity, details: item.items });
+        });
+    }
+
+    // NEW: Update Consumables State
+    if (!consumablesResult.error && consumablesResult.data) {
+        state.consumables = new Map(); // Initialize a new map for consumables
+        consumablesResult.data.forEach(item => {
+            state.consumables.set(item.item_key, item.quantity);
+        });
+    }
+
+     // NEW: Update UCP Protocol State
+    if (!ucpResult.error && ucpResult.data) {
+        state.ucp = new Map(); // Initialize map for UCP answers
+        ucpResult.data.forEach(entry => {
+            // Stores the section_data (JSONB) under the section_key
+            state.ucp.set(entry.section_key, entry.section_data);
         });
     }
 }
@@ -74,7 +95,7 @@ async function initializeApp(user) {
     
     authOverlay.classList.add('hidden');
     appContainer.classList.remove('hidden');
-    navigateTo('collection-screen');
+    navigateTo('home-screen'); // CRITICAL: Start on the new Home Dashboard
 }
 
 async function login(email, password) {
@@ -97,12 +118,13 @@ export async function logout() {
     state.currentUser = null;
     state.playerProfile = {};
     state.inventory.clear();
+    state.consumables.clear(); // Clear new state
+    state.ucp.clear(); // Clear new state
     appContainer.classList.add('hidden');
     authOverlay.classList.remove('hidden');
 }
 
 export function setupAuthEventListeners() {
-    // Fetching elements locally and applying safety checks
     const loginButton = document.getElementById('login-button');
     const registerButton = document.getElementById('register-button');
     const logoutButton = document.getElementById('logout-btn');
