@@ -182,7 +182,6 @@ async function runSlotMachine() {
  * Checks for daily ticket eligibility and updates profile if needed.
  */
 async function checkDailyTicket() {
-    // CRITICAL FIX: The function name is now correct
     const { available, profileData } = await api.getDailySpinTickets(state.currentUser.id); 
     
     if (available) {
