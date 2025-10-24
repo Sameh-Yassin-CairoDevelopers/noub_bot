@@ -1,6 +1,6 @@
 /*
  * Filename: js/auth.js
- * Version: 20.6 (FINAL AUTH FIX - Complete)
+ * Version: 20.7 (FINAL AUTH FIX - Complete)
  * Description: Authentication Module. FIXED: Added safety checks to event listeners.
 */
 
@@ -13,9 +13,8 @@ const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
-const logoutBtn = document.getElementById('logout-btn'); // Fetching button reference outside function
 
-// CRITICAL FIX: Make these functions globally available for onclick attributes in index.html
+// Make these functions globally available for onclick attributes in the auth overlay
 export function showRegisterForm() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
@@ -33,7 +32,7 @@ window.showLoginForm = showLoginForm;
 
 
 /**
- * CRITICAL FUNCTION: Refreshes the player's profile and inventory from the database
+ * Refreshes the player's profile and inventory from the database
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
@@ -103,10 +102,11 @@ export async function logout() {
 }
 
 export function setupAuthEventListeners() {
+    // Fetching elements locally and applying safety checks
     const loginButton = document.getElementById('login-button');
     const registerButton = document.getElementById('register-button');
     const logoutButton = document.getElementById('logout-btn');
-
+    
     if (loginButton) {
         loginButton.addEventListener('click', async (e) => {
             e.target.disabled = true;
