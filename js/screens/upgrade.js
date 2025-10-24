@@ -1,13 +1,14 @@
 /*
  * Filename: js/screens/upgrade.js
- * Version: 20.1 (Card Upgrade - Complete)
+ * Version: 20.4 (Card Upgrade - Complete)
  * Description: View Logic Module for the Card Upgrade screen.
  * Implements card selection and cost display based on player inventory.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, updateHeaderUI, navigateTo } from '../ui.js';
+import { showToast, navigateTo } from '../ui.js';
+import { refreshPlayerState } from '../auth.js';
 
 const upgradeSelectionContainer = document.getElementById('upgrade-card-selection-container');
 const upgradeDetailArea = document.getElementById('upgrade-detail-area');
@@ -17,9 +18,10 @@ let selectedInstance = null; // The specific card instance the player wants to u
 /**
  * Renders the initial list of cards available for upgrade selection.
  */
-export async function renderUpgradeSelection() {
+export async function renderUpgrade() {
     if (!state.currentUser) return;
     upgradeSelectionContainer.innerHTML = 'Loading cards for upgrade...';
+    upgradeDetailArea.classList.add('hidden'); // Hide details initially
 
     const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
 
@@ -33,10 +35,17 @@ export async function renderUpgradeSelection() {
         return;
     }
     
-    upgradeSelectionContainer.innerHTML = '';
-    upgradeDetailArea.classList.add('hidden');
-
+    // Group by Card ID only, as we only need to show ONE card per type for selection
+    const cardTypes = new Map();
     playerCards.forEach(pc => {
+        if (!cardTypes.has(pc.card_id)) {
+            cardTypes.set(pc.card_id, pc); // Store one instance of each card type
+        }
+    });
+
+    upgradeSelectionContainer.innerHTML = '';
+
+    for (const [cardId, pc] of cardTypes.entries()) {
         const card = pc.cards;
         
         const cardElement = document.createElement('div');
@@ -54,123 +63,6 @@ export async function renderUpgradeSelection() {
         // Add onclick handler to select the card for detailed upgrade view
         cardElement.onclick = () => renderUpgradeDetails(pc);
         upgradeSelectionContainer.appendChild(cardElement);
-    });
-}
-
-/**
- * Renders the detailed upgrade costs and logic for the selected card.
- * @param {object} playerCardInstance - The selected player_cards instance.
- */
-async function renderUpgradeDetails(playerCardInstance) {
-    selectedInstance = playerCardInstance;
-    const currentLevel = playerCardInstance.level;
-    const nextLevel = currentLevel + 1;
-    const cardId = playerCardInstance.card_id;
-    const masterCard = playerCardInstance.cards;
-
-    upgradeDetailArea.innerHTML = 'Loading upgrade costs...';
-    upgradeDetailArea.classList.remove('hidden');
-
-    const { data: requirements, error } = await api.fetchCardUpgradeRequirements(cardId, nextLevel);
-    
-    if (error || !requirements) {
-        upgradeDetailArea.innerHTML = `<p style="color: ${error ? 'red' : 'white'};">
-            ${error ? 'Error loading requirements.' : 'Max Level Reached!'}
-        </p>`;
-        return;
-    }
-
-    let allRequirementsMet = true;
-    
-    // --- Currency Cost Check ---
-    const ankhCost = requirements.cost_ankh;
-    const prestigeCost = requirements.cost_prestige;
-    const blessingCost = requirements.cost_blessing;
-    const playerAnkh = state.playerProfile.score || 0;
-    const playerPrestige = state.playerProfile.prestige || 0;
-    const playerBlessing = state.playerProfile.blessing || 0;
-    
-    // --- Material Cost Check ---
-    const materialRequired = requirements.cost_item_qty > 0;
-    let materialCostHTML = '';
-    let playerMaterialQty = 0;
-    let materialName = 'N/A';
-    let materialImg = 'images/default_item.png';
-
-    if (materialRequired) {
-        playerMaterialQty = state.inventory.get(requirements.cost_item_id)?.qty || 0;
-        materialName = requirements.items.name;
-        materialImg = requirements.items.image_url;
-        
-        if (playerMaterialQty < requirements.cost_item_qty) {
-            allRequirementsMet = false;
-        }
-        
-        materialCostHTML = `
-            <div class="cost-item">
-                <img src="${materialImg}" alt="${materialName}">
-                <span>${materialName}</span>
-                <span class="value" style="color: ${allRequirementsMet ? 'white' : 'var(--danger-color)'}">
-                    ${playerMaterialQty} / ${requirements.cost_item_qty}
-                </span>
-            </div>
-        `;
-    }
-
-    // --- Build Cost Grid HTML ---
-    const costGridHTML = `
-        <div class="cost-item">
-            <span class="icon">☥</span>
-            <span>Ankh</span>
-            <span class="value" style="color: ${playerAnkh >= ankhCost ? 'white' : 'var(--danger-color)'}">
-                ${playerAnkh} / ${ankhCost}
-            </span>
-        </div>
-        <div class="cost-item">
-            <span class="icon">🐞</span>
-            <span>Prestige</span>
-            <span class="value" style="color: ${playerPrestige >= prestigeCost ? 'white' : 'var(--danger-color)'}">
-                ${playerPrestige} / ${prestigeCost}
-            </span>
-        </div>
-        <div class="cost-item">
-            <span class="icon">🗡️</span>
-            <span>Blessing</span>
-            <span class="value" style="color: ${playerBlessing >= blessingCost ? 'white' : 'var(--danger-color)'}">
-                ${playerBlessing} / ${blessingCost}
-            </span>
-        </div>
-        ${materialCostHTML}
-    `;
-
-    // Final check for all requirements (currency + material)
-    if (playerAnkh < ankhCost || playerPrestige < prestigeCost || playerBlessing < blessingCost || !allRequirementsMet) {
-        allRequirementsMet = false;
-    }
-
-    // --- Render Detail Area ---
-    upgradeDetailArea.innerHTML = `
-        <div class="card-stack upgrade-card-target" data-rarity="${masterCard.rarity_level}">
-            <img src="${masterCard.image_url}" alt="${masterCard.name}" class="card-image">
-            <h4>${masterCard.name}</h4>
-            <div class="card-details">
-                <span class="card-level">LVL ${currentLevel} → LVL ${nextLevel}</span>
-            </div>
-        </div>
-
-        <h4 style="color: var(--primary-accent);">Upgrade Cost:</h4>
-        <div class="upgrade-cost-grid">${costGridHTML}</div>
-        
-        <p style="color: var(--success-color); font-weight: bold;">Power Increase: +${requirements.power_increase}</p>
-
-        <button id="execute-upgrade-btn" class="action-button" ${allRequirementsMet ? '' : 'disabled'}>
-            Upgrade Card
-        </button>
-    `;
-    
-    // Attach event listener
-    if (allRequirementsMet) {
-        document.getElementById('execute-upgrade-btn').addEventListener('click', () => executeUpgrade(requirements));
     }
 }
 
@@ -232,16 +124,129 @@ async function executeUpgrade(requirements) {
     // --- 4. Success & Refresh ---
     showToast(`Upgrade Success! LVL ${selectedInstance.level} -> LVL ${newLevel}`, 'success');
     
-    // Refresh all global state and UI
+    // CRITICAL: Refresh all global state and UI
     await refreshPlayerState(); 
     
-    // Re-render the selection list and profile screen
+    // Re-render the selection list
     navigateTo('card-upgrade-screen');
+}
+
+
+/**
+ * Renders the detailed upgrade costs and logic for the selected card.
+ * @param {object} playerCardInstance - The selected player_cards instance.
+ */
+async function renderUpgradeDetails(playerCardInstance) {
+    selectedInstance = playerCardInstance;
+    const currentLevel = playerCardInstance.level;
+    const nextLevel = currentLevel + 1;
+    const cardId = playerCardInstance.card_id;
+    const masterCard = playerCardInstance.cards;
+
+    upgradeDetailArea.innerHTML = 'Loading upgrade costs...';
+    upgradeDetailArea.classList.remove('hidden');
+
+    const { data: requirements, error } = await api.fetchCardUpgradeRequirements(cardId, nextLevel);
     
-    // Re-render the profile screen to update power score
-    const profileScreen = document.getElementById('profile-screen');
-    if (!profileScreen.classList.contains('hidden')) {
-        navigateTo('profile-screen'); 
+    if (error || !requirements) {
+        upgradeDetailArea.innerHTML = `<p style="color: ${error ? 'red' : 'white'};">
+            ${error ? 'Error loading requirements.' : 'Max Level Reached!'}
+        </p>`;
+        return;
+    }
+
+    let allRequirementsMet = true;
+    
+    // --- Currency Cost Check ---
+    const ankhCost = requirements.cost_ankh;
+    const prestigeCost = requirements.cost_prestige;
+    const blessingCost = requirements.cost_blessing;
+    const playerAnkh = state.playerProfile.score || 0;
+    const playerPrestige = state.playerProfile.prestige || 0;
+    const playerBlessing = state.playerProfile.blessing || 0;
+    
+    // --- Material Cost Check ---
+    const materialRequired = requirements.cost_item_qty > 0;
+    let materialCostHTML = '';
+    let playerMaterialQty = 0;
+    let materialName = 'N/A';
+    let materialImg = 'images/default_item.png';
+
+    if (materialRequired) {
+        playerMaterialQty = state.inventory.get(requirements.cost_item_id)?.qty || 0;
+        materialName = requirements.items.name;
+        materialImg = requirements.items.image_url;
+        
+        if (playerMaterialQty < requirements.cost_item_qty) {
+            allRequirementsMet = false;
+        }
+        
+        materialCostHTML = `
+            <div class="cost-item">
+                <img src="${materialImg}" alt="${materialName}">
+                <span>${materialName}</span>
+                <span class="value" style="color: ${allRequirementsMet ? 'white' : 'var(--danger-color)'}">
+                    ${playerMaterialQty} / ${requirements.cost_item_qty}
+                </span>
+            </div>
+        `;
+    }
+
+    // --- Check if all currencies are met ---
+    if (playerAnkh < ankhCost || playerPrestige < prestigeCost || playerBlessing < blessingCost) {
+        allRequirementsMet = false;
+    }
+
+
+    // --- Build Cost Grid HTML ---
+    const costGridHTML = `
+        <div class="cost-item">
+            <span class="icon">☥</span>
+            <span>Ankh</span>
+            <span class="value" style="color: ${playerAnkh >= ankhCost ? 'white' : 'var(--danger-color)'}">
+                ${playerAnkh} / ${ankhCost}
+            </span>
+        </div>
+        <div class="cost-item">
+            <span class="icon">🐞</span>
+            <span>Prestige</span>
+            <span class="value" style="color: ${playerPrestige >= prestigeCost ? 'white' : 'var(--danger-color)'}">
+                ${playerPrestige} / ${prestigeCost}
+            </span>
+        </div>
+        <div class="cost-item">
+            <span class="icon">🗡️</span>
+            <span>Blessing</span>
+            <span class="value" style="color: ${playerBlessing >= blessingCost ? 'white' : 'var(--danger-color)'}">
+                ${playerBlessing} / ${blessingCost}
+            </span>
+        </div>
+        ${materialCostHTML}
+    `;
+
+    // --- Render Detail Area ---
+    upgradeDetailArea.innerHTML = `
+        <div class="card-stack upgrade-card-target" data-rarity="${masterCard.rarity_level}">
+            <img src="${masterCard.image_url || 'images/default_card.png'}" alt="${masterCard.name}" class="card-image">
+            <h4>${masterCard.name}</h4>
+            <div class="card-details">
+                <span class="card-level">LVL ${currentLevel} → LVL ${nextLevel}</span>
+            </div>
+        </div>
+
+        <h4 style="color: var(--primary-accent);">Upgrade Cost:</h4>
+        <div class="upgrade-cost-grid">${costGridHTML}</div>
+        
+        <p style="color: var(--success-color); font-weight: bold;">Power Increase: +${requirements.power_increase}</p>
+
+        <button id="execute-upgrade-btn" class="action-button" ${allRequirementsMet ? '' : 'disabled'}>
+            Upgrade Card
+        </button>
+    `;
+    
+    // Attach event listener
+    if (allRequirementsMet) {
+        document.getElementById('execute-upgrade-btn').addEventListener('click', () => executeUpgrade(requirements));
     }
 }
 
