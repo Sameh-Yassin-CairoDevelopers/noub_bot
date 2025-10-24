@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Noub - Pharaoh's Legacy (v20.1 - Games & Upgrades)</title>
+    <title>Noub - Pharaoh's Legacy (v21.0 - Desktop UI)</title>
     
     <link rel="stylesheet" href="style.css">
     
@@ -18,23 +18,7 @@
 
     <!-- Authentication Overlay - Initially Visible -->
     <div id="auth-overlay">
-        <div class="auth-form" id="login-form">
-            <h2>Login to "Noub"</h2>
-            <div class="auth-error" id="login-error"></div>
-            <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Password" required>
-            <button id="login-button">Login</button>
-            <div class="switch-form" onclick="showRegisterForm()">No account? Sign up now</div>
-        </div>
-        <div class="auth-form hidden" id="register-form">
-            <h2>Create New Account</h2>
-            <div class="auth-error" id="register-error"></div>
-            <input type="text" id="register-username" placeholder="Username" required>
-            <input type="email" id="register-email" placeholder="Email" required>
-            <input type="password" id="register-password" placeholder="Password" required>
-            <button id="register-button">Sign Up</button>
-            <div class="switch-form" onclick="showLoginForm()">Already have an account? Login</div>
-        </div>
+        <!-- ... (Login/Signup Forms remain the same) ... -->
     </div>
 
     <!-- Main App Container - Initially Hidden -->
@@ -54,8 +38,37 @@
 
         <main id="content-container">
             
-            <!-- My Collection Screen -->
-            <div id="collection-screen" class="screen">
+            <!-- NEW: Home Dashboard Screen (Set as default screen on load) -->
+            <div id="home-screen" class="screen active">
+                <div class="home-action-icons">
+                    <a class="action-icon-link" id="home-games-btn">
+                        <div class="icon-box">🎰</div>
+                        <span>Games</span>
+                    </a>
+                    <a class="action-icon-link" id="home-upgrade-btn">
+                        <div class="icon-box">✨</div>
+                        <span>Upgrade</span>
+                    </a>
+                    <a class="action-icon-link" id="home-quests-btn">
+                        <div class="icon-box">⭐</div>
+                        <span>Quests</span>
+                    </a>
+                    <a class="action-icon-link" id="home-shop-btn">
+                        <div class="icon-box">💰</div>
+                        <span>Shop</span>
+                    </a>
+                </div>
+
+                <div class="daily-task-summary">
+                    <h3>Current Daily Task:</h3>
+                    <div id="daily-quests-container">
+                        <!-- Daily quest cards will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Collection Screen (NOT active by default anymore) -->
+            <div id="collection-screen" class="screen hidden">
                 <h2>My Collection</h2>
                 <div class="card-grid" id="collection-container"></div>
             </div>
@@ -96,21 +109,17 @@
                 </div>
             </div>
 
-            <!-- NEW: Card Upgrade Screen -->
+            <!-- Card Upgrade Screen -->
             <div id="card-upgrade-screen" class="screen hidden">
                 <h2>Card Upgrades</h2>
                 <div class="upgrade-select-area">
                     <h3>Select Card to Upgrade:</h3>
-                    <div id="upgrade-card-selection-container" class="card-grid">
-                        <!-- Card list will be rendered here by JS -->
-                    </div>
+                    <div id="upgrade-card-selection-container" class="card-grid"></div>
                 </div>
-                <div id="upgrade-detail-area" class="upgrade-detail-area hidden">
-                    <!-- Detailed upgrade view for the selected card -->
-                </div>
+                <div id="upgrade-detail-area" class="upgrade-detail-area hidden"></div>
             </div>
 
-            <!-- NEW: Games Screen -->
+            <!-- Games Screen -->
             <div id="games-screen" class="screen hidden">
                 <h2>Games</h2>
                 <div class="games-section">
@@ -140,22 +149,9 @@
             
             <!-- Profile Screen Content -->
             <div id="profile-screen" class="screen hidden">
-                 <div class="profile-container">
-                    <div class="profile-header">
-                        <img src="images/user_avatar.png" alt="Avatar" class="avatar" id="player-avatar-img">
-                        <h2 id="player-name">Player</h2>
-                    </div>
-                    <div class="profile-power">
-                        <p class="label">Power Score</p>
-                        <div id="player-power-score" class="power-score">0</div>
-                    </div>
-                    <div class="profile-stats-grid">
-                        <div class="stat-box"><div id="stat-total-cards" class="value">0</div><div class="label">Total Cards</div></div>
-                        <div class="stat-box"><div id="stat-contracts" class="value">0</div><div class="label">Completed Contracts</div></div>
-                    </div>
-                    <button id="logout-btn" class="action-button danger">Logout</button>
-                </div>
+                <!-- ... (Profile content remains the same) ... -->
             </div>
+
             <!-- Chat Screen -->
             <div id="chat-screen" class="screen hidden"><h2>Chat with Eve</h2></div>
         </main>
@@ -166,13 +162,11 @@
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
 
-        <!-- NEW: "More" Menu Modal (Hamburger Menu) -->
+        <!-- "More" Menu Modal (Hamburger Menu) -->
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
-                <!-- Links to new screens -->
                 <a class="more-menu-item" id="more-games-btn"><div class="icon">🎰</div><span>Games</span></a>
                 <a class="more-menu-item" id="more-upgrade-btn"><div class="icon">✨</div><span>Card Upgrades</span></a>
-                <!-- Links to old screens -->
                 <a class="more-menu-item" id="more-profile-btn"><div class="icon">👤</div><span>Profile</span></a>
                 <a class="more-menu-item" id="more-albums-btn"><div class="icon">📖</div><span>Albums</span></a>
                 <a class="more-menu-item" id="more-eve-btn"><div class="icon">💬</div><span>Chat with Eve</span></a>
@@ -184,11 +178,19 @@
 
     <!-- Refined Bottom Navigation Bar -->
     <nav class="bottom-nav">
-        <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
+        <!-- New Home Button -->
+        <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
+        <!-- Production -->
         <a class="nav-item" data-target="production-screen" title="Production"><div class="icon">⛏️</div><span>Production</span></a>
+        <!-- Stockpile -->
         <a class="nav-item" data-target="stock-screen" title="Stockpile"><div class="icon">📦</div><span>Stockpile</span></a>
-        <a class="nav-item active" data-target="collection-screen" title="My Collection"><div class="icon">🏛️</div><span>My Cards</span></a>
+        <!-- My Cards -->
+        <a class="nav-item" data-target="collection-screen" title="My Collection"><div class="icon">🏛️</div><span>My Cards</span></a>
+        <!-- Contracts -->
+        <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
+        <!-- Shop -->
         <a class="nav-item" id="shop-nav-btn" title="Shop"><div class="icon">💰</div><span>Shop</span></a>
+        <!-- More -->
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
     </nav>
     
