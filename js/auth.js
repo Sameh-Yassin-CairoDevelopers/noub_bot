@@ -1,8 +1,7 @@
 /*
  * Filename: js/auth.js
- * Version: 20.4 (FINAL AUTH FIX - Complete)
- * Description: Authentication Module. FIXED: Ensures login form switching works and implements
- * the critical refreshPlayerState for currency stability.
+ * Version: 20.6 (FINAL AUTH FIX - Complete)
+ * Description: Authentication Module. FIXED: Added safety checks to event listeners.
 */
 
 import { supabaseClient } from './config.js';
@@ -14,6 +13,7 @@ const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
+const logoutBtn = document.getElementById('logout-btn'); // Fetching button reference outside function
 
 // CRITICAL FIX: Make these functions globally available for onclick attributes in index.html
 export function showRegisterForm() {
@@ -34,7 +34,6 @@ window.showLoginForm = showLoginForm;
 
 /**
  * CRITICAL FUNCTION: Refreshes the player's profile and inventory from the database
- * and updates the UI header. Used after every major transaction (e.g., contract completion).
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
@@ -66,7 +65,6 @@ export async function refreshPlayerState() {
 async function initializeApp(user) {
     state.currentUser = user;
     
-    // Initial fetch of all player state
     await refreshPlayerState();
 
     if (!state.playerProfile) {
@@ -105,35 +103,45 @@ export async function logout() {
 }
 
 export function setupAuthEventListeners() {
-    document.getElementById('login-button').addEventListener('click', async (e) => {
-        e.target.disabled = true;
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        const errorDiv = document.getElementById('login-error');
-        errorDiv.textContent = '';
-        const { error } = await login(email, password);
-        if (error) errorDiv.textContent = 'Login Error: ' + error.message;
-        e.target.disabled = false;
-    });
+    const loginButton = document.getElementById('login-button');
+    const registerButton = document.getElementById('register-button');
+    const logoutButton = document.getElementById('logout-btn');
 
-    document.getElementById('register-button').addEventListener('click', async (e) => {
-        e.target.disabled = true;
-        const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value;
-        const username = document.getElementById('register-username').value;
-        const errorDiv = document.getElementById('register-error');
-        errorDiv.textContent = '';
-        const { error } = await signUp(email, password, username);
-        if (error) {
-            errorDiv.textContent = 'Signup Error: ' + error.message;
-        } else {
-            alert('Account created successfully! Please check your email for confirmation, then log in.');
-            window.showLoginForm();
-        }
-        e.target.disabled = false;
-    });
+    if (loginButton) {
+        loginButton.addEventListener('click', async (e) => {
+            e.target.disabled = true;
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.textContent = '';
+            const { error } = await login(email, password);
+            if (error) errorDiv.textContent = 'Login Error: ' + error.message;
+            e.target.disabled = false;
+        });
+    }
 
-    document.getElementById('logout-btn').addEventListener('click', logout);
+    if (registerButton) {
+        registerButton.addEventListener('click', async (e) => {
+            e.target.disabled = true;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const username = document.getElementById('register-username').value;
+            const errorDiv = document.getElementById('register-error');
+            errorDiv.textContent = '';
+            const { error } = await signUp(email, password, username);
+            if (error) {
+                errorDiv.textContent = 'Signup Error: ' + error.message;
+            } else {
+                alert('Account created successfully! Please check your email for confirmation, then log in.');
+                window.showLoginForm();
+            }
+            e.target.disabled = false;
+        });
+    }
+
+    if (logoutButton) {
+        logoutButton.addEventListener('click', logout);
+    }
 }
 
 export async function handleInitialSession() {
