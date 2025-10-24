@@ -249,6 +249,3 @@ async function renderUpgradeDetails(playerCardInstance) {
     }
 }
 
-
-// FIX: Removed duplicate export statement
-export { renderUpgrade as renderUpgrade };
