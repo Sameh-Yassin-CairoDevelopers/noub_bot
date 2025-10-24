@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: 21.0 (Desktop UI - Complete)
+ * Version: 21.0 (Desktop UI, KV Game - Complete)
  * Description: Main stylesheet for the "Noub" game.
- * Includes styles for the new home dashboard and action icons.
+ * Includes styles for the new home dashboard, action icons, and KV Game interface.
 */
 
 
@@ -21,6 +21,7 @@
     --rarity-epic: #9b59b6;
     --rarity-legendary: #f39c12;
     --rarity-diamond: #f1c40f;
+    --kv-gate-color: #f7d794; /* Color for KV game elements */
 }
 
 * {
@@ -132,13 +133,6 @@ header {
     margin-bottom: 25px;
 }
 
-.screen-description {
-    color: var(--text-secondary);
-    text-align: center;
-    margin-top: -10px;
-    margin-bottom: 20px;
-}
-
 .error-message {
     color: var(--danger-color);
 }
@@ -147,7 +141,8 @@ header {
     padding-bottom: 20px;
 }
 
-/* --- HOME SCREEN STYLES (NEW) --- */
+
+/* --- HOME SCREEN STYLES (DASHBOARD) --- */
 #home-screen {
     text-align: center;
 }
@@ -157,7 +152,7 @@ header {
     gap: 15px;
     margin-bottom: 40px;
     margin-top: 15px;
-    flex-wrap: wrap; /* Allows wrap on smaller screens */
+    flex-wrap: wrap; 
 }
 .action-icon-link {
     display: flex;
@@ -167,7 +162,7 @@ header {
     color: var(--text-primary);
     font-size: 0.9em;
     font-weight: bold;
-    min-width: 80px; /* Ensure space for touch target */
+    min-width: 80px;
 }
 .icon-box {
     width: 60px;
