@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/upgrade.js
- * Version: 20.4 (Card Upgrade - Complete)
+ * Version: 20.5 (CRITICAL SYNTAX FIX - Complete)
  * Description: View Logic Module for the Card Upgrade screen.
- * Implements card selection and cost display based on player inventory.
+ * FIXED: Removed duplicate export statement.
 */
 
 import { state } from '../state.js';
@@ -105,7 +105,6 @@ async function executeUpgrade(requirements) {
         const { error: itemError } = await api.updateItemQuantity(state.currentUser.id, materialId, newQty);
         if (itemError) {
             showToast('Error consuming material!', 'error');
-            // NOTE: We simplify transaction rollback for now.
             return; 
         }
     }
@@ -250,5 +249,6 @@ async function renderUpgradeDetails(playerCardInstance) {
     }
 }
 
-// Export the rendering function
-export { renderUpgradeSelection as renderUpgrade };
+
+// FIX: Removed duplicate export statement
+export { renderUpgrade as renderUpgrade };
