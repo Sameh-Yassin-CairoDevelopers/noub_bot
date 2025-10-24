@@ -105,14 +105,14 @@ async function executeUpgrade(requirements) {
         const { error: itemError } = await api.updateItemQuantity(state.currentUser.id, materialId, newQty);
         if (itemError) {
             showToast('Error consuming material!', 'error');
-            // CRITICAL: We should attempt to refund currency here, but we simplify for now.
+            // NOTE: We simplify transaction rollback for now.
             return; 
         }
     }
 
     // --- 3. Update Card Level ---
     const newLevel = selectedInstance.level + 1;
-    const newPowerScore = selectedInstance.cards.power_score + requirements.power_increase;
+    const newPowerScore = selectedInstance.power_score + requirements.power_increase;
     
     const { error: upgradeError } = await api.performCardUpgrade(selectedInstance.instance_id, newLevel, newPowerScore);
 
