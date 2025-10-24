@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/collection.js
- * Version: 20.4 (Card Display Update - Complete)
+ * Version: 21.2 (Card Display Update - Complete)
  * Description: View Logic Module for My Collection screen.
  * Updated to display card level and stack count, and support the new upgrade flow.
 */
