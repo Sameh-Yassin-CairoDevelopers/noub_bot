@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: 20.1 (Games, Upgrades, UI Fixes - Complete)
+ * Version: 21.0 (Desktop UI - Complete)
  * Description: Main stylesheet for the "Noub" game.
- * FIX: Corrected repetitive styles and ensured proper z-indexing.
+ * Includes styles for the new home dashboard and action icons.
 */
 
 
@@ -145,6 +145,79 @@ header {
 
 .buildings-grid, .card-grid {
     padding-bottom: 20px;
+}
+
+/* --- HOME SCREEN STYLES (NEW) --- */
+#home-screen {
+    text-align: center;
+}
+.home-action-icons {
+    display: flex;
+    justify-content: space-around;
+    gap: 15px;
+    margin-bottom: 40px;
+    margin-top: 15px;
+    flex-wrap: wrap; /* Allows wrap on smaller screens */
+}
+.action-icon-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-size: 0.9em;
+    font-weight: bold;
+    min-width: 80px; /* Ensure space for touch target */
+}
+.icon-box {
+    width: 60px;
+    height: 60px;
+    background: var(--surface-dark);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 8px;
+    border: 2px solid var(--primary-accent);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+.action-icon-link:hover .icon-box {
+    transform: scale(1.05);
+}
+.daily-task-summary {
+    text-align: left;
+}
+.daily-task-summary h3 {
+    color: var(--primary-accent);
+    margin-bottom: 15px;
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 10px;
+}
+.daily-quest-card {
+    background-color: var(--surface-dark);
+    padding: 15px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.daily-quest-card .progress-bar {
+    width: 100px;
+    height: 6px;
+    background: #444;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.daily-quest-card .progress-bar-inner {
+    height: 100%;
+    background: var(--success-color);
+}
+.daily-quest-card .reward {
+    color: var(--primary-accent);
+    font-weight: bold;
 }
 
 
