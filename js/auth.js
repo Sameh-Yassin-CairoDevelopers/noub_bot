@@ -1,8 +1,8 @@
 /*
  * Filename: js/auth.js
- * Version: 20.1 (Stability & Full State Refresh)
- * Description: Authentication Module. Manages full state refresh to prevent
- * race conditions (the "zeroing out" currency bug).
+ * Version: 20.4 (FINAL AUTH FIX - Complete)
+ * Description: Authentication Module. FIXED: Ensures login form switching works and implements
+ * the critical refreshPlayerState for currency stability.
 */
 
 import { supabaseClient } from './config.js';
