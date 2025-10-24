@@ -1,10 +1,3 @@
-/*
- * Filename: js/screens/upgrade.js
- * Version: 20.5 (CRITICAL SYNTAX FIX - Complete)
- * Description: View Logic Module for the Card Upgrade screen.
- * FIXED: Removed duplicate export statement that caused SyntaxError.
-*/
-
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, navigateTo } from '../ui.js';
@@ -17,8 +10,9 @@ let selectedInstance = null; // The specific card instance the player wants to u
 
 /**
  * Renders the initial list of cards available for upgrade selection.
+ * NOTE: This function is exported directly at the beginning of its definition.
  */
-export async function renderUpgrade() { // <-- The primary export is here
+export async function renderUpgrade() { 
     if (!state.currentUser) return;
     upgradeSelectionContainer.innerHTML = 'Loading cards for upgrade...';
     upgradeDetailArea.classList.add('hidden'); // Hide details initially
@@ -26,7 +20,7 @@ export async function renderUpgrade() { // <-- The primary export is here
     const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
 
     if (error || !playerCards) {
-        upgradeSelectionContainer.innerHTML = '<p class="error-message">Error fetching cards.</p>';
+        upgradeSelectionContainer.innerHTML = '<p class="error-errorDiv.textContent = ''';
         return;
     }
 
@@ -248,7 +242,3 @@ async function renderUpgradeDetails(playerCardInstance) {
         document.getElementById('execute-upgrade-btn').addEventListener('click', () => executeUpgrade(requirements));
     }
 }
-
-
-// FIX: Removed duplicate export statement
-export { renderUpgrade as renderUpgrade };
