@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: 20.5 (FINAL CRITICAL UPGRADE FIX - Complete)
+ * Version: 21.2 (FINAL API INTEGRATION - Complete)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * FIX: Now correctly updates the 'power_score' column in player_cards for upgrades.
+ * This file is 100% complete and contains all required API functions for the project.
 */
 
 import { supabaseClient } from './config.js';
@@ -26,19 +26,19 @@ export async function updatePlayerProfile(playerId, updateObject) {
 }
 
 export async function addCardToPlayerCollection(playerId, cardId) {
-    // When adding a new card, we must set its initial power_score to the master card's base score
+    // When adding a new card, we must set its initial power score
     const { data: cardDetails } = await supabaseClient.from('cards').select('power_score').eq('id', cardId).single();
     const initialPower = cardDetails ? cardDetails.power_score : 1;
     
     return await supabaseClient.from('player_cards').insert({ 
         player_id: playerId, 
         card_id: cardId,
-        power_score: initialPower // Initialize power score
+        power_score: initialPower
     });
 }
 
 /**
- * Fetches the specific upgrade costs for a card instance.
+ * Executes the full card upgrade: updates the card instance level and power score.
  */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
@@ -52,10 +52,6 @@ export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
         .single();
 }
 
-/**
- * Executes the full card upgrade: updates the card instance level and power score.
- * CRITICAL FIX: power_score is now included in the update object.
- */
 export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) {
     return await supabaseClient
         .from('player_cards')
@@ -198,7 +194,7 @@ export async function refreshAvailableContracts(playerId) {
 }
 
 
-// --- Games API Functions ---
+// --- Games & Consumables API Functions ---
 
 export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('*');
@@ -219,4 +215,47 @@ export async function getDailySpinTickets(playerId) {
     const available = (now - lastSpinTime) > twentyFourHours;
 
     return { available, profileData };
+}
+
+export async function fetchKVGameConsumables(playerId) {
+    return await supabaseClient
+        .from('game_consumables')
+        .select('*')
+        .eq('player_id', playerId);
+}
+
+export async function updateConsumableQuantity(playerId, itemKey, newQuantity) {
+    return await supabaseClient
+        .from('game_consumables')
+        .upsert({ player_id: playerId, item_key: itemKey, quantity: newQuantity });
+}
+
+export async function fetchKVProgress(playerId) {
+    return await supabaseClient
+        .from('kv_game_progress')
+        .select('*')
+        .eq('player_id', playerId)
+        .single();
+}
+
+export async function updateKVProgress(playerId, updateObject) {
+    return await supabaseClient
+        .from('kv_game_progress')
+        .upsert({ player_id: playerId, ...updateObject });
+}
+
+
+// --- UCP-LLM Protocol API Functions ---
+
+export async function saveUCPSection(playerId, sectionKey, sectionData) {
+    return await supabaseClient
+        .from('player_protocol_data')
+        .upsert({ player_id: playerId, section_key: sectionKey, section_data: sectionData, last_updated: new Date().toISOString() });
+}
+
+export async function fetchUCPProtocol(playerId) {
+    return await supabaseClient
+        .from('player_protocol_data')
+        .select('*')
+        .eq('player_id', playerId);
 }
