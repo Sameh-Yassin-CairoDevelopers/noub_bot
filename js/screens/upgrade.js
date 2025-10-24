@@ -1,25 +1,85 @@
 /*
  * Filename: js/screens/upgrade.js
- * Version: 20.7 (FINAL CRITICAL SYNTAX FIX - Complete)
+ * Version: 21.1 (Upgrade & Factory Leveling - Complete)
  * Description: View Logic Module for the Card Upgrade screen.
- * FIXED: Removed the duplicate 'export' statement that caused SyntaxError.
+ * ADDED: Logic for upgrading Player Factories (buildings).
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
+import { renderProduction } from './economy.js'; // Import production render to refresh buildings
 
 const upgradeSelectionContainer = document.getElementById('upgrade-card-selection-container');
 const upgradeDetailArea = document.getElementById('upgrade-detail-area');
 
 let selectedInstance = null; // The specific card instance the player wants to upgrade
 
+// --- Factory Upgrade Logic (NEW) ---
+
+const FACTORY_UPGRADE_COST = 500; // Base Ankh cost to upgrade any factory
+const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; // Required material for upgrade
+const FACTORY_UPGRADE_QTY = 10; // Qty of material needed
+
+/**
+ * Executes the factory upgrade transaction.
+ */
+async function executeFactoryUpgrade(playerFactory) {
+    if (!playerFactory) return;
+
+    showToast('Processing factory upgrade...', 'info');
+    
+    // Check costs against player state
+    const playerAnkh = state.playerProfile.score || 0;
+    
+    // Find the item ID for the required material
+    const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => item.details.name === FACTORY_UPGRADE_ITEM_NAME);
+    const materialId = requiredMaterialEntry?.details.id;
+    const playerMaterialQty = requiredMaterialEntry?.qty || 0;
+
+
+    if (!materialId || playerAnkh < FACTORY_UPGRADE_COST || playerMaterialQty < FACTORY_UPGRADE_QTY) {
+        showToast('Error: Missing resources for upgrade.', 'error');
+        return;
+    }
+
+    // 1. Consume Currencies and Materials
+    const newAnkh = playerAnkh - FACTORY_UPGRADE_COST;
+    const newMaterialQty = playerMaterialQty - FACTORY_UPGRADE_QTY;
+    
+    // Update profile
+    const profileUpdate = { score: newAnkh };
+    await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
+    
+    // Update inventory
+    await api.updateItemQuantity(state.currentUser.id, materialId, newMaterialQty);
+    
+    // 2. Update Factory Level
+    const newLevel = playerFactory.level + 1;
+    const { error } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); // Assumes API function exists
+    
+    if (error) {
+        showToast('Error updating factory level!', 'error');
+        return;
+    }
+
+    // 3. Success & Refresh
+    showToast(`Factory Upgraded! LVL ${playerFactory.level} -> LVL ${newLevel}`, 'success');
+    
+    await refreshPlayerState(); 
+    
+    renderProduction(); // Refresh the production screen
+}
+
+
+// --- Card Upgrade Logic (Existing and Finalized) ---
+
 /**
  * Renders the initial list of cards available for upgrade selection.
  * NOTE: This is the only exported function from this module.
  */
-export async function renderUpgrade() {
+export async function renderUpgrade() { 
     if (!state.currentUser) return;
     upgradeSelectionContainer.innerHTML = 'Loading cards for upgrade...';
     upgradeDetailArea.classList.add('hidden'); // Hide details initially
@@ -67,9 +127,7 @@ export async function renderUpgrade() {
     }
 }
 
-/**
- * Executes the upgrade transaction.
- */
+
 async function executeUpgrade(requirements) {
     if (!selectedInstance) return;
     
@@ -124,17 +182,14 @@ async function executeUpgrade(requirements) {
     // --- 4. Success & Refresh ---
     showToast(`Upgrade Success! LVL ${selectedInstance.level} -> LVL ${newLevel}`, 'success');
     
-    // CRITICAL: Refresh all global state and UI
     await refreshPlayerState(); 
     
-    // Re-render the selection list
     navigateTo('card-upgrade-screen');
 }
 
 
 /**
  * Renders the detailed upgrade costs and logic for the selected card.
- * @param {object} playerCardInstance - The selected player_cards instance.
  */
 async function renderUpgradeDetails(playerCardInstance) {
     selectedInstance = playerCardInstance;
