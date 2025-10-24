@@ -1,9 +1,9 @@
 /*
  * Filename: js/ui.js
- * Version: 20.2 (FINAL UI Stability Fix)
+ * Version: 20.4 (FINAL UI Stability Fix - Complete)
  * Description: UI Controller Module. Applied safety checks to all DOM element listeners
  * to prevent the "Cannot read properties of null" error and ensure clean startup.
- * Fixed the More Menu closing logic.
+ * Fixed the More Menu closing logic and updated to handle all new screens.
 */
 
 import { renderCollection } from './screens/collection.js';
@@ -11,8 +11,8 @@ import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
 import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
-import { renderGames } from './screens/games.js'; // New Import
-import { renderUpgrade } from './screens/upgrade.js'; // New Import
+import { renderGames } from './screens/games.js'; 
+import { renderUpgrade } from './screens/upgrade.js'; 
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
 window.closeModal = function(modalId) {
@@ -40,6 +40,7 @@ export function navigateTo(targetId) {
     navItems.forEach(i => i.classList.toggle('active', i.dataset.target === targetId));
 
     switch (targetId) {
+        // Core Screens
         case 'collection-screen':
             renderCollection();
             break;
@@ -56,12 +57,14 @@ export function navigateTo(targetId) {
             renderActiveContracts();
             renderAvailableContracts();
             break;
-        case 'games-screen': // New Screen
+        // New Feature Screens
+        case 'games-screen':
             renderGames();
             break;
-        case 'card-upgrade-screen': // New Screen
+        case 'card-upgrade-screen':
             renderUpgrade();
             break;
+        // The rest (home, albums, chat) are placeholders for now and don't need render functions
     }
 }
 
@@ -82,9 +85,6 @@ export function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 3000);
 }
 
-/**
- * FIX APPLIED: Added safety checks for shop and more buttons.
- */
 function setupNavEvents() {
     navItems.forEach(item => {
         if (item.dataset.target) {
@@ -99,9 +99,6 @@ function setupNavEvents() {
     if (moreBtn) moreBtn.addEventListener('click', () => openModal('more-modal'));
 }
 
-/**
- * FIX APPLIED: Added safety checks for all menu buttons.
- */
 function setupMoreMenuEvents() {
     const profileBtn = document.getElementById('more-profile-btn');
     const albumsBtn = document.getElementById('more-albums-btn');
