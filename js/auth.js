@@ -1,14 +1,14 @@
 /*
  * Filename: js/auth.js
- * Version: 21.0 (Final Stability & UCP Integration - Complete)
+ * Version: 22.1 (Final Stability & UCP Integration - Complete)
  * Description: Authentication Module. Ensures login forms work and integrates new
  * UCP and Consumables data fetching into the state refresh flow.
 */
 
 import { supabaseClient } from './config.js';
-import { state } from './state.js';
-import * as api from './api.js';
-import { navigateTo, updateHeaderUI } from './ui.js';
+import { state } from '../state.js';
+import * as api from '../api.js';
+import { navigateTo, updateHeaderUI } from '../ui.js';
 
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
@@ -118,8 +118,8 @@ export async function logout() {
     state.currentUser = null;
     state.playerProfile = {};
     state.inventory.clear();
-    state.consumables.clear(); // Clear new state
-    state.ucp.clear(); // Clear new state
+    state.consumables.clear();
+    state.ucp.clear();
     appContainer.classList.add('hidden');
     authOverlay.classList.remove('hidden');
 }
