@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: 21.0 (Desktop UI, KV Game - Complete)
+ * Version: 22.0 (Split Games UI - Complete)
  * Description: Main stylesheet for the "Noub" game.
- * Includes styles for the new home dashboard, action icons, and KV Game interface.
+ * Added specific styles for the dedicated Slot Game and KV Game screens.
 */
 
 
@@ -563,6 +563,58 @@ header {
     padding: 10px 15px;
     font-size: 1em;
     width: auto;
+}
+
+
+/* --- KV Game Styles (NEW) --- */
+#kv-game-content h3 {
+    color: var(--kv-gate-color);
+    margin-top: 0;
+    padding-top: 0;
+}
+.kv-hint-item {
+    background-color: #1a1a1a;
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    text-align: left;
+}
+.kv-hint-item span {
+    font-weight: bold;
+    color: var(--kv-gate-color);
+}
+.game-status-message {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: var(--success-color);
+}
+.game-status-message.lose {
+    color: var(--danger-color);
+}
+.kv-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 15px;
+}
+#guess-input {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.2em;
+    text-align: center;
+    background: var(--background-dark);
+    border: 1px solid var(--primary-accent);
+    color: var(--text-primary);
+    border-radius: 8px;
+}
+#timer-display {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--primary-accent);
+    margin-bottom: 15px;
 }
 
 
