@@ -1,26 +1,25 @@
 /*
  * Filename: js/screens/upgrade.js
- * Version: 22.0 (Upgrade & Factory Leveling - Complete)
+ * Version: NOUB 0.0.1 Eve Edition (Upgrade & Factory Leveling - Complete)
  * Description: View Logic Module for the Card Upgrade screen.
- * ADDED: Logic for upgrading Player Factories (buildings).
+ * Implements transaction logic for upgrading both Player Cards and Player Factories.
 */
 
-import { state } from './state.js';
-import * as api from './api.js';
-import { showToast, navigateTo } from './ui.js';
-import { refreshPlayerState } from './auth.js';
-import { renderProduction } from '../economy.js'; // Import production render to refresh buildings
+import { state } from '../state.js';
+import * as api from '../api.js';
+import { showToast, navigateTo } from '../ui.js';
+import { refreshPlayerState } from '../auth.js';
+import { renderProduction } from './economy.js'; // Import production render to refresh buildings
 
 const upgradeSelectionContainer = document.getElementById('upgrade-card-selection-container');
 const upgradeDetailArea = document.getElementById('upgrade-detail-area');
 
 let selectedInstance = null; // The specific card instance the player wants to upgrade
 
-// --- Factory Upgrade Logic (NEW) ---
-
-const FACTORY_UPGRADE_COST = 500; // Base Ankh cost to upgrade any factory
-const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; // Required material for upgrade
-const FACTORY_UPGRADE_QTY = 10; // Qty of material needed
+// --- Factory Upgrade Constants ---
+const FACTORY_UPGRADE_COST = 500; // Base Ankh cost
+const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
+const FACTORY_UPGRADE_QTY = 10; 
 
 /**
  * Executes the factory upgrade transaction.
@@ -57,7 +56,6 @@ async function executeFactoryUpgrade(playerFactory) {
     
     // 2. Update Factory Level
     const newLevel = playerFactory.level + 1;
-    // NOTE: This function needs to exist in your API module
     const { error } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); 
     
     if (error) {
@@ -70,11 +68,12 @@ async function executeFactoryUpgrade(playerFactory) {
     
     await refreshPlayerState(); 
     
-    renderProduction(); // Refresh the production screen
+    // Redirect back to the production screen to show new level
+    navigateTo('production-screen');
 }
 
 
-// --- Card Upgrade Logic (Existing and Finalized) ---
+// --- Card Upgrade Logic ---
 
 /**
  * Renders the initial list of cards available for upgrade selection.
@@ -82,7 +81,7 @@ async function executeFactoryUpgrade(playerFactory) {
 export async function renderUpgrade() { 
     if (!state.currentUser) return;
     upgradeSelectionContainer.innerHTML = 'Loading cards for upgrade...';
-    upgradeDetailArea.classList.add('hidden'); // Hide details initially
+    upgradeDetailArea.classList.add('hidden'); 
 
     const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
 
@@ -100,7 +99,7 @@ export async function renderUpgrade() {
     const cardTypes = new Map();
     playerCards.forEach(pc => {
         if (!cardTypes.has(pc.card_id)) {
-            cardTypes.set(pc.card_id, pc); // Store one instance of each card type
+            cardTypes.set(pc.card_id, pc); 
         }
     });
 
@@ -167,6 +166,8 @@ async function executeUpgrade(requirements) {
             return; 
         }
     }
+    
+    // NOTE: Burning Cards logic would be implemented here (v21.0 Advanced)
 
     // --- 3. Update Card Level ---
     const newLevel = selectedInstance.level + 1;
@@ -184,6 +185,7 @@ async function executeUpgrade(requirements) {
     
     await refreshPlayerState(); 
     
+    // Re-render the selection list to show the updated level
     navigateTo('card-upgrade-screen');
 }
 
@@ -304,4 +306,3 @@ async function renderUpgradeDetails(playerCardInstance) {
         document.getElementById('execute-upgrade-btn').addEventListener('click', () => executeUpgrade(requirements));
     }
 }
-
