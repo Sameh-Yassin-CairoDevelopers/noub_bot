@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: 22.0 (Daily Quests & Contracts - Complete)
- * Description: View Logic Module for the contracts screen.
- * ADDED: Full logic for managing daily quests and tracking activities.
+ * Version: NOUB 0.0.1 Eve Edition (Daily Quests & Contracts - Complete)
+ * Description: View Logic Module for the contracts screen. 
+ * Contains all logic for managing daily quests and royal decrees, including tracking player activity.
 */
 
 import { state } from '../state.js';
@@ -46,6 +46,9 @@ function saveDailyQuests(quests) {
     localStorage.setItem(DAILY_QUEST_STORAGE_KEY, JSON.stringify({ date: today, quests: quests }));
 }
 
+/**
+ * Tracks player actions and updates progress towards Daily Quests.
+ */
 export function trackDailyActivity(activityType, value = 1, itemName = null) {
     const quests = loadDailyQuests();
     let changed = false;
@@ -53,6 +56,7 @@ export function trackDailyActivity(activityType, value = 1, itemName = null) {
     quests.forEach(quest => {
         if (!quest.completed) {
             if (quest.type === activityType) {
+                // Check for specific resource types if needed
                 if (quest.type === 'resources' && quest.item_name !== itemName) return;
                 
                 quest.current = Math.min(quest.target, quest.current + value);
@@ -66,7 +70,7 @@ export function trackDailyActivity(activityType, value = 1, itemName = null) {
         // Soft refresh home screen if it's active
         const homeScreen = document.getElementById('home-screen');
         if (homeScreen && !homeScreen.classList.contains('hidden')) {
-            // NOTE: We use import here to avoid circular dependency problems
+            // CRITICAL: Dynamically import renderHome to avoid circular dependency (contracts -> home -> contracts)
             import('./home.js').then(({ renderHome }) => renderHome());
         }
     }
@@ -76,6 +80,9 @@ export function fetchDailyQuests() {
     return loadDailyQuests();
 }
 
+/**
+ * Completes a daily quest and grants the reward.
+ */
 export async function completeDailyQuest(questId, reward) {
     const quests = loadDailyQuests();
     const questIndex = quests.findIndex(q => q.id === questId);
@@ -85,7 +92,7 @@ export async function completeDailyQuest(questId, reward) {
         quests[questIndex].completed = true;
         saveDailyQuests(quests);
 
-        // 2. Grant reward (Ankh only for now)
+        // 2. Grant reward (Ankh only for Daily Quests)
         const newScore = (state.playerProfile.score || 0) + reward;
         const { error } = await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
 
@@ -103,7 +110,7 @@ export async function completeDailyQuest(questId, reward) {
 }
 
 
-// --- Royal Decrees (Existing Contracts Logic) ---
+// --- Royal Decrees (Contracts Logic) ---
 
 async function handleAcceptContract(contractId) {
     showToast('Accepting contract...');
@@ -203,7 +210,7 @@ async function openContractModal(contractId, playerContract = null) {
                     <div>${contract.reward_score} Ankh</div>
                 </div>
                 <div class="reward-item">
-                    <span class="icon">👑</span>
+                    <span class="icon">🐞</span>
                     <div>${contract.reward_prestige} Prestige</div>
                 </div>
             </div>
@@ -306,5 +313,3 @@ async function handleRefreshContracts() {
 
     refreshBtn.disabled = false;
 }
-
-
