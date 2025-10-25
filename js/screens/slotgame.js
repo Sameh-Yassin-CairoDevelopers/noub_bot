@@ -1,14 +1,15 @@
 /*
  * Filename: js/screens/slotgame.js
- * Version: 22.1 (Slot Game Module - Complete)
- * Description: Implements all logic for the Slot Machine game.
+ * Version: NOUB 0.0.1 Eve Edition (Slot Game Module - Complete)
+ * Description: Implements all logic for the Slot Machine game (Tomb of Treasures).
+ * Handles daily tickets, spinning mechanics, and prize distribution.
 */
 
-import { state } from './state.js';
-import * as api from './api.js';
-import { showToast, updateHeaderUI } from './ui.js';
-import { refreshPlayerState } from './auth.js';
-import { trackDailyActivity } from '../contracts.js'; // To track 'spin_slot' quest
+import { state } from '../state.js';
+import * as api from '../api.js';
+import { showToast, updateHeaderUI } from '../ui.js';
+import { refreshPlayerState } from '../auth.js';
+import { trackDailyActivity } from './contracts.js'; // To track 'spin_slot' quest
 
 const spinTicketDisplay = document.getElementById('spin-ticket-display');
 const spinButton = document.getElementById('spin-button');
@@ -18,12 +19,16 @@ const SYMBOLS = ['☥', '𓂀', '𓋹', '🐍', '🐞', '👑'];
 const REEL_ITEM_HEIGHT = 90; 
 let isSpinning = false;
 
-// --- Utility and Setup ---
+// --- Utility and Setup Functions ---
 
+/**
+ * Creates and populates the reel with symbols for animation cycles.
+ */
 function createReelSymbols(reelEl) {
     const inner = document.createElement('div');
     inner.className = 'reel-inner';
     
+    // Repeat symbols 10 times to ensure smooth visual spin and enough offset
     for (let i = 0; i < 10; i++) {
         SYMBOLS.forEach(symbol => {
             const item = document.createElement('div');
@@ -36,23 +41,33 @@ function createReelSymbols(reelEl) {
     reelEl.appendChild(inner);
 }
 
+/**
+ * Calculates the random final position and animates the reel.
+ * @returns {string} The winning symbol.
+ */
 function spinReel(reelEl, finalIndex) {
     const reelInner = reelEl.querySelector('.reel-inner');
     const symbolCountPerCycle = SYMBOLS.length;
     const finalSymbolPosition = (symbolCountPerCycle - 1 - finalIndex); 
     const targetOffset = (7 * symbolCountPerCycle + finalSymbolPosition) * REEL_ITEM_HEIGHT;
 
+    // Reset transition instantly before spinning
     reelInner.style.transition = 'none';
     reelInner.style.transform = 'translateY(0)';
     
+    // Force reflow before starting animation
     void reelInner.offsetWidth; 
 
+    // Start animation
     reelInner.style.transition = 'transform 3s cubic-bezier(0.2, 0.9, 0.5, 1)';
     reelInner.style.transform = `translateY(-${targetOffset}px)`;
     
     return SYMBOLS[finalIndex];
 }
 
+/**
+ * Determines the prize based on the slot machine result.
+ */
 async function determinePrize(results) {
     const isWin = (results[0] === results[1] && results[1] === results[2]);
     
@@ -67,6 +82,7 @@ async function determinePrize(results) {
         return;
     }
 
+    // Weighted random selection logic
     const totalWeight = rewards.reduce((sum, r) => sum + r.weight, 0);
     let randomNum = Math.random() * totalWeight;
     let selectedReward = null;
@@ -85,6 +101,7 @@ async function determinePrize(results) {
     let message = `JACKPOT! You won ${selectedReward.value} ${selectedReward.prize_name}!`;
     const currentProfile = state.playerProfile;
 
+    // Apply reward
     switch (selectedReward.prize_type) {
         case 'ANKH':
             profileUpdate.score = (currentProfile.score || 0) + selectedReward.value;
@@ -99,6 +116,7 @@ async function determinePrize(results) {
             profileUpdate.spin_tickets = (currentProfile.spin_tickets || 0) + selectedReward.value;
             break;
         case 'CARD_PACK':
+            // Grant a random card
             const { data: masterCards } = await api.fetchAllMasterCards();
             if (masterCards && masterCards.length > 0) {
                 const randomCard = masterCards[Math.floor(Math.random() * masterCards.length)];
@@ -153,10 +171,12 @@ async function runSlotMachine() {
     
     // 4. Wait for animation to finish
     setTimeout(async () => {
+        // Reset transitions
         reelElements.forEach(el => {
             el.querySelector('.reel-inner').style.transition = 'none';
         });
         
+        // Determine prize and update DB
         await determinePrize(finalResults.map(i => SYMBOLS[i]));
         
         spinButton.disabled = false;
@@ -224,4 +244,3 @@ export async function renderSlotGame() {
         spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < 1);
     }
 }
-
