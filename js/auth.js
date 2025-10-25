@@ -1,7 +1,8 @@
 /*
  * Filename: js/auth.js
- * Version: 22.5 (CRITICAL AUTH FIX - Complete)
- * Description: Authentication Module. FIXED: Ensures correct relative paths are used for core modules.
+ * Version: NOUB 0.0.1 Eve Edition (FINAL AUTH FIX - Complete)
+ * Description: Authentication Module. Ensures login forms work and integrates new
+ * UCP and Consumables data fetching into the state refresh flow.
 */
 
 import { supabaseClient } from './config.js';
@@ -14,7 +15,7 @@ const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
-// Fix: Making form switching safe
+// CRITICAL FIX: Make these functions globally available for onclick attributes in index.html
 export function showRegisterForm() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
@@ -32,12 +33,13 @@ window.showLoginForm = showLoginForm;
 
 
 /**
- * Refreshes the player's profile and inventory from the database
+ * CRITICAL FUNCTION: Refreshes the player's entire state (profile, inventory, UCP data)
+ * from the database and updates the UI header.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Fetch fresh profile and inventory data simultaneously
+    // Fetch all critical data simultaneously for maximum speed
     const [profileResult, inventoryResult, consumablesResult, ucpResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
@@ -92,7 +94,7 @@ async function initializeApp(user) {
     
     authOverlay.classList.add('hidden');
     appContainer.classList.remove('hidden');
-    navigateTo('home-screen');
+    navigateTo('home-screen'); // Start on the new Home Dashboard
 }
 
 async function login(email, password) {
@@ -122,6 +124,7 @@ export async function logout() {
 }
 
 export function setupAuthEventListeners() {
+    // Applying safety checks to prevent 'Cannot read properties of null' errors
     const loginButton = document.getElementById('login-button');
     const registerButton = document.getElementById('register-button');
     const logoutButton = document.getElementById('logout-btn');
