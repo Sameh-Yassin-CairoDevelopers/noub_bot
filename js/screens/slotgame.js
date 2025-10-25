@@ -4,10 +4,10 @@
  * Description: Implements all logic for the Slot Machine game.
 */
 
-import { state } from '../../state.js';
-import * as api from '../../api.js';
-import { showToast, updateHeaderUI } from '../../ui.js';
-import { refreshPlayerState } from '../../auth.js';
+import { state } from './state.js';
+import * as api from './api.js';
+import { showToast, updateHeaderUI } from './ui.js';
+import { refreshPlayerState } from './auth.js';
 import { trackDailyActivity } from '../contracts.js'; // To track 'spin_slot' quest
 
 const spinTicketDisplay = document.getElementById('spin-ticket-display');
@@ -224,3 +224,4 @@ export async function renderSlotGame() {
         spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < 1);
     }
 }
+
