@@ -5,9 +5,9 @@
  * and stores the answers in the player_protocol_data table.
 */
 
-import { state } from '../state.js';
-import * as api from '../api.js';
-import { showToast } from '../ui.js';
+import { state } from './state.js';
+import * as api from './api.js';
+import { showToast } from './ui.js';
 
 const chatMessagesContainer = document.getElementById('chat-messages');
 const chatInputField = document.getElementById('chat-input-field');
@@ -162,3 +162,4 @@ window.startUCPInterview = function() {
     currentQuestionIndex = currentQuestionIndex > 0 ? currentQuestionIndex : 0; // Ensure we don't restart from 0 if there's progress
     askNextUCPQuestion();
 }
+
