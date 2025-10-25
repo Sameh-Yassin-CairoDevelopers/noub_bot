@@ -1,30 +1,31 @@
 /*
  * Filename: js/main.js
- * Version: 22.2 (Final Import Fix - Complete)
+ * Version: 22.3 (Final Import Fix - Complete)
  * Description: The main entry point for the "Noub" application.
- * CRITICAL FIX: Ensures all screen modules are imported correctly from the 'screens' subdirectory.
+ * CRITICAL FIX: Ensures all screen modules are imported correctly.
 */
 
+// IMPORTANT: These files are located directly in the 'js' folder and are imported first.
 import { setupEventListeners } from './ui.js';
 import { setupAuthEventListeners, handleInitialSession } from './auth.js';
+import './config.js'; // Ensure config is loaded
 
-// --- Import all required screen modules from the correct subdirectory ---
+// --- Import all required screen modules from the 'screens' subdirectory ---
 import './screens/contracts.js';
-import './screens/games.js'; // NOTE: This module is now replaced by slotgame.js and kvgame.js, but keeping it ensures backward compatibility if any old logic relies on it.
 import './screens/upgrade.js';
 import './screens/home.js';
 import './screens/chat.js';
-import './screens/slotgame.js'; // NEW SCREEN
-import './screens/kvgame.js'; // NEW SCREEN
+import './screens/slotgame.js'; 
+import './screens/kvgame.js'; 
 
-// We must also import the files that were never in the 'screens' folder:
-import './screens/collection.js';
-import './screens/economy.js';
+// NOTE: The following modules are also imported indirectly by the above files, 
+// but we ensure they are loaded correctly if needed.
+import './screens/collection.js'; 
+import './screens/economy.js'; 
 import './screens/shop.js';
 import './screens/profile.js';
-// ---------------------------------------------------------------------
 
-// The 'DOMContentLoaded' event ensures that the entire HTML document has been loaded
+
 document.addEventListener('DOMContentLoaded', () => {
     
     // 1. Set up all the static event listeners for the application.
