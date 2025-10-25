@@ -5,11 +5,11 @@
  * ADDED: Logic for upgrading Player Factories (buildings).
 */
 
-import { state } from '../state.js';
-import * as api from '../api.js';
-import { showToast, navigateTo } from '../ui.js';
-import { refreshPlayerState } from '../auth.js';
-import { renderProduction } from './economy.js'; // Import production render to refresh buildings
+import { state } from './state.js';
+import * as api from './api.js';
+import { showToast, navigateTo } from './ui.js';
+import { refreshPlayerState } from './auth.js';
+import { renderProduction } from '../economy.js'; // Import production render to refresh buildings
 
 const upgradeSelectionContainer = document.getElementById('upgrade-card-selection-container');
 const upgradeDetailArea = document.getElementById('upgrade-detail-area');
@@ -304,3 +304,4 @@ async function renderUpgradeDetails(playerCardInstance) {
         document.getElementById('execute-upgrade-btn').addEventListener('click', () => executeUpgrade(requirements));
     }
 }
+
