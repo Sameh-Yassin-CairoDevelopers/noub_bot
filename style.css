@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: 22.0 (Split Games UI - Complete)
- * Description: Main stylesheet for the "Noub" game.
- * Added specific styles for the dedicated Slot Game and KV Game screens.
+ * Version: NOUB 0.0.1 Eve Edition (Final Design Integration)
+ * Description: Main stylesheet for the "Noub" game. Includes all styles for Core, Dashboard,
+ * Split Games, Upgrade, and the new Shop Tabs.
 */
 
 
@@ -22,6 +22,8 @@
     --rarity-legendary: #f39c12;
     --rarity-diamond: #f1c40f;
     --kv-gate-color: #f7d794; /* Color for KV game elements */
+    --chat-eve-color: #f0f0f0;
+    --chat-user-color: #d4edda;
 }
 
 * {
@@ -36,6 +38,7 @@ body {
     margin: 0;
     padding: 75px 15px 95px 15px;
     direction: ltr;
+    min-height: 100vh;
 }
 
 .hidden {
@@ -198,6 +201,10 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    transition: background-color 0.2s;
+}
+.daily-quest-card:hover {
+    background-color: #2a2a2e;
 }
 .daily-quest-card .progress-bar {
     width: 100px;
@@ -615,6 +622,79 @@ header {
     font-weight: bold;
     color: var(--primary-accent);
     margin-bottom: 15px;
+}
+
+
+/* --- Chat Screen Styles (NEW) --- */
+#chat-messages {
+    background-color: var(--surface-dark);
+    border-radius: 12px;
+    height: 400px; /* Fixed height for chat area */
+    overflow-y: auto;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+.eve-bubble, .user-bubble {
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin-bottom: 10px;
+    max-width: 80%;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+.eve-bubble {
+    background-color: var(--chat-eve-color);
+    color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+.user-bubble {
+    background-color: var(--chat-user-color);
+    color: #155724;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+#chat-input-area {
+    display: flex;
+    gap: 10px;
+}
+#chat-input-field {
+    flex-grow: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3c;
+    background: var(--background-dark);
+    color: var(--text-primary);
+}
+
+
+/* --- Store Tabs Styles (NEW) --- */
+.shop-tabs-container {
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 1px solid #3a3a3c;
+    margin-bottom: 15px;
+}
+.shop-tab-btn {
+    padding: 10px 15px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    font-weight: bold;
+    cursor: pointer;
+}
+.shop-tab-btn.active {
+    color: var(--primary-accent);
+    border-bottom: 2px solid var(--primary-accent);
+}
+.shop-content-tab {
+    display: none;
+}
+.shop-content-tab.active {
+    display: block;
 }
 
 
