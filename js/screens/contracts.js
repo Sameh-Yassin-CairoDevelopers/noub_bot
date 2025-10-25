@@ -5,10 +5,10 @@
  * ADDED: Full logic for managing daily quests and tracking activities.
 */
 
-import { state } from '../state.js';
-import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
-import { refreshPlayerState } from '../auth.js';
+import { state } from './state.js';
+import * as api from './api.js';
+import { showToast, updateHeaderUI, openModal } from './ui.js';
+import { refreshPlayerState } from './auth.js';
 
 const activeContractsContainer = document.getElementById('active-contracts-container');
 const availableContractsContainer = document.getElementById('available-contracts-container');
@@ -306,3 +306,4 @@ async function handleRefreshContracts() {
 
     refreshBtn.disabled = false;
 }
+
