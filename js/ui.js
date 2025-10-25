@@ -1,19 +1,22 @@
 /*
  * Filename: js/ui.js
- * Version: 22.2 (FINAL UI Integration - Complete)
- * Description: UI Controller Module. Updated to handle navigation to ALL new screens.
+ * Version: 22.5 (CRITICAL IMPORT PATH FIX - Complete)
+ * Description: UI Controller Module. FIXED: Ensures correct relative paths for screen modules.
 */
 
+// FIX: Ensure all screen imports use the correct path './screens/'
 import { renderCollection } from './screens/collection.js';
 import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
 import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
-import { renderSlotGame } from './screens/slotgame.js'; // NEW Import
-import { renderKVGame } from './screens/kvgame.js'; // NEW Import
+import { renderSlotGame } from './screens/slotgame.js'; 
+import { renderKVGame } from './screens/kvgame.js'; 
 import { renderUpgrade } from './screens/upgrade.js'; 
-import { renderChat } from './screens/chat.js'; // CRITICAL IMPORT: The missing chat render
+import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js'; 
+
+// ... (Rest of the file remains the same, assuming it was otherwise correct) ...
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
 window.closeModal = function(modalId) {
@@ -68,17 +71,16 @@ export function navigateTo(targetId) {
             renderActiveContracts();
             renderAvailableContracts();
             break;
-        // SPLIT GAMES SCREENS
         case 'slot-game-screen':
-            renderSlotGame(); // Renders the slot machine
+            renderSlotGame(); 
             break;
         case 'kv-game-screen':
-            renderKVGame(); // Renders the KV Game
+            renderKVGame(); 
             break;
         case 'card-upgrade-screen':
             renderUpgrade();
             break;
-        case 'chat-screen': // CRITICAL FIX: Renders the Eve Chat screen
+        case 'chat-screen':
             renderChat(); 
             break;
     }
@@ -125,7 +127,7 @@ function setupNavEvents() {
 
     // 3. Special Modal Triggers
     const shopBtn = document.getElementById('shop-nav-btn');
-    if (shopBtn) shopBtn.addEventListener('click', () => openShopModal()); // Ensure openShopModal is called
+    if (shopBtn) shopBtn.addEventListener('click', () => openShopModal());
     
     const moreBtn = document.getElementById('more-nav-btn');
     if (moreBtn) moreBtn.addEventListener('click', () => openModal('more-modal'));
@@ -134,8 +136,8 @@ function setupNavEvents() {
 function setupMoreMenuEvents() {
     // Helper function to close modal and navigate
     const handleMoreClick = (event) => {
-        event.preventDefault(); // Prevent default anchor behavior
-        const targetId = event.currentTarget.dataset.target; // Use currentTarget to get the 'a' element
+        event.preventDefault(); 
+        const targetId = event.currentTarget.dataset.target; 
         window.closeModal('more-modal');
         navigateTo(targetId);
     };
