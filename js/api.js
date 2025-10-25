@@ -1,6 +1,6 @@
 /*
  * Filename: js/api.js
- * Version: 21.2 (FINAL API INTEGRATION - Complete)
+ * Version: NOUB 0.0.1 Eve Edition (FINAL API INTEGRATION - Complete)
  * Description: Data Access Layer Module. Centralizes all database interactions.
  * This file is 100% complete and contains all required API functions for the project.
 */
@@ -38,7 +38,7 @@ export async function addCardToPlayerCollection(playerId, cardId) {
 }
 
 /**
- * Executes the full card upgrade: updates the card instance level and power score.
+ * Fetches the specific upgrade costs for a card instance.
  */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
@@ -52,6 +52,9 @@ export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
         .single();
 }
 
+/**
+ * Executes the full card upgrade: updates the card instance level and power score.
+ */
 export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) {
     return await supabaseClient
         .from('player_cards')
@@ -84,6 +87,13 @@ export async function fetchPlayerFactories(playerId) {
             )
         `)
         .eq('player_id', playerId);
+}
+
+export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
+    return await supabaseClient
+        .from('player_factories')
+        .update({ level: newLevel })
+        .eq('id', playerFactoryId);
 }
 
 export async function fetchPlayerInventory(playerId) {
@@ -258,4 +268,12 @@ export async function fetchUCPProtocol(playerId) {
         .from('player_protocol_data')
         .select('*')
         .eq('player_id', playerId);
+}
+
+// --- TON Integration Functions ---
+
+export async function saveTonTransaction(playerId, txId, amountTon, amountAnkh) {
+    // This is the client-side mock for recording the transaction before server validation.
+    console.log(`[TON] Recording purchase by ${playerId}: TXID ${txId}. Granting ${amountAnkh} Ankh.`);
+    return { success: true, amount: amountAnkh }; // Mock success for client-side testing
 }
