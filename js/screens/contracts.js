@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: 21.1 (Royal Decrees & Daily Quests - Complete)
+ * Version: 22.0 (Daily Quests & Contracts - Complete)
  * Description: View Logic Module for the contracts screen.
- * This version contains ALL logic: Daily Quests (new) and Royal Decrees (existing).
+ * ADDED: Full logic for managing daily quests and tracking activities.
 */
 
 import { state } from '../state.js';
@@ -66,6 +66,7 @@ export function trackDailyActivity(activityType, value = 1, itemName = null) {
         // Soft refresh home screen if it's active
         const homeScreen = document.getElementById('home-screen');
         if (homeScreen && !homeScreen.classList.contains('hidden')) {
+            // NOTE: We use import here to avoid circular dependency problems
             import('./home.js').then(({ renderHome }) => renderHome());
         }
     }
