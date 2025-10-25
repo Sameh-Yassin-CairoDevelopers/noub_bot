@@ -5,8 +5,8 @@
  * Updated to display card level and stack count, and support the new upgrade flow.
 */
 
-import { state } from '../state.js';
-import * as api from '../api.js';
+import { state } from './state.js';
+import * as api from './api.js';
 
 const collectionContainer = document.getElementById('collection-container');
 
@@ -69,3 +69,4 @@ export async function renderCollection() {
         collectionContainer.appendChild(cardElement);
     }
 }
+
