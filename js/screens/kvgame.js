@@ -5,10 +5,10 @@
  * Logic is adapted from the original game file provided.
 */
 
-import { state } from '../../state.js';
-import * as api from '../../api.js';
-import { showToast, updateHeaderUI, openModal } from '../../ui.js';
-import { refreshPlayerState } from '../../auth.js';
+import { state } from './state.js';
+import * as api from './api.js';
+import { showToast, updateHeaderUI, openModal } from './ui.js';
+import { refreshPlayerState } from './auth.js';
 import { trackDailyActivity } from '../contracts.js'; 
 
 const kvGameContainer = document.getElementById('kv-game-content');
@@ -322,3 +322,4 @@ async function updateKVProgressInfo() {
 export async function renderKVGame() {
     renderKVGameContent(); 
 }
+
