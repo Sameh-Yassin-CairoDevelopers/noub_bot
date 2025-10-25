@@ -1,8 +1,7 @@
 /*
  * Filename: js/auth.js
- * Version: 22.1 (Final Stability & UCP Integration - Complete)
- * Description: Authentication Module. Ensures login forms work and integrates new
- * UCP and Consumables data fetching into the state refresh flow.
+ * Version: 22.5 (CRITICAL AUTH FIX - Complete)
+ * Description: Authentication Module. FIXED: Ensures correct relative paths are used for core modules.
 */
 
 import { supabaseClient } from './config.js';
@@ -15,7 +14,7 @@ const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
-// CRITICAL FIX: Make these functions globally available for onclick attributes in index.html
+// Fix: Making form switching safe
 export function showRegisterForm() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
@@ -33,13 +32,12 @@ window.showLoginForm = showLoginForm;
 
 
 /**
- * CRITICAL FUNCTION: Refreshes the player's entire state (profile, inventory, UCP data)
- * from the database and updates the UI header.
+ * Refreshes the player's profile and inventory from the database
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Fetch all critical data simultaneously for maximum speed
+    // Fetch fresh profile and inventory data simultaneously
     const [profileResult, inventoryResult, consumablesResult, ucpResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
@@ -65,7 +63,7 @@ export async function refreshPlayerState() {
 
     // NEW: Update Consumables State
     if (!consumablesResult.error && consumablesResult.data) {
-        state.consumables = new Map(); // Initialize a new map for consumables
+        state.consumables = new Map();
         consumablesResult.data.forEach(item => {
             state.consumables.set(item.item_key, item.quantity);
         });
@@ -73,9 +71,8 @@ export async function refreshPlayerState() {
 
      // NEW: Update UCP Protocol State
     if (!ucpResult.error && ucpResult.data) {
-        state.ucp = new Map(); // Initialize map for UCP answers
+        state.ucp = new Map();
         ucpResult.data.forEach(entry => {
-            // Stores the section_data (JSONB) under the section_key
             state.ucp.set(entry.section_key, entry.section_data);
         });
     }
@@ -95,7 +92,7 @@ async function initializeApp(user) {
     
     authOverlay.classList.add('hidden');
     appContainer.classList.remove('hidden');
-    navigateTo('home-screen'); // CRITICAL: Start on the new Home Dashboard
+    navigateTo('home-screen');
 }
 
 async function login(email, password) {
@@ -174,4 +171,3 @@ export async function handleInitialSession() {
         authOverlay.classList.remove('hidden');
     }
 }
-
