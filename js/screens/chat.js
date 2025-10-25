@@ -1,7 +1,7 @@
 /*
  * Filename: js/screens/chat.js
- * Version: 21.1 (UCP-LLM Chat Interface - Complete)
- * Description: Logic for the Eve Chat screen. Presents creative questions to the user
+ * Version: 22.0 (UCP-LLM Chat Interface - Complete)
+ * Description: Logic for the Eve Chat screen. Presents UCP questions to the user
  * and stores the answers in the player_protocol_data table.
 */
 
@@ -13,15 +13,13 @@ const chatMessagesContainer = document.getElementById('chat-messages');
 const chatInputField = document.getElementById('chat-input-field');
 const chatSendButton = document.getElementById('chat-send-button');
 
-// --- UCP QUESTIONS DATA (Simplified Master List) ---
-// In a real system, this would be fetched from a master table, but for now we hardcode the structure.
+// --- UCP QUESTIONS DATA (Simplified Master List - Matches Analysis) ---
 const MASTER_UCP_QUESTIONS = [
     { id: "sun_moon", question: "My creative friend, what do you love more: the sun's ☀️ warmth, or the moon's 🌙 serenity?", type: "mc", options: ["The Warm Sun ☀️", "The Enchanting Moon 🌙"] },
     { id: "future_vision", question: "If you look to the future, how do you imagine yourself in five years? (Tap Send to answer)", type: "textarea" },
     { id: "reading_writing", question: "Do you find yourself more inclined to read stories written by others 📚, or to write your own stories and ideas ✍️?", type: "mc", options: ["I adore reading 📚!", "I love writing ✍️!"] },
     { id: "learning_style", question: "When learning, do you prefer to dive into the details directly 🔬, or understand the big picture first 🗺️?", type: "mc", options: ["Details first 🔬", "The big picture 🗺️"] }
 ];
-// This maps to the sections we defined in the UCP Generator analysis.
 
 let currentQuestionIndex = 0;
 let isAwaitingUCPAnswer = false;
@@ -32,7 +30,6 @@ function addMessage(sender, text, type = 'eve-bubble') {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add(type);
     
-    // Simple handling for formatting (assumes Eve is the sender)
     if (type === 'eve-bubble') {
         text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
         text = text.replace(/\*(.*?)\*/g, '<i>$1</i>');
@@ -45,7 +42,7 @@ function addMessage(sender, text, type = 'eve-bubble') {
 
 function askNextUCPQuestion() {
     if (currentQuestionIndex >= MASTER_UCP_QUESTIONS.length) {
-        addMessage("Eve", "Wonderful! We've completed the initial cognitive profile. I've saved your insightful answers.", 'eve-bubble');
+        addMessage("Eve", "Wonderful! We've completed the initial cognitive profile. You can now chat or exit.", 'eve-bubble');
         isAwaitingUCPAnswer = false;
         chatInputField.placeholder = "Chat with Eve...";
         return;
@@ -59,11 +56,14 @@ function askNextUCPQuestion() {
 
     // Handle Multiple Choice Options (Render buttons dynamically)
     if (questionConfig.type === 'mc' && questionConfig.options) {
-        // Simple display of options (Full buttons implementation requires modifying index.html/style.css, so we keep it simple here)
+        // Render buttons directly into a separate bubble for easy interaction
         const optionsHTML = questionConfig.options.map((opt, index) => 
             `<button class="action-button small" style="width:auto; margin-right: 10px;" onclick="window.handleUCPChoice(${index})">${opt}</button>`
         ).join('');
         addMessage("Eve", optionsHTML, 'eve-bubble');
+        chatInputField.style.display = 'none'; // Hide text input for MC questions
+    } else {
+        chatInputField.style.display = 'block';
     }
 }
 
@@ -83,26 +83,21 @@ function processUCPAnswer(answer) {
 
     const questionConfig = MASTER_UCP_QUESTIONS[currentQuestionIndex];
     
-    // Map answer to a structured section (Example mapping: 'sun_moon' to 'cognitive_preferences' section)
-    const sectionKeyMap = {
-        'sun_moon': 'cognitive_preferences',
-        'future_vision': 'projects',
-        'reading_writing': 'cognitive_preferences',
-        'learning_style': 'cognitive_preferences',
+    // Determine the section key (Simplification for now)
+    const sectionKey = questionConfig.id; // Use question ID as section key
+
+    // Prepare data structure to save (using JSONB)
+    const dataToSave = { 
+        answer: answer, 
+        type: questionConfig.type 
     };
     
-    const sectionKey = sectionKeyMap[questionConfig.id] || 'additional_notes';
-    
-    // Prepare data structure to save
-    const dataToSave = {};
-    // Store question and answer as an array under the question ID
-    dataToSave[questionConfig.id] = { question: questionConfig.question, answer: answer };
-    
     // Save to the database
-    api.saveUCPSection(state.currentUser.id, questionConfig.id, dataToSave)
+    api.saveUCPSection(state.currentUser.id, sectionKey, dataToSave)
         .then(() => {
             showToast('Profile Updated!', 'success');
             currentQuestionIndex++;
+            chatInputField.style.display = 'block'; // Ensure input returns
             askNextUCPQuestion();
         })
         .catch(err => {
@@ -126,7 +121,7 @@ function handleChatSend() {
     } else {
         // Standard chat response (basic placeholder)
         addMessage("User", messageText, 'user-bubble');
-        addMessage("Eve", "I see. If you need to fill your profile, ask for the next UCP question.", 'eve-bubble');
+        addMessage("Eve", "I see. I'm ready for our UCP interview. Please click 'Start UCP Questions' if you want to update your profile.", 'eve-bubble');
     }
 }
 
@@ -144,14 +139,18 @@ export async function renderChat() {
     // 3. Check Protocol Status and Start Conversation
     const { data: protocol } = await api.fetchUCPProtocol(state.currentUser.id);
     
-    if (protocol && protocol.length >= MASTER_UCP_QUESTIONS.length) {
-        addMessage("Eve", "Welcome back, Explorer. Your Cognitive Profile is complete! You can ask me to recall any section.", 'eve-bubble');
+    // Count how many questions have been answered
+    const answeredCount = protocol ? protocol.length : 0;
+    
+    currentQuestionIndex = answeredCount; // Resume progress
+
+    if (answeredCount >= MASTER_UCP_QUESTIONS.length) {
+        addMessage("Eve", "Welcome back. Your Cognitive Profile is complete! I am now aligned with you.", 'eve-bubble');
         isAwaitingUCPAnswer = false;
-        chatInputField.placeholder = "Chat with Eve...";
+        chatInputField.placeholder = "Chat with Aligned Eve...";
     } else {
-        currentQuestionIndex = protocol ? protocol.length : 0; // Resume progress
         addMessage("Eve", "Hello! I am Eve, your guide. We need to complete your Cognitive Profile (UCP). Shall we start?", 'eve-bubble');
-        addMessage("Eve", "<button class='action-button small' onclick='window.startUCPInterview()'>Start UCP Questions</button>", 'eve-bubble');
+        addMessage("Eve", `<button class='action-button small' onclick='window.startUCPInterview()'>Start UCP Questions (Progress: ${answeredCount}/${MASTER_UCP_QUESTIONS.length})</button>`, 'eve-bubble');
         isAwaitingUCPAnswer = false;
         chatInputField.placeholder = "Click 'Start UCP Questions' to begin.";
     }
@@ -160,5 +159,6 @@ export async function renderChat() {
 // CRITICAL: Global function to start the interview
 window.startUCPInterview = function() {
     chatMessagesContainer.innerHTML = ''; // Clear chat history
+    currentQuestionIndex = currentQuestionIndex > 0 ? currentQuestionIndex : 0; // Ensure we don't restart from 0 if there's progress
     askNextUCPQuestion();
 }
