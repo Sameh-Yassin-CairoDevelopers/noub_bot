@@ -1,8 +1,7 @@
 /*
  * Filename: js/ui.js
- * Version: 21.0 (Home Dashboard & Action Bar - Complete)
- * Description: UI Controller Module. Now sets home-screen as default and handles the
- * navigation logic for the new dashboard action icons.
+ * Version: 22.2 (FINAL UI Integration - Complete)
+ * Description: UI Controller Module. Updated to handle navigation to ALL new screens.
 */
 
 import { renderCollection } from './screens/collection.js';
@@ -10,9 +9,11 @@ import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
 import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
-import { renderGames } from './screens/games.js'; 
+import { renderSlotGame } from './screens/slotgame.js'; // NEW Import
+import { renderKVGame } from './screens/kvgame.js'; // NEW Import
 import { renderUpgrade } from './screens/upgrade.js'; 
-import { renderHome } from './screens/home.js'; // NEW: Import home render function
+import { renderChat } from './screens/chat.js'; // CRITICAL IMPORT: The missing chat render
+import { renderHome } from './screens/home.js'; 
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
 window.closeModal = function(modalId) {
@@ -48,7 +49,7 @@ export function navigateTo(targetId) {
 
 
     switch (targetId) {
-        case 'home-screen': // NEW: Render home screen
+        case 'home-screen': 
             renderHome();
             break;
         case 'collection-screen':
@@ -67,13 +68,19 @@ export function navigateTo(targetId) {
             renderActiveContracts();
             renderAvailableContracts();
             break;
-        case 'games-screen':
-            renderGames();
+        // SPLIT GAMES SCREENS
+        case 'slot-game-screen':
+            renderSlotGame(); // Renders the slot machine
+            break;
+        case 'kv-game-screen':
+            renderKVGame(); // Renders the KV Game
             break;
         case 'card-upgrade-screen':
             renderUpgrade();
             break;
-        // Remaining screens (albums, chat) are placeholders for now
+        case 'chat-screen': // CRITICAL FIX: Renders the Eve Chat screen
+            renderChat(); 
+            break;
     }
 }
 
@@ -83,7 +90,6 @@ export function updateHeaderUI(profile) {
     document.getElementById('prestige-display').textContent = profile.prestige || 0;
     document.getElementById('blessing-display').textContent = profile.blessing || 0;
     
-    // Safety check for spin ticket display (may not exist on all screens)
     const spinDisplay = document.getElementById('spin-ticket-display');
     if(spinDisplay) {
         spinDisplay.textContent = profile.spin_tickets || 0;
@@ -119,31 +125,28 @@ function setupNavEvents() {
 
     // 3. Special Modal Triggers
     const shopBtn = document.getElementById('shop-nav-btn');
-    if (shopBtn) shopBtn.addEventListener('click', openShopModal);
-
+    if (shopBtn) shopBtn.addEventListener('click', () => openShopModal()); // Ensure openShopModal is called
+    
     const moreBtn = document.getElementById('more-nav-btn');
     if (moreBtn) moreBtn.addEventListener('click', () => openModal('more-modal'));
 }
 
 function setupMoreMenuEvents() {
-    const profileBtn = document.querySelector('#more-modal a[data-target="profile-screen"]');
-    const albumsBtn = document.querySelector('#more-modal a[data-target="albums-screen"]');
-    const eveBtn = document.querySelector('#more-modal a[data-target="chat-screen"]');
-    const gamesBtn = document.querySelector('#more-modal a[data-target="games-screen"]');
-    const upgradeBtn = document.querySelector('#more-modal a[data-target="card-upgrade-screen"]');
-    
     // Helper function to close modal and navigate
-    const handleMoreClick = (targetId) => {
+    const handleMoreClick = (event) => {
+        event.preventDefault(); // Prevent default anchor behavior
+        const targetId = event.currentTarget.dataset.target; // Use currentTarget to get the 'a' element
         window.closeModal('more-modal');
         navigateTo(targetId);
     };
 
-    // Attach listeners safely
-    if (profileBtn) profileBtn.addEventListener('click', () => handleMoreClick('profile-screen'));
-    if (albumsBtn) albumsBtn.addEventListener('click', () => handleMoreClick('albums-screen'));
-    if (eveBtn) eveBtn.addEventListener('click', () => handleMoreClick('chat-screen'));
-    if (gamesBtn) gamesBtn.addEventListener('click', () => handleMoreClick('games-screen'));
-    if (upgradeBtn) upgradeBtn.addEventListener('click', () => handleMoreClick('card-upgrade-screen'));
+    // Attach listeners safely to all 'a' elements inside the more modal
+    const moreMenuItems = document.querySelectorAll('#more-modal .more-menu-item');
+    moreMenuItems.forEach(item => {
+        if (item.dataset.target) {
+            item.addEventListener('click', handleMoreClick);
+        }
+    });
 }
 
 export function setupEventListeners() {
