@@ -329,3 +329,5 @@ async function updateKVProgressInfo() {
 
 export async function renderKVGame() {
     renderKVGameContent(); 
+
+}
