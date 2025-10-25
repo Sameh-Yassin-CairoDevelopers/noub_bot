@@ -5,10 +5,10 @@
  * FIXED: Ensures all DOM elements for KV Game are fetched and listeners attached.
 */
 
-import { state } from '../state.js';
-import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
-import { refreshPlayerState } from '../auth.js';
+import { state } from './state.js';
+import * as api from './api.js';
+import { showToast, updateHeaderUI, openModal } from './ui.js';
+import { refreshPlayerState } from './auth.js';
 
 const spinTicketDisplay = document.getElementById('spin-ticket-display');
 const spinButton = document.getElementById('spin-button');
@@ -412,3 +412,4 @@ export async function renderGames() {
     
     renderKVGameContent();
 }
+
