@@ -6,9 +6,9 @@
 */
 
 import { supabaseClient } from './config.js';
-import { state } from '../state.js';
-import * as api from '../api.js';
-import { navigateTo, updateHeaderUI } from '../ui.js';
+import { state } from './state.js';
+import * as api from './api.js';
+import { navigateTo, updateHeaderUI } from './ui.js';
 
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
@@ -174,3 +174,4 @@ export async function handleInitialSession() {
         authOverlay.classList.remove('hidden');
     }
 }
+
