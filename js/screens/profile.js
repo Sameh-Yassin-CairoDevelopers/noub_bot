@@ -6,9 +6,9 @@
  * Updated to display the number of completed contracts.
 */
 
-import { state } from '../state.js';
-import { supabaseClient } from '../config.js'; // Need direct access for a quick count
-import { fetchPlayerCards } from '../api.js';
+import { state } from './state.js';
+import { supabaseClient } from './config.js'; // Need direct access for a quick count
+import { fetchPlayerCards } from './api.js';
 
 export async function renderProfile() {
     if (!state.playerProfile || !state.currentUser) return;
@@ -41,5 +41,6 @@ export async function renderProfile() {
         document.getElementById('stat-contracts').textContent = count;
     }
 }
+
 
 
