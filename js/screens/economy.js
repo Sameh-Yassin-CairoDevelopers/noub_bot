@@ -5,9 +5,9 @@
  * This version ensures all interactions (building clicks, stockpile tabs) are fully functional.
 */
 
-import { state } from '../state.js';
-import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
+import { state } from './state.js';
+import * as api from './api.js';
+import { showToast, updateHeaderUI, openModal } from './ui.js';
 
 let productionInterval;
 
@@ -289,3 +289,4 @@ export function renderProduction() {
     if (resourcesContainer) renderFactories(resourcesContainer, 'RESOURCE');
     if (workshopsContainer) renderFactories(workshopsContainer, 'FACTORY');
 }
+
