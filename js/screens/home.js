@@ -5,10 +5,10 @@
  * Renders the daily quest summary upon screen load.
 */
 
-import { state } from '../state.js';
-import * as api from '../api.js';
-import { showToast } from '../ui.js';
-import { fetchDailyQuests, completeDailyQuest } from './contracts.js'; // Import quest logic
+import { state } from './state.js';
+import * as api from './api.js';
+import { showToast } from './ui.js';
+import { fetchDailyQuests, completeDailyQuest } from '../contracts.js'; // Import quest logic
 
 const dailyQuestsContainer = document.getElementById('daily-quests-container');
 
@@ -76,3 +76,4 @@ export async function renderHome() {
     });
 
 }
+
