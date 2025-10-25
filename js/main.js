@@ -10,6 +10,7 @@ import { setupAuthEventListeners, handleInitialSession } from './auth.js';
 import './screens/contracts.js'; // Ensure modules are loaded
 import './screens/games.js';     
 import './screens/upgrade.js';   
+import './screens/chat.js';   
 
 // The 'DOMContentLoaded' event ensures that the entire HTML document has been loaded
 // and parsed before our main script logic runs.
@@ -23,3 +24,4 @@ document.addEventListener('DOMContentLoaded', () => {
     handleInitialSession();
 
 });
+
