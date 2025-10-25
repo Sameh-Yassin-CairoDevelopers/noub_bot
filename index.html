@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Noub - Pharaoh's Legacy (v22.0 - Split Games)</title>
+    <title>NOUB 0.0.1 Eve Edition</title>
     
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +19,23 @@
 
     <!-- Authentication Overlay - Initially Visible -->
     <div id="auth-overlay">
-        <!-- ... -->
+        <div class="auth-form" id="login-form">
+            <h2>Login to "Noub"</h2>
+            <div class="auth-error" id="login-error"></div>
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button id="login-button">Login</button>
+            <div class="switch-form" onclick="showRegisterForm()">No account? Sign up now</div>
+        </div>
+        <div class="auth-form hidden" id="register-form">
+            <h2>Create New Account</h2>
+            <div class="auth-error" id="register-error"></div>
+            <input type="text" id="register-username" placeholder="Username" required>
+            <input type="email" id="register-email" placeholder="Email" required>
+            <input type="password" id="register-password" placeholder="Password" required>
+            <button id="register-button">Sign Up</button>
+            <div class="switch-form" onclick="showLoginForm()">Already have an account? Login</div>
+        </div>
     </div>
 
     <!-- Main App Container - Initially Hidden -->
@@ -133,14 +150,57 @@
             
             <!-- Profile Screen Content -->
             <div id="profile-screen" class="screen hidden">
-                 <!-- ... (Profile content remains the same) ... -->
+                 <div class="profile-container">
+                    <div class="profile-header">
+                        <img src="images/user_avatar.png" alt="Avatar" class="avatar" id="player-avatar-img">
+                        <h2 id="player-name">Player</h2>
+                    </div>
+                    <div class="profile-power">
+                        <p class="label">Power Score</p>
+                        <div id="player-power-score" class="power-score">0</div>
+                    </div>
+                    <div class="profile-stats-grid">
+                        <div class="stat-box"><div id="stat-total-cards" class="value">0</div><div class="label">Total Cards</div></div>
+                        <div class="stat-box"><div id="stat-contracts" class="value">0</div><div class="label">Completed Contracts</div></div>
+                    </div>
+                    <button id="logout-btn" class="action-button danger">Logout</button>
+                </div>
             </div>
             <!-- Chat Screen -->
             <div id="chat-screen" class="screen hidden"><h2>Chat with Eve</h2></div>
         </main>
         
         <!-- Modals -->
-        <div id="shop-modal" class="modal-overlay hidden"></div>
+        <div id="shop-modal" class="modal-overlay hidden">
+             <!-- Shop Tabs Structure -->
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
+                <h2>Shop</h2>
+                
+                <div class="shop-tabs-container">
+                    <!-- Shop Tabs will be controlled by shop.js -->
+                    <button class="shop-tab-btn active" data-shop-tab="cards">Card Packs</button>
+                    <button class="shop-tab-btn" data-shop-tab="game_items">Game Items</button>
+                    <button class="shop-tab-btn" data-shop-tab="ton_exchange">TON Exchange</button>
+                </div>
+
+                <div id="shop-content-cards" class="shop-content-tab active">
+                    <div id="shop-items-cards-container">
+                         <!-- Card Packs will be rendered here -->
+                    </div>
+                </div>
+                 <div id="shop-content-game_items" class="shop-content-tab">
+                     <div id="shop-items-game_items-container">
+                         <!-- Game Consumables will be rendered here -->
+                     </div>
+                </div>
+                 <div id="shop-content-ton_exchange" class="shop-content-tab">
+                     <div id="shop-items-ton_exchange-container">
+                         <!-- TON Packages will be rendered here -->
+                     </div>
+                </div>
+            </div>
+        </div>
         <div id="toast-container"></div>
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
