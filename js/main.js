@@ -1,16 +1,21 @@
 /*
  * Filename: js/main.js
- * Version: 22.5 (CRITICAL SAFE ENTRY POINT)
- * Description: Only loads core files required for authentication.
+ * Version: NOUB 0.0.1 Eve Edition (CRITICAL SAFE ENTRY POINT - Final)
+ * Description: Main entry point. Loads all modules and starts authentication.
+ * Ensures all module paths are correct for a stable build.
 */
 
-// IMPORTANT: All these imports must use './' if the files are in the same /js/ directory.
+// --- CORE MODULES (in /js/ directory - imported with './') ---
 import './config.js'; 
 import './state.js'; 
+import './api.js';
 import { setupEventListeners } from './ui.js'; 
 import { setupAuthEventListeners, handleInitialSession } from './auth.js';
-import './api.js'; // Ensure API is loaded
-import './screens/contracts.js'; // We load these modules to initialize their functions
+
+
+// --- SCREEN MODULES (in /js/screens/ directory - imported with './screens/') ---
+// Importing them here ensures the browser loads their code and initializes their functionality.
+import './screens/contracts.js';
 import './screens/upgrade.js'; 
 import './screens/home.js'; 
 import './screens/chat.js'; 
@@ -24,9 +29,11 @@ import './screens/profile.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     
+    // 1. Setup all event listeners (for navigation, forms, etc.)
     setupEventListeners();
     setupAuthEventListeners();
 
+    // 2. Handle the initial session check (login/app start)
     handleInitialSession();
 
 });
