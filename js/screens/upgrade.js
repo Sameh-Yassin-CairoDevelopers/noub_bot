@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/upgrade.js
- * Version: 21.1 (Upgrade & Factory Leveling - Complete)
+ * Version: 22.0 (Upgrade & Factory Leveling - Complete)
  * Description: View Logic Module for the Card Upgrade screen.
  * ADDED: Logic for upgrading Player Factories (buildings).
 */
@@ -57,7 +57,8 @@ async function executeFactoryUpgrade(playerFactory) {
     
     // 2. Update Factory Level
     const newLevel = playerFactory.level + 1;
-    const { error } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); // Assumes API function exists
+    // NOTE: This function needs to exist in your API module
+    const { error } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); 
     
     if (error) {
         showToast('Error updating factory level!', 'error');
@@ -77,7 +78,6 @@ async function executeFactoryUpgrade(playerFactory) {
 
 /**
  * Renders the initial list of cards available for upgrade selection.
- * NOTE: This is the only exported function from this module.
  */
 export async function renderUpgrade() { 
     if (!state.currentUser) return;
