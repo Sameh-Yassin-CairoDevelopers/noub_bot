@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/home.js
- * Version: 21.0 (Home Dashboard & Daily Quests - Complete)
+ * Version: 22.0 (Home Dashboard & Daily Quests - Complete)
  * Description: View Logic Module for the Home Dashboard.
  * Renders the daily quest summary upon screen load.
 */
