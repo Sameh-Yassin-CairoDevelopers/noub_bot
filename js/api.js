@@ -26,7 +26,6 @@ export async function updatePlayerProfile(playerId, updateObject) {
 }
 
 export async function addCardToPlayerCollection(playerId, cardId) {
-    // When adding a new card, we must set its initial power score
     const { data: cardDetails } = await supabaseClient.from('cards').select('power_score').eq('id', cardId).single();
     const initialPower = cardDetails ? cardDetails.power_score : 1;
     
@@ -62,6 +61,14 @@ export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) 
         .eq('instance_id', playerCardId);
 }
 
+// NOTE: This function is required for the Card Burning logic in collection.js
+export async function deleteCardInstance(instanceId) {
+    return await supabaseClient
+        .from('player_cards')
+        .delete()
+        .eq('instance_id', instanceId);
+}
+
 
 // --- Economy API Functions ---
 
@@ -89,6 +96,9 @@ export async function fetchPlayerFactories(playerId) {
         .eq('player_id', playerId);
 }
 
+/**
+ * CRITICAL FIX: Function required by upgrade.js for factory leveling.
+ */
 export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
     return await supabaseClient
         .from('player_factories')
@@ -273,7 +283,5 @@ export async function fetchUCPProtocol(playerId) {
 // --- TON Integration Functions ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkh) {
-    // This is the client-side mock for recording the transaction before server validation.
-    console.log(`[TON] Recording purchase by ${playerId}: TXID ${txId}. Granting ${amountAnkh} Ankh.`);
     return { success: true, amount: amountAnkh }; // Mock success for client-side testing
 }
