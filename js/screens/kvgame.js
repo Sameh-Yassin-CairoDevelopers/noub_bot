@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.1 Eve Edition (KV Game Module - Complete)
+ * Version: NOUB 0.0.1 Eve Edition (KV GAME RENDER FIX - Complete)
  * Description: Implements all core logic for the Valley of the Kings (Crack the Code) game.
- * Integrates the original mathematical logic, timer, progression, and consumable items.
+ * FIXED: Reference errors caused by incorrect DOM fetching scope.
 */
 
 import { state } from '../state.js';
@@ -14,11 +14,11 @@ import { trackDailyActivity } from './contracts.js';
 const kvGameContainer = document.getElementById('kv-game-content');
 
 // --- KV Game Constants & State ---
-const LEVEL_COST = 100; // Ankh cost to start a KV game attempt
+const LEVEL_COST = 100;
 const WIN_REWARD_BASE = 500;
-const HINT_SCROLL_ITEM_KEY = 'hint_scroll'; // Key for the last digit hint consumable
-const TIME_AMULET_ITEM_KEY = 'time_amulet_45s'; // Key for time boost consumable
-const HINT_SCROLL_COST_BLESSING = 5; // Cost to buy the consumable if needed
+const HINT_SCROLL_ITEM_KEY = 'hint_scroll'; 
+const TIME_AMULET_ITEM_KEY = 'time_amulet_45s'; 
+const HINT_SCROLL_COST_BLESSING = 5; 
 
 let kvGameState = {
     active: false,
@@ -26,26 +26,25 @@ let kvGameState = {
     timeLeft: 0,
     interval: null,
     levelIndex: 0, // 0-based index into kvGatesData
-    hintsRevealed: [false, false, false, false], // Tracks T1, T2, T3, T4 (T4 is paid)
+    hintsRevealed: [true, true, true, false], // T1, T2, T3 are FREE (Original Game Logic)
 };
 
 const kvGatesData = [
     { kv: 1, name: "Ramses VII" }, { kv: 2, name: "Ramses IV" }, { kv: 3, name: "Sons of Ramses II" },
     { kv: 4, name: "Ramses XI" }, { kv: 5, name: "Sons of Ramses II" }, { kv: 6, name: "Ramses IX" },
-    // ... (Full list of 62 levels is assumed here for continuity)
+    // Include full list up to KV 62 here (assumed for runtime)
 ];
 
-// Local DOM Element References
-let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, introDiv, progressInfoDiv, hintDisplayDiv;
+// Local DOM Element Variables (Initialized inside renderKVGameContent)
+let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, introDiv, progressInfoDiv, hintDisplayDiv, kvGameControlsEl;
 
 
-// --- CORE LOGIC FUNCTIONS (Adapted from Original File) ---
+// --- CORE LOGIC FUNCTIONS ---
 
 function getLevelConfig(levelIndex) {
     const level = levelIndex + 1;
     let digits = 3;
     let time = 70;
-    // Simplified scaling logic
     if (level >= 53) { digits = 6; time = 160; }
     else if (level >= 41) { digits = 5; time = 120; }
     else if (level >= 25) { digits = 4; time = 90; }
@@ -70,6 +69,10 @@ function calculateHints(code) {
     return { sum, product, evens, odds, lastDigit };
 }
 
+function addChatMessage(sender, text, type = 'system', avatar = null) {
+    console.log(`[Chat - ${sender} (${type})]: ${text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1')}`);
+}
+
 function timerTick() {
     kvGameState.timeLeft--;
     if (timerDisplayEl) timerDisplayEl.textContent = `Time Left: ${kvGameState.timeLeft}s`;
@@ -82,23 +85,20 @@ function timerTick() {
 function updateHintDisplay() {
     if (!hintDisplayDiv) return;
     
-    // Clear display
     hintDisplayDiv.innerHTML = '';
     const hints = calculateHints(kvGameState.code);
-    const config = getLevelConfig(kvGameState.levelIndex);
-
-    // T1: Sum
-    if (kvGameState.hintsRevealed[0]) hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 1: Sum of digits is <span>${hints.sum}</span>.</div>`;
+    
+    // T1: Sum (Always revealed if game active)
+    hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 1: Sum of digits is <span>${hints.sum}</span>.</div>`;
     // T2: Product
-    if (kvGameState.hintsRevealed[1]) hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 2: Product of digits is <span>${hints.product}</span>.</div>`;
+    hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 2: Product of digits is <span>${hints.product}</span>.</div>`;
     // T3: Even/Odd
-    if (kvGameState.hintsRevealed[2]) hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 3: Code has <span>${hints.odds}</span> odd and <span>${hints.evens}</span> even digit(s).</div>`;
+    hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 3: Code has <span>${hints.odds}</span> odd and <span>${hints.evens}</span> even digit(s).</div>`;
     
     // T4: Last Digit (Paid Hint)
     if (kvGameState.hintsRevealed[3]) {
         hintDisplayDiv.innerHTML += `<div class="kv-hint-item" style="border-left-color: var(--success-color);">Hint 4 (Used): Last digit is <span>${hints.lastDigit}</span>.</div>`;
     } else {
-        // Show button to buy/use the hint scroll
         const hintBtn = document.createElement('button');
         const scrollCount = state.consumables.get(HINT_SCROLL_ITEM_KEY) || 0;
         const buttonText = scrollCount > 0 ? `Use Scroll (${scrollCount})` : `Buy Hint (${HINT_SCROLL_COST_BLESSING} 🗡️)`;
@@ -133,7 +133,6 @@ async function handlePurchaseAndUseHint() {
         return;
     }
     
-    // Final steps after successful purchase/use
     await refreshPlayerState();
     updateHintDisplay();
 }
@@ -149,8 +148,7 @@ async function endCurrentKVGame(result) {
     
     let isWin = (result === 'win');
     
-    // 1. Update Game Progress and Stats
-    await updateKVProgress(isWin, 0); // Updates level progress in DB
+    await updateKVProgress(isWin, 0);
 
     if (isWin) {
         const reward = WIN_REWARD_BASE + (kvGameState.levelIndex * 50);
@@ -162,9 +160,8 @@ async function endCurrentKVGame(result) {
         showToast(`Expedition ended. Code was ${kvGameState.code}.`, 'lose');
     }
     
-    // 2. Refresh state and UI
     await refreshPlayerState();
-    renderKVGameContent();
+    renderKVGameContent(); // Re-render the content to show the result and retry button
 }
 
 function handleSubmitGuess() {
@@ -177,6 +174,8 @@ function handleSubmitGuess() {
         showToast(`Enter exactly ${config.digits} digits.`, 'error');
         return;
     }
+
+    addChatMessage(state.playerProfile.username, `My guess: ${guess}`, 'user');
 
     if (guess === kvGameState.code) {
         endCurrentKVGame('win');
@@ -211,11 +210,11 @@ async function startNewKVGame() {
     // Deduct cost and start
     const newScore = (state.playerProfile.score || 0) - LEVEL_COST;
     await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
-    await refreshPlayerState(); // Update score display
+    await refreshPlayerState();
 
     // Reset game state
     kvGameState.active = true;
-    kvGameState.hintsRevealed = [true, true, true, false]; // T1, T2, T3 are FREE
+    kvGameState.hintsRevealed = [true, true, true, false]; 
     
     const gateInfo = kvGatesData[kvGameState.levelIndex];
     const config = getLevelConfig(kvGameState.levelIndex);
@@ -240,26 +239,26 @@ async function startNewKVGame() {
     
     // Display initial hints
     addChatMessage("System", `Starting challenge for KV${gateInfo.kv}. Code: ${config.digits} digits.`, 'system');
-    updateHintDisplay(); // Display T1, T2, T3 immediately
+    updateHintDisplay();
 
     introDiv.classList.add('hidden');
-    kvGameControls.classList.remove('hidden');
+    kvGameControlsEl.classList.remove('hidden'); // CRITICAL FIX: Use the local variable
 }
 
 
 // --- MAIN SCREEN RENDER & UI SETUP ---
 
 function renderKVGameContent() {
-    // 1. Initial Setup (DOM Structure)
+    // 1. Initial Setup (DOM Structure) - Render the necessary elements
     kvGameContainer.innerHTML = `
-        <div id="kv-game-intro">
+        <div id="kv-game-intro-content">
              <h3>Valley of the Kings - Crack the Code</h3>
              <p class="screen-description">Decipher the secret codes of the ancient tombs (KVs). Cost: ${LEVEL_COST} ☥ per attempt.</p>
              <div id="kv-progress-info" style="margin-bottom: 20px;">Loading Progress...</div>
              <button id="kv-start-btn" class="action-button" style="width: 200px;">Load Game</button>
         </div>
         
-        <div id="kv-game-controls" class="game-controls hidden" style="width: 100%;">
+        <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
             <h2 style="margin-top: 0; padding-top: 0;">Crack the Code: <span id="level-name-display">KV Gate Name</span></h2>
             <div id="timer-display">Time Left: 0s</div>
             
@@ -269,7 +268,7 @@ function renderKVGameContent() {
             </div>
             
             <div id="hint-display" style="margin-bottom: 15px; text-align: left;">
-                 <!-- Dynamic hint buttons/messages here -->
+                 <!-- Dynamic hint content here -->
             </div>
             
             <div class="kv-controls-grid">
@@ -279,9 +278,9 @@ function renderKVGameContent() {
         </div>
     `;
 
-    // 2. Fetch DOM References
-    introDiv = document.getElementById('kv-game-intro');
-    kvGameControls.classList.add('hidden'); // Ensure controls are hidden initially
+    // 2. Fetch DOM References (CRITICAL FIX: Fetch local variables after setting innerHTML)
+    introDiv = document.getElementById('kv-game-intro-content');
+    kvGameControlsEl = document.getElementById('kv-game-controls-content'); // CRITICAL FIX: Set the element reference
     
     levelNameEl = document.getElementById('level-name-display');
     timerDisplayEl = document.getElementById('timer-display');
@@ -295,7 +294,6 @@ function renderKVGameContent() {
     if (newGameBtn) newGameBtn.onclick = startNewKVGame;
     if (submitGuessBtn) submitGuessBtn.onclick = handleSubmitGuess;
     if (endGameBtn) endGameBtn.onclick = () => endCurrentKVGame('manual');
-    if (guessInputEl) guessInputEl.disabled = true;
 
     // 4. Update Initial Progress Display
     updateKVProgressInfo();
@@ -329,5 +327,4 @@ async function updateKVProgressInfo() {
 
 export async function renderKVGame() {
     renderKVGameContent(); 
-
 }
