@@ -3,22 +3,24 @@
  * Version: NOUB 0.0.1 Eve Edition (KV GAME FINAL LOGIC FIX - Complete)
  * Description: Implements all core logic for the Valley of the Kings (Crack the Code) game.
  * Integrates the original 62-level mathematical logic, timer, progression, and consumable items.
+ * FIXED: ReferenceError for updateKVProgress and ensures full UI functionality.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
+import { showToast, updateHeaderUI, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
 
 const kvGameContainer = document.getElementById('kv-game-content');
 
 // --- KV Game Constants & State ---
-const LEVEL_COST = 100;
+const LEVEL_COST = 100; // Ankh cost to start a KV game attempt
 const WIN_REWARD_BASE = 500;
-const HINT_SCROLL_ITEM_KEY = 'hint_scroll'; 
-const HINT_SCROLL_COST_BLESSING = 5; 
-const EVE_AVATAR = 'images/eve_avatar.png'; // Assuming images are accessible from root
+const HINT_SCROLL_ITEM_KEY = 'hint_scroll'; // Key for the last digit hint consumable
+const TIME_AMULET_ITEM_KEY = 'time_amulet_45s'; // Key for time boost consumable
+const HINT_SCROLL_COST_BLESSING = 5; // Cost to buy the consumable if needed
+const TIME_AMULET_COST_BLESSING = 10; // Cost to buy the time boost
 
 let kvGameState = {
     active: false,
@@ -29,7 +31,7 @@ let kvGameState = {
     hintsRevealed: [true, true, true, false], // T1, T2, T3 are FREE (Original Game Logic)
 };
 
-// CRITICAL DATA: Full 62 KV Gates Data (as provided in the original file)
+// CRITICAL DATA: Full 62 KV Gates Data
 const kvGatesData = [
     { kv: 1, name: "Ramses VII" }, { kv: 2, name: "Ramses IV" }, { kv: 3, name: "Sons of Ramses II" },
     { kv: 4, name: "Ramses XI" }, { kv: 5, name: "Sons of Ramses II" }, { kv: 6, name: "Ramses IX" },
@@ -57,7 +59,7 @@ const kvGatesData = [
 
 
 // Local DOM Element Variables (Initialized inside renderKVGameContent)
-let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, introDiv, progressInfoDiv, hintDisplayDiv, kvGameControlsEl;
+let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, introDiv, progressInfoDiv, hintDisplayDiv, kvGameControlsEl, useItemButtonContainer;
 
 
 // --- CORE LOGIC FUNCTIONS ---
@@ -95,6 +97,7 @@ function addChatMessage(sender, text, type = 'system', avatar = null) {
     console.log(`[Chat - ${sender} (${type})]: ${text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1')}`);
 }
 
+// CRITICAL FIX: Defined function properly in global module scope
 async function updateKVProgress(isWin, timeTaken) {
     if (!state.currentUser) return;
     
@@ -139,7 +142,7 @@ function updateHintDisplay() {
     hintDisplayDiv.innerHTML = '';
     const hints = calculateHints(kvGameState.code);
     
-    // T1-T3: Free Hints
+    // T1-T3: Free Hints (as per original game logic)
     hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 1 (Sum): <span>${hints.sum}</span>.</div>`;
     hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 2 (Product): <span>${hints.product}</span>.</div>`;
     hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 3 (Even/Odd): <span>${hints.odds} odd / ${hints.evens} even</span>.</div>`;
@@ -150,35 +153,56 @@ function updateHintDisplay() {
     } else {
         const hintBtn = document.createElement('button');
         const scrollCount = state.consumables.get(HINT_SCROLL_ITEM_KEY) || 0;
+        const timeAmuletCount = state.consumables.get(TIME_AMULET_ITEM_KEY) || 0;
+        
+        // Hint Button
         const buttonText = scrollCount > 0 ? `Use Scroll (${scrollCount})` : `Buy Last Digit (${HINT_SCROLL_COST_BLESSING} 🗡️)`;
         
         hintBtn.className = 'action-button small';
         hintBtn.style.backgroundColor = 'var(--kv-gate-color)';
         hintBtn.textContent = buttonText;
         hintBtn.disabled = !kvGameState.active;
-        hintBtn.onclick = handlePurchaseAndUseHint;
+        hintBtn.onclick = () => handlePurchaseAndUseHint(HINT_SCROLL_ITEM_KEY, HINT_SCROLL_COST_BLESSING);
         hintDisplayDiv.appendChild(hintBtn);
+
+        // Time Boost Button (Always available to buy/use)
+        const timeBtn = document.createElement('button');
+        timeBtn.className = 'action-button small';
+        timeBtn.style.backgroundColor = '#95a5a6'; // Grey color
+        timeBtn.textContent = `Time Boost (${timeAmuletCount} Own) (${TIME_AMULET_COST_BLESSING} 🗡️)`;
+        timeBtn.disabled = !kvGameState.active;
+        timeBtn.onclick = () => handlePurchaseAndUseHint(TIME_AMULET_ITEM_KEY, TIME_AMULET_COST_BLESSING);
+        hintDisplayDiv.appendChild(timeBtn);
     }
 }
 
-async function handlePurchaseAndUseHint() {
+async function handlePurchaseAndUseHint(itemKey, blessingCost) {
     if (!kvGameState.active) return;
     
-    const scrollCount = state.consumables.get(HINT_SCROLL_ITEM_KEY) || 0;
+    const consumableCount = state.consumables.get(itemKey) || 0;
+    const isHint = itemKey === HINT_SCROLL_ITEM_KEY;
+    const isTime = itemKey === TIME_AMULET_ITEM_KEY;
 
-    if (scrollCount > 0) {
-        // Option 1: Use existing scroll
-        await api.updateConsumableQuantity(state.currentUser.id, HINT_SCROLL_ITEM_KEY, scrollCount - 1);
-        showToast('Hint Scroll used!', 'success');
-        kvGameState.hintsRevealed[3] = true;
-    } else if ((state.playerProfile.blessing || 0) >= HINT_SCROLL_COST_BLESSING) {
+    if (isHint && kvGameState.hintsRevealed[3]) {
+        showToast("Last digit hint already revealed.", 'info');
+        return;
+    }
+
+    if (consumableCount > 0) {
+        // Option 1: Use existing consumable
+        await api.updateConsumableQuantity(state.currentUser.id, itemKey, consumableCount - 1);
+        showToast(`${itemKey.split('_')[0]} used!`, 'success');
+        if (isHint) kvGameState.hintsRevealed[3] = true;
+        if (isTime) kvGameState.timeLeft += 45; // Add 45 seconds
+    } else if ((state.playerProfile.blessing || 0) >= blessingCost) {
         // Option 2: Buy directly with Blessing
-        const newBlessing = state.playerProfile.blessing - HINT_SCROLL_COST_BLESSING;
+        const newBlessing = state.playerProfile.blessing - blessingCost;
         await api.updatePlayerProfile(state.currentUser.id, { blessing: newBlessing });
-        showToast('Hint purchased with Blessing!', 'success');
-        kvGameState.hintsRevealed[3] = true;
+        showToast(`${itemKey.split('_')[0]} purchased with Blessing!`, 'success');
+        if (isHint) kvGameState.hintsRevealed[3] = true;
+        if (isTime) kvGameState.timeLeft += 45; 
     } else {
-        showToast(`Need ${HINT_SCROLL_COST_BLESSING} Blessing (🗡️) or a Hint Scroll. Visit the Shop!`, 'error');
+        showToast(`Need ${blessingCost} Blessing (🗡️) or the consumable item.`, 'error');
         return;
     }
     
@@ -286,7 +310,6 @@ async function startNewKVGame() {
     if (kvGameState.interval) clearInterval(kvGameState.interval);
     kvGameState.interval = setInterval(timerTick, 1000);
     
-    // Display initial hints (T1, T2, T3 are displayed by updateHintDisplay)
     updateHintDisplay();
 
     if (introDiv) introDiv.classList.add('hidden');
@@ -315,7 +338,7 @@ function renderKVGameContent() {
                 <button id="submit-guess-btn" class="action-button small">Submit</button>
             </div>
             
-            <div id="hint-display" style="margin-bottom: 15px; text-align: left;">
+            <div id="hint-display" style="margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 5px;">
                  <!-- Dynamic hint content here -->
             </div>
             
