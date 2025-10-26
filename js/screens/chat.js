@@ -1,7 +1,9 @@
 /*
  * Filename: js/screens/chat.js
- * Version: NOUB 0.0.1 Eve Edition (CHAT RENDER FIX - Complete)
- * Description: Logic for the Eve Chat interface. FIXED: Ensures DOM elements are correctly loaded before use.
+ * Version: NOUB 0.0.1 Eve Edition (CHAT FINAL FIX - Complete)
+ * Description: Logic for the Eve Chat interface. Presents UCP questions to the user
+ * and stores the answers in the player_protocol_data table.
+ * FIXED: TypeError: Cannot set properties of null (setting 'innerHTML').
 */
 
 import { state } from '../state.js';
@@ -9,11 +11,10 @@ import * as api from '../api.js';
 import { showToast } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
-// Elements will be fetched inside renderChat to ensure they exist on navigation
+// Global references will be fetched inside renderChat for safety.
 let chatMessagesContainer; 
 let chatInputField;
 let chatSendButton;
-
 
 // --- UCP QUESTIONS DATA (Simplified Master List) ---
 const EVE_INVENTED_QUESTIONS_LIST = [
@@ -29,12 +30,15 @@ let isAwaitingUCPAnswer = false;
 // --- Chat Core Functions ---
 
 function addMessage(sender, text, type = 'eve-bubble') {
-    // We now rely on chatMessagesContainer being set inside renderChat()
-    if (!chatMessagesContainer) return;
-
+    if (!chatMessagesContainer) {
+        console.error("Chat messages container not initialized in addMessage.");
+        return; 
+    }
+    
     const messageDiv = document.createElement('div');
     messageDiv.classList.add(type);
     
+    // Basic formatting
     text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     text = text.replace(/\*(.*?)\*/g, '<i>$1</i>');
     
@@ -44,31 +48,36 @@ function addMessage(sender, text, type = 'eve-bubble') {
 }
 
 function renderInputArea(questionConfig) {
-    // Render logic remains the same, relying on static input fields
+    if (!chatInputField || !chatSendButton) return;
     
-    // We only need to control visibility and button binding here.
+    const chatInputArea = chatInputField.parentNode; // Assuming input area is the parent div
+    
+    // Clear dynamic buttons (if any)
+    const dynamicButtons = chatInputArea.querySelectorAll('.ucp-dynamic-btn');
+    dynamicButtons.forEach(btn => btn.remove());
+    
     if (questionConfig.type === 'mc' && questionConfig.options) {
-        // Render buttons dynamically
-        const optionsHTML = questionConfig.options.map((opt, index) => 
-            `<button class="action-button small" style="width:auto; margin-right: 10px;" onclick="window.handleUCPChoice(${index}, '${opt.replace(/'/g, "\\'")}')">${opt}</button>`
-        ).join('');
-        
-        // This is the area that needs attention (assuming index.html has an ID for the button container)
-        const chatInputArea = document.getElementById('chat-input-area'); 
-        if (chatInputArea) {
-             chatInputArea.innerHTML = optionsHTML;
-        }
+        // Render buttons dynamically below the send area
+        questionConfig.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'action-button small ucp-dynamic-btn';
+            btn.style.width = '100%';
+            btn.style.marginTop = '10px';
+            btn.textContent = opt;
+            btn.onclick = () => window.handleUCPChoice(index, opt);
+            chatInputArea.appendChild(btn);
+        });
 
         chatInputField.style.display = 'none';
         chatSendButton.style.display = 'none';
 
     } else {
         // Standard input/textarea
-        const chatInputArea = document.getElementById('chat-input-area'); 
-        if (chatInputArea) chatInputArea.innerHTML = ''; // Clear buttons if any
-        
         chatInputField.style.display = 'block';
         chatSendButton.style.display = 'inline-block';
+        chatInputField.placeholder = (questionConfig.type === 'textarea') 
+            ? "Type your detailed answer here..." 
+            : "Type your answer here...";
     }
 }
 
@@ -112,7 +121,8 @@ function processUCPAnswer(answer) {
         .then(() => {
             showToast('Profile Updated!', 'success');
             currentQuestionIndex++;
-            chatInputField.style.display = 'block';
+            if(chatInputField) chatInputField.style.display = 'block'; 
+            if(chatSendButton) chatSendButton.style.display = 'inline-block';
             askNextUCPQuestion();
         })
         .catch(err => {
@@ -137,7 +147,7 @@ function handleChatSend() {
         if (lowerCaseMessage.includes("start profile") || lowerCaseMessage.includes("start ucp")) {
              window.startUCPInterview();
         } else {
-             addMessage("Eve", "I see. My primary focus is currently on completing your Cognitive Profile. Please use the 'Start UCP Questions' button to begin.", 'eve-bubble');
+             addMessage("Eve", "My primary focus is currently on completing your Cognitive Profile.", 'eve-bubble');
         }
     }
 }
@@ -146,14 +156,13 @@ function handleChatSend() {
 export async function renderChat() {
     if (!state.currentUser) return;
     
-    // 1. Fetch DOM Elements safely (this resolves the 'null' error)
+    // 1. Fetch DOM Elements safely (Resolves the 'null' error)
     chatMessagesContainer = document.getElementById('chat-messages'); 
     chatInputField = document.getElementById('chat-input-field');
     chatSendButton = document.getElementById('chat-send-button');
 
-    // CRITICAL: Ensure the container exists before writing to it
-    if (!chatMessagesContainer) {
-        console.error("Chat messages container not found.");
+    if (!chatMessagesContainer || !chatInputField || !chatSendButton) {
+        console.error("Chat messages container not found."); // Should not happen if index.html is correct
         return; 
     }
     
@@ -174,16 +183,17 @@ export async function renderChat() {
     if (answeredCount >= EVE_INVENTED_QUESTIONS_LIST.length) {
         addMessage("Eve", "Welcome back. Your Cognitive Profile is complete! I am now aligned with you.", 'eve-bubble');
         isAwaitingUCPAnswer = false;
-        if(chatInputField) chatInputField.placeholder = "Chat with Aligned Eve...";
+        chatInputField.placeholder = "Chat with Aligned Eve...";
     } else {
         addMessage("Eve", "Hello! I am Eve, your guide. We need to complete your Cognitive Profile (UCP). Shall we start?", 'eve-bubble');
         addMessage("Eve", `<button class='action-button small' onclick='window.startUCPInterview()'>Start UCP Questions (Progress: ${answeredCount}/${EVE_INVENTED_QUESTIONS_LIST.length})</button>`, 'eve-bubble');
         isAwaitingUCPAnswer = false;
-        if(chatInputField) chatInputField.placeholder = "Click 'Start UCP Questions' to begin.";
+        chatInputField.placeholder = "Click 'Start UCP Questions' to begin.";
     }
     
     // Add the Export button
     addMessage("Eve", `<button class='action-button small' onclick='window.generateAndExportProtocol()' style="background-color: #2ecc71; margin-top: 15px;">Generate & Export Protocol (TXT)</button>`, 'eve-bubble');
+
 }
 
 // CRITICAL: Global functions must be implemented (even if empty)
@@ -195,14 +205,21 @@ window.startUCPInterview = function() {
 
 window.generateAndExportProtocol = function() {
     showToast('Generating Protocol...', 'info');
+    
     // NOTE: Full export logic is massive. This is a simplified client-side placeholder.
     const protocolData = state.ucp;
     let protocolText = "--- UCP-LLM FINAL PROTOCOL ---\n";
-    protocolData.forEach((data, key) => {
-        protocolText += `\n[Section: ${key.toUpperCase()}]\n`;
-        protocolText += `Answer: ${data.answer}\n`;
-    });
+    
+    if (protocolData.size === 0) {
+        protocolText += "Profile is empty. Please answer Eve's questions first.\n";
+    } else {
+        protocolData.forEach((data, key) => {
+            protocolText += `\n[Section: ${key.toUpperCase()}]\n`;
+            protocolText += `Answer: ${data.answer}\n`;
+        });
+    }
 
+    // Simplified TXT export 
     const blob = new Blob([protocolText], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
