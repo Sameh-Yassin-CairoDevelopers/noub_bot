@@ -14,7 +14,7 @@ const collectionContainer = document.getElementById('collection-container');
 
 // --- Card Burning Logic (Placeholder Integration) ---
 const BURN_REWARD_PRESTIGE = 1; // Reward 1 Prestige per burned card
-const BURN_CARD_RARITY_THRESHOLD = 2; // Only allow burning of cards Rare (2) or higher
+// NOTE: Card burning is set up to require an instance ID deletion (api.deleteCardInstance)
 
 async function handleBurnCard(instanceId, cardName, currentLevel) {
     if (currentLevel > 1) {
@@ -26,8 +26,9 @@ async function handleBurnCard(instanceId, cardName, currentLevel) {
         return;
     }
 
-    // 1. Delete the card instance
-    const { error: deleteError } = await api.deleteCardInstance(instanceId); // Assumes api.deleteCardInstance exists
+    // 1. Delete the card instance (Assumes api.deleteCardInstance exists and is implemented)
+    // NOTE: This function needs to be added to api.js (if not already done in the final api file)
+    const { error: deleteError } = await api.deleteCardInstance(instanceId); 
     
     if (deleteError) {
         showToast('Error deleting card instance!', 'error');
@@ -94,7 +95,8 @@ export async function renderCollection() {
         // Use the instance ID of the first card in the stack for the burn button context
         const instanceToBurn = data.instances[0]; 
         
-        const canBurn = data.count > 1; // Only allow burning if player has duplicates
+        // Allow burning only if player has duplicates OR if they have more than one instance
+        const canBurn = data.count > 1; 
         
         const burnButtonHTML = canBurn ? 
             `<button class="action-button small danger" style="padding: 5px; margin-top: 5px; font-size: 0.8em; width: 100%;" 
@@ -123,7 +125,7 @@ export async function renderCollection() {
         
         // Add onclick handler to view details
         cardElement.onclick = () => {
-             alert(`Card: ${card.name}, Level: ${data.level}, Power: ${data.instances[0].power_score}. Duplicates: ${data.count - 1}`);
+             alert(`Card: ${card.name}, Level: ${data.level}, Power: ${data.instances[0].power_score}. Instances: ${data.count}`);
         };
         
         collectionContainer.appendChild(cardElement);
