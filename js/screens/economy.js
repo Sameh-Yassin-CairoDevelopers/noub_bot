@@ -1,293 +1,416 @@
 /*
  * Filename: js/screens/economy.js
- * Version: 18.2 (Definitive Interaction Fix - Complete)
- * Description: View Logic Module for economy screens.
- * This version ensures all interactions (building clicks, stockpile tabs) are fully functional.
+ * Version: NOUB 0.0.1 Eve Edition (Economy Module - Complete)
+ * Description: View Logic Module for Production and Stockpile screens.
+ * Implements production timers, claiming, and inventory categorization.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
+import { showToast, openModal } from '../ui.js';
+import { refreshPlayerState } from '../auth.js';
+import { trackDailyActivity } from './contracts.js'; // Import tracker for resource gathering
 
-let productionInterval;
+const resourcesContainer = document.getElementById('resources-container');
+const workshopsContainer = document.getElementById('workshops-container');
+const productionModal = document.getElementById('production-modal');
 
-function formatTime(seconds) {
-    if (seconds < 0) seconds = 0;
-    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
+// Stockpile Containers
+const stockResourcesContainer = document.getElementById('stock-resources');
+const stockMaterialsContainer = document.getElementById('stock-materials');
+const stockGoodsContainer = document.getElementById('stock-goods');
+
+// Production Time Constants
+const ONE_HOUR = 3600000;
+const ONE_MINUTE = 60000;
+const ONE_SECOND = 1000;
+
+// --- UTILITY FUNCTIONS ---
+
+/**
+ * Formats milliseconds into H:MM:SS format.
+ */
+function formatTime(ms) {
+    if (ms < 0) return '00:00';
+    const totalSeconds = Math.floor(ms / ONE_SECOND);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const pad = (num) => String(num).padStart(2, '0');
+
+    if (hours > 0) {
+        return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+    }
+    return `${pad(minutes)}:${pad(seconds)}`;
 }
 
-async function handleClaimProduction(playerFactory, masterFactoryData) {
-    const outputItem = masterFactoryData.items;
-    if (!outputItem) {
-        showToast('Error: Missing item data!', 'error');
-        return;
+
+// --- PRODUCTION LOGIC ---
+
+/**
+ * Handles the click to start production in a factory.
+ */
+async function handleStartProduction(factoryId, recipes) {
+    if (!state.currentUser) return;
+
+    showToast('Checking resources...');
+
+    // 1. Check Recipe Requirements (Requires checking against state.inventory)
+    const requiredItems = recipes.map(r => ({
+        id: r.items.id,
+        name: r.items.name,
+        qty: r.input_quantity
+    }));
+
+    let missingResources = false;
+    const itemsToConsume = [];
+
+    for (const req of requiredItems) {
+        const playerQty = state.inventory.get(req.id)?.qty || 0;
+        if (playerQty < req.qty) {
+            missingResources = true;
+            showToast(`Missing: ${req.qty - playerQty} x ${req.name}`, 'error');
+            break;
+        }
+        itemsToConsume.push(req);
     }
-    
-    showToast('Claiming...');
 
-    const currentQuantity = state.inventory.get(outputItem.id)?.qty || 0;
-    const newQuantity = currentQuantity + 1;
+    if (missingResources) return;
 
-    const { error } = await api.claimProduction(state.currentUser.id, playerFactory.id, outputItem.id, newQuantity);
+    // 2. Consume Resources
+    const consumePromises = itemsToConsume.map(req => {
+        const currentQty = state.inventory.get(req.id).qty;
+        const newQty = currentQty - req.qty;
+        return api.updateItemQuantity(state.currentUser.id, req.id, newQty);
+    });
+
+    await Promise.all(consumePromises);
+
+    // 3. Start Production
+    const startTime = new Date().toISOString();
+    const { error } = await api.startProduction(factoryId, startTime);
 
     if (error) {
-        showToast('Error claiming production!', 'error');
-    } else {
-        state.inventory.set(outputItem.id, { qty: newQuantity, details: outputItem });
-        showToast(`Claimed 1 ${outputItem.name}!`, 'success');
-        window.closeModal('production-modal');
-        renderProduction();
-    }
-}
-
-function updateProductionModal(playerFactory, masterFactoryData) {
-    const timeLeftEl = document.getElementById('time-left');
-    const progressBar = document.getElementById('progress-bar-inner');
-    const claimBtn = document.getElementById('prod-action-btn');
-
-    if (!timeLeftEl || !progressBar || !claimBtn) return;
-
-    const totalTime = masterFactoryData.base_production_time;
-    const startTime = new Date(playerFactory.production_start_time).getTime();
-    const now = Date.now();
-    const elapsed = (now - startTime) / 1000;
-    const timeLeft = totalTime - elapsed;
-
-    if (timeLeft > 0) {
-        timeLeftEl.textContent = formatTime(timeLeft);
-        const progress = (elapsed / totalTime) * 100;
-        progressBar.style.width = `${Math.min(100, progress)}%`;
-        claimBtn.disabled = true;
-    } else {
-        timeLeftEl.textContent = 'Ready to Claim!';
-        progressBar.style.width = '100%';
-        claimBtn.disabled = false;
-        claimBtn.textContent = 'Claim';
-        clearInterval(productionInterval);
-    }
-}
-
-async function handleStartProduction(playerFactory, recipe) {
-    showToast('Starting production...');
-
-    if (recipe) {
-        const inputItem = recipe.items;
-        const requiredQty = recipe.input_quantity;
-        const currentQty = state.inventory.get(inputItem.id)?.qty || 0;
-        const newQuantity = currentQty - requiredQty;
-
-        const { error: consumeError } = await api.updateItemQuantity(state.currentUser.id, inputItem.id, newQuantity);
-        if (consumeError) {
-            showToast('Error consuming resources!', 'error');
-            return;
-        }
-        state.inventory.set(inputItem.id, { ...state.inventory.get(inputItem.id), qty: newQuantity });
-    }
-
-    const { error: startError } = await api.startProduction(playerFactory.id, new Date().toISOString());
-    if (startError) {
         showToast('Error starting production!', 'error');
+        return;
+    }
+
+    // 4. Success and Refresh
+    showToast('Production started!', 'success');
+    await refreshPlayerState();
+    renderProduction();
+}
+
+/**
+ * Handles the click to claim finished production.
+ */
+async function handleClaimProduction(playerFactory, outputItem) {
+    if (!state.currentUser || !outputItem) return;
+
+    const factory = playerFactory.factories;
+    const masterTime = factory.base_production_time * ONE_MINUTE; // Master time in ms
+
+    // Logic for calculating production speed based on factory level would go here
+    // For now, simple level 1 duration
+    const productionTimeMs = masterTime; 
+    
+    const timeElapsed = new Date().getTime() - new Date(playerFactory.production_start_time).getTime();
+    
+    if (timeElapsed < productionTimeMs) {
+        showToast('Production is not finished yet.', 'info');
+        return;
+    }
+
+    showToast('Claiming resources...', 'info');
+
+    // Determine quantity produced (simple level 1 logic: 1 unit)
+    const quantityProduced = 1;
+
+    // 1. Update Inventory Quantity
+    const currentQty = state.inventory.get(outputItem.id)?.qty || 0;
+    const newQuantity = currentQty + quantityProduced;
+    
+    // We update inventory and clear the production start time in parallel
+    const [claimResult, ] = await Promise.all([
+        api.claimProduction(state.currentUser.id, playerFactory.id, outputItem.id, newQuantity),
+        // Track resource gathering for quests
+        outputItem.type === 'RESOURCE' ? trackDailyActivity('resources', quantityProduced, outputItem.name) : null
+    ]);
+
+    if (claimResult.error) {
+        showToast('Error claiming production!', 'error');
+        return;
+    }
+
+    showToast(`Claimed ${quantityProduced} x ${outputItem.name}!`, 'success');
+    await refreshPlayerState();
+    renderProduction();
+    window.closeModal('production-modal');
+}
+
+
+// --- PRODUCTION UI RENDER ---
+
+/**
+ * Updates the timer display in the production card.
+ */
+function updateProductionCard(factory, outputItem) {
+    const cardId = `factory-card-${factory.id}`;
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    const startTime = factory.production_start_time;
+    const masterTime = factory.factories.base_production_time * ONE_MINUTE;
+    
+    if (startTime) {
+        const timeElapsed = new Date().getTime() - new Date(startTime).getTime();
+        const timeLeft = masterTime - timeElapsed;
+        const statusEl = card.querySelector('.status');
+        const progressEl = card.querySelector('.progress-bar-inner');
+
+        if (timeLeft <= 0) {
+            statusEl.textContent = `Ready: ${outputItem.name}`;
+            progressEl.style.width = '100%';
+            card.onclick = () => handleClaimProduction(factory, outputItem);
+        } else {
+            statusEl.textContent = `Time Left: ${formatTime(timeLeft)}`;
+            progressEl.style.width = `${(timeElapsed / masterTime) * 100}%`;
+            card.onclick = () => openProductionModal(factory, outputItem);
+            
+            // Set up recurring update if not already running (simplified approach)
+            if (!card.dataset.timerRunning) {
+                card.dataset.timerRunning = 'true';
+                setTimeout(() => {
+                    updateProductionCard(factory, outputItem); // Re-run update after 1 sec
+                    card.dataset.timerRunning = '';
+                }, ONE_SECOND);
+            }
+        }
     } else {
-        showToast('Production started!', 'success');
-        window.closeModal('production-modal');
-        renderProduction();
+        // Not running
+        card.querySelector('.status').textContent = 'Ready to Start';
+        card.querySelector('.progress-bar-inner').style.width = '0%';
+        card.onclick = () => openProductionModal(factory, outputItem);
     }
 }
 
-async function openProductionModal(playerFactory) {
-    const productionModal = document.getElementById('production-modal');
-    clearInterval(productionInterval);
+/**
+ * Opens the detailed production modal.
+ */
+function openProductionModal(playerFactory, outputItem) {
+    const factory = playerFactory.factories;
+    const masterTime = factory.base_production_time * ONE_MINUTE;
+    const startTime = playerFactory.production_start_time;
     
-    const factoryInfo = playerFactory.factories;
-    const outputItem = factoryInfo.items;
-    const isProducing = playerFactory.production_start_time !== null;
-
-    const recipe = factoryInfo.factory_recipes[0];
-    let inputHTML = '<p>None</p>';
-    let canAfford = true;
-
-    if (recipe) {
-        const inputItem = recipe.items;
-        const requiredQty = recipe.input_quantity;
-        const playerQty = state.inventory.get(inputItem.id)?.qty || 0;
-        canAfford = playerQty >= requiredQty;
+    // Check requirements vs inventory
+    let canStart = true;
+    const requirementsHTML = factory.factory_recipes.map(recipe => {
+        const playerQty = state.inventory.get(recipe.items.id)?.qty || 0;
+        const hasEnough = playerQty >= recipe.input_quantity;
+        if (!hasEnough) canStart = false;
         
-        inputHTML = `
-            <img src="${inputItem.image_url || 'images/default_item.png'}" alt="${inputItem.name}">
-            <p style="color: ${canAfford ? 'white' : 'red'};">${playerQty} / ${requiredQty}</p>
+        return `
+            <div class="prod-item">
+                <img src="${recipe.items.image_url || 'images/default_item.png'}" alt="${recipe.items.name}">
+                <p>${recipe.input_quantity} x <span style="color:${hasEnough ? 'var(--success-color)' : 'var(--danger-color)'}">${recipe.items.name}</span></p>
+                <div class="label">(Owned: ${playerQty})</div>
+            </div>
         `;
+    }).join('');
+    
+    const isRunning = startTime !== null;
+    let buttonHTML = '';
+
+    if (isRunning) {
+        const timeElapsed = new Date().getTime() - new Date(startTime).getTime();
+        const timeLeft = masterTime - timeElapsed;
+
+        if (timeLeft <= 0) {
+            buttonHTML = `<button id="claim-prod-btn" class="action-button">Claim ${outputItem.name}</button>`;
+        } else {
+            buttonHTML = `<button class="action-button" disabled>Production Running...</button>`;
+        }
+    } else {
+        buttonHTML = `<button id="start-prod-btn" class="action-button" ${canStart ? '' : 'disabled'}>Start Production</button>`;
     }
 
-    let modalHTML = `
+    productionModal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeModal('production-modal')">&times;</button>
             <div class="prod-modal-header">
-                <img src="${factoryInfo.image_url || 'images/default_building.png'}" alt="${factoryInfo.name}">
-                <h3>${factoryInfo.name}</h3>
-                <span class="level">Level ${playerFactory.level}</span>
+                <img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}">
+                <h3>${factory.name}</h3>
+                <p class="level">Level: ${playerFactory.level}</p>
             </div>
+            
             <div class="prod-modal-body">
+                <h4 style="color:var(--text-secondary); text-align:center;">Input ➡️ Output</h4>
                 <div class="prod-io">
-                    <div class="prod-item"> <span class="label">Input</span> ${inputHTML} </div>
-                    <div class="arrow">→</div>
-                    <div class="prod-item"> <span class="label">Output</span> <img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}"> <p>1 x ${outputItem.name}</p> </div>
+                    <!-- Input -->
+                    ${requirementsHTML.length > 0 ? requirementsHTML : '<div class="prod-item"><p>None</p><div class="label">Input</div></div>'}
+                    
+                    <span class="arrow">➡️</span>
+                    
+                    <!-- Output -->
+                    <div class="prod-item">
+                        <img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}">
+                        <p>1 x ${outputItem.name}</p>
+                        <div class="label">Output</div>
+                    </div>
                 </div>
+
+                <!-- Timer / Status -->
                 <div class="prod-timer">
-                    <div id="time-left" class="time-left">${formatTime(factoryInfo.base_production_time)}</div>
-                    <div class="progress-bar"><div id="progress-bar-inner" class="progress-bar-inner"></div></div>
+                    <p class="label">Production Time</p>
+                    <div class="time-left">${formatTime(masterTime)}</div>
+                    ${isRunning ? `<div class="progress-bar-modal"><div class="progress-bar-inner-modal" style="width: ${((timeElapsed || 0) / masterTime) * 100}%"></div></div>` : ''}
                 </div>
             </div>
-            <button id="prod-action-btn" class="action-button">${isProducing ? 'Claim' : 'Start Production'}</button>
+            
+            ${buttonHTML}
+            
+            <!-- Upgrade Button (NEW) -->
+             <button id="upgrade-factory-btn" class="action-button danger" style="background-color:#555; margin-top: 10px;">Upgrade Factory</button>
         </div>
     `;
-    productionModal.innerHTML = modalHTML;
-    openModal('production-modal');
-    
-    const actionBtn = document.getElementById('prod-action-btn');
 
-    if (isProducing) {
-        updateProductionModal(playerFactory, factoryInfo);
-        productionInterval = setInterval(() => updateProductionModal(playerFactory, factoryInfo), 1000);
-        actionBtn.onclick = () => handleClaimProduction(playerFactory, factoryInfo);
-    } else {
-        actionBtn.onclick = () => handleStartProduction(playerFactory, recipe);
-        if (!canAfford) {
-            actionBtn.disabled = true;
-        }
+    openModal('production-modal');
+
+    // Attach event listeners for actions
+    if (document.getElementById('start-prod-btn')) {
+        document.getElementById('start-prod-btn').onclick = () => handleStartProduction(playerFactory.id, factory.factory_recipes);
+    } else if (document.getElementById('claim-prod-btn')) {
+        document.getElementById('claim-prod-btn').onclick = () => handleClaimProduction(playerFactory, outputItem);
+    }
+    
+    // Attach UPGRADE listener
+    const upgradeFactoryBtn = document.getElementById('upgrade-factory-btn');
+    if(upgradeFactoryBtn) {
+        upgradeFactoryBtn.onclick = () => {
+            window.closeModal('production-modal');
+            navigateTo('card-upgrade-screen'); // Navigate to the dedicated upgrade screen
+        };
+    }
+
+    // Optional: Start a detailed timer update inside the modal if running
+    if (isRunning && timeLeft > 0) {
+        // Implement detailed timer logic here if needed (similar to updateProductionCard but focused on the modal)
     }
 }
 
-async function renderFactories(container, type) {
-    if (!state.currentUser || !container) return;
-    container.innerHTML = 'Loading buildings...';
 
-    const { data: playerFactories, error } = await api.fetchPlayerFactories(state.currentUser.id);
+export async function renderProduction() {
+    if (!state.currentUser) return;
+
+    resourcesContainer.innerHTML = 'Loading resources buildings...';
+    workshopsContainer.innerHTML = 'Loading crafting workshops...';
+
+    const { data: factories, error } = await api.fetchPlayerFactories(state.currentUser.id);
 
     if (error) {
-        container.innerHTML = `<p class="error-message">Error loading your buildings: ${error.message}</p>`;
+        resourcesContainer.innerHTML = '<p class="error-message">Error loading factories.</p>';
+        workshopsContainer.innerHTML = '<p class="error-message">Error loading factories.</p>';
         return;
     }
 
-    if (!playerFactories || playerFactories.length === 0) {
-        container.innerHTML = `<p style="grid-column: 1 / -1; text-align: center;">You don't own any ${type.toLowerCase()} buildings yet.</p>`;
-        return;
-    }
+    resourcesContainer.innerHTML = '';
+    workshopsContainer.innerHTML = '';
     
-    const filteredFactories = playerFactories.filter(pf => pf.factories && pf.factories.type === type);
-    
-    if (filteredFactories.length === 0) {
-        container.innerHTML = `<p style="grid-column: 1 / -1; text-align: center;">You don't own any ${type.toLowerCase()} buildings yet.</p>`;
-        return;
-    }
+    // Separate by type
+    const resourceBuildings = factories.filter(f => f.factories.type === 'RESOURCE');
+    const workshops = factories.filter(f => f.factories.type === 'WORKSHOP');
 
-    container.innerHTML = '';
-    filteredFactories.forEach(pf => {
+    [...resourceBuildings, ...workshops].forEach(playerFactory => {
+        const factory = playerFactory.factories;
+        const outputItem = factory.items;
         const card = document.createElement('div');
         card.className = 'building-card';
+        card.id = `factory-card-${playerFactory.id}`;
+
         card.innerHTML = `
-            <img src="${pf.factories.image_url || 'images/default_building.png'}" alt="${pf.factories.name}">
-            <h4>${pf.factories.name}</h4>
-            <span class="level">Level ${pf.level}</span>
-            <div class="status">${pf.production_start_time ? 'Producing...' : 'Idle'}</div>
+            <img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}">
+            <h4>${factory.name}</h4>
+            <div class="level">Level: ${playerFactory.level}</div>
+            <div class="status">Loading Status...</div>
+            <div class="progress-bar"><div class="progress-bar-inner"></div></div>
         `;
-        card.onclick = () => openProductionModal(pf);
-        container.appendChild(card);
+
+        // Card is not clickable until updateProductionCard is called to determine status
+        card.onclick = () => openProductionModal(playerFactory, outputItem); 
+        
+        if (factory.type === 'RESOURCE') {
+            resourcesContainer.appendChild(card);
+        } else {
+            workshopsContainer.appendChild(card);
+        }
+        
+        // Initial status update
+        updateProductionCard(playerFactory, outputItem);
     });
 }
 
-function setupStockpileTabs() {
+
+// --- STOCKPILE LOGIC ---
+
+export function setupStockpileListeners() {
     const stockTabs = document.querySelectorAll('.stock-tab');
     stockTabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            stockTabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.stock-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.stock-content').forEach(c => c.classList.remove('active'));
-            
-            const targetId = tab.dataset.target;
+
             tab.classList.add('active');
-            document.getElementById(targetId).classList.add('active');
+            document.getElementById(tab.dataset.target).classList.add('active');
         });
     });
 }
 
 export async function renderStock() {
-    const stockResourcesContainer = document.getElementById('stock-resources');
-    const stockMaterialsContainer = document.getElementById('stock-materials');
-    const stockGoodsContainer = document.getElementById('stock-goods');
-
-    if (!stockResourcesContainer) return;
-
-    setupStockpileTabs();
-
-    stockResourcesContainer.innerHTML = 'Loading stock...';
-    stockMaterialsContainer.innerHTML = '';
-    stockGoodsContainer.innerHTML = '';
+    if (!state.currentUser) return;
     
-    // Fetch latest data to ensure state is synced, especially on first load
-    const { data: inventoryData, error } = await api.fetchPlayerInventory(state.currentUser.id);
-    if (error) {
-        stockResourcesContainer.innerHTML = '<p class="error-message">Error loading stock.</p>';
-        return;
-    }
-    // Update the shared state
-    state.inventory.clear();
-    inventoryData.forEach(item => {
-        state.inventory.set(item.item_id, { qty: item.quantity, details: item.items });
-    });
-
+    // Ensure latest inventory is loaded (already handled by refreshPlayerState, but safety check)
     if (state.inventory.size === 0) {
-        stockResourcesContainer.innerHTML = '<p>Your stockpile is empty.</p>';
-        stockMaterialsContainer.innerHTML = '<p>Your stockpile is empty.</p>';
-        stockGoodsContainer.innerHTML = '<p>Your stockpile is empty.</p>';
-        return;
+        await refreshPlayerState();
     }
-
+    
     stockResourcesContainer.innerHTML = '';
     stockMaterialsContainer.innerHTML = '';
     stockGoodsContainer.innerHTML = '';
-    
-    let resourceCount = 0, materialCount = 0, goodCount = 0;
 
-    for (const itemData of state.inventory.values()) {
-        const itemDetails = itemData.details;
-        if (itemDetails) {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'stock-item';
-            itemEl.innerHTML = `
-                <img src="${itemDetails.image_url || 'images/default_item.png'}" alt="${itemDetails.name}">
-                <div class="details"><h4>${itemDetails.name}</h4></div>
-                <span class="quantity">${itemData.qty}</span>
+    let hasStock = false;
+
+    state.inventory.forEach(item => {
+        if (item.qty > 0) {
+            hasStock = true;
+            const itemElement = document.createElement('div');
+            itemElement.className = 'stock-item';
+            itemElement.innerHTML = `
+                <img src="${item.details.image_url || 'images/default_item.png'}" alt="${item.details.name}">
+                <div class="details">
+                    <h4>${item.details.name}</h4>
+                    <span class="quantity">x ${item.qty}</span>
+                </div>
             `;
-
-            switch (itemDetails.type) {
+            
+            // Sort into correct containers
+            switch (item.details.type) {
                 case 'RESOURCE':
-                    stockResourcesContainer.appendChild(itemEl);
-                    resourceCount++;
+                    stockResourcesContainer.appendChild(itemElement);
                     break;
                 case 'MATERIAL':
-                    stockMaterialsContainer.appendChild(itemEl);
-                    materialCount++;
+                    stockMaterialsContainer.appendChild(itemElement);
                     break;
                 case 'GOOD':
-                    stockGoodsContainer.appendChild(itemEl);
-                    goodCount++;
+                    stockGoodsContainer.appendChild(itemElement);
                     break;
             }
         }
+    });
+
+    if (!hasStock) {
+        stockResourcesContainer.innerHTML = '<p>Your stockpile is empty.</p>';
+        stockMaterialsContainer.innerHTML = '';
+        stockGoodsContainer.innerHTML = '';
     }
-
-    if (resourceCount === 0) stockResourcesContainer.innerHTML = '<p>No raw resources in stockpile.</p>';
-    if (materialCount === 0) stockMaterialsContainer.innerHTML = '<p>No materials in stockpile.</p>';
-    if (goodCount === 0) stockGoodsContainer.innerHTML = '<p>No goods in stockpile.</p>';
 }
-
-export function renderProduction() {
-    const resourcesContainer = document.getElementById('resources-container');
-    const workshopsContainer = document.getElementById('workshops-container');
-    if (resourcesContainer) renderFactories(resourcesContainer, 'RESOURCE');
-    if (workshopsContainer) renderFactories(workshopsContainer, 'FACTORY');
-}
-
-
