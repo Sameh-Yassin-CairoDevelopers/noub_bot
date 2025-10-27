@@ -2,7 +2,7 @@
  * Filename: js/screens/collection.js
  * Version: NOUB 0.0.1 Eve Edition (Collection Module - Complete)
  * Description: View Logic Module for My Collection screen. Displays card level, stack count,
- * and sets up the placeholder for the Card Burning functionality.
+ * and handles the Card Burning functionality.
 */
 
 import { state } from '../state.js';
@@ -12,9 +12,8 @@ import { refreshPlayerState } from '../auth.js';
 
 const collectionContainer = document.getElementById('collection-container');
 
-// --- Card Burning Logic (Placeholder Integration) ---
-const BURN_REWARD_PRESTIGE = 1; // Reward 1 Prestige per burned card
-// NOTE: Card burning is set up to require an instance ID deletion (api.deleteCardInstance)
+// --- Card Burning Logic ---
+const BURN_REWARD_PRESTIGE = 1; 
 
 async function handleBurnCard(instanceId, cardName, currentLevel) {
     if (currentLevel > 1) {
@@ -26,8 +25,7 @@ async function handleBurnCard(instanceId, cardName, currentLevel) {
         return;
     }
 
-    // 1. Delete the card instance (Assumes api.deleteCardInstance exists and is implemented)
-    // NOTE: This function needs to be added to api.js (if not already done in the final api file)
+    // 1. Delete the card instance (Requires api.deleteCardInstance)
     const { error: deleteError } = await api.deleteCardInstance(instanceId); 
     
     if (deleteError) {
@@ -80,7 +78,10 @@ export async function renderCollection() {
             });
         }
         cardMap.get(key).count++;
-        cardMap.get(key).instances.push(pc.instance_id);
+        cardMap.get(key).instances.push({
+            instance_id: pc.instance_id,
+            level: pc.level // Pass level for burn check
+        });
     });
 
     collectionContainer.innerHTML = '';
@@ -92,16 +93,16 @@ export async function renderCollection() {
         cardElement.className = `card-stack`;
         cardElement.setAttribute('data-rarity', card.rarity_level || 0);
         
-        // Use the instance ID of the first card in the stack for the burn button context
-        const instanceToBurn = data.instances[0]; 
+        // We can burn if count > 1 AND the card is Level 1
+        const canBurn = data.count > 1 && data.level === 1; 
         
-        // Allow burning only if player has duplicates OR if they have more than one instance
-        const canBurn = data.count > 1; 
+        // Use the instance ID of the first card in the stack for the burn button context
+        const instanceToBurnId = data.instances[0].instance_id; 
         
         const burnButtonHTML = canBurn ? 
-            `<button class="action-button small danger" style="padding: 5px; margin-top: 5px; font-size: 0.8em; width: 100%;" 
-                data-instance-id="${instanceToBurn}" data-card-name="${card.name}" data-card-level="${data.level}">
-                Burn (1 🐞)
+            `<button class="action-button small danger burn-btn" style="padding: 5px; margin-top: 5px; font-size: 0.8em; width: 100%;" 
+                data-instance-id="${instanceToBurnId}" data-card-name="${card.name}" data-card-level="${data.level}">
+                BURN (1 🐞)
              </button>` : '';
 
         cardElement.innerHTML = `
@@ -115,11 +116,11 @@ export async function renderCollection() {
         `;
         
         // Add event listener for burning if duplicates exist
-        if (canBurn) {
-             cardElement.querySelector('.danger').addEventListener('click', (e) => {
-                 // Stop click event from propagating to the main card click handler (alert)
+        const burnBtnElement = cardElement.querySelector('.burn-btn');
+        if (burnBtnElement) {
+             burnBtnElement.addEventListener('click', (e) => {
                  e.stopPropagation(); 
-                 handleBurnCard(instanceToBurn, card.name, data.level);
+                 handleBurnCard(instanceToBurnId, card.name, data.level);
              });
         }
         
