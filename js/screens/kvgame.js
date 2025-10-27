@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.1 Eve Edition (KV GAME FINAL LOGIC FIX - Complete)
+ * Version: NOUB 0.0.1 Eve Edition (V35.0 - KV GAME FINAL LOGIC)
  * Description: Implements all core logic for the Valley of the Kings (Crack the Code) game.
  * Integrates the original 62-level mathematical logic, timer, progression, and consumable items.
 */
@@ -55,10 +55,10 @@ const kvGatesData = [
 
 
 // Local DOM Element Variables (Initialized inside renderKVGameContent)
-let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, introDiv, progressInfoDiv, hintDisplayDiv, kvGameControlsEl;
+let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, introDiv, progressInfoDiv, hintDisplayDiv, kvGameControlsEl, useItemButtonContainer;
 
 
-// --- CORE LOGIC FUNCTIONS (CRITICAL TO FIX REFERENCE ERRORS) ---
+// --- CORE LOGIC FUNCTIONS ---
 
 function getLevelConfig(levelIndex) {
     const level = levelIndex + 1;
@@ -89,11 +89,10 @@ function calculateHints(code) {
 }
 
 function addChatMessage(sender, text, type = 'system', avatar = null) {
-    // Note: Logging chat to console for debugging errors observed in screenshots
     console.log(`[Chat - ${sender} (${type})]: ${text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1')}`);
 }
 
-// CRITICAL FIX: Moved to module scope to resolve ReferenceError
+// CRITICAL FIX: Defined function properly in module scope
 async function updateKVProgress(isWin, timeTaken) {
     if (!state.currentUser) return;
     
@@ -295,7 +294,7 @@ async function startNewKVGame() {
     if (guessInputEl) {
         guessInputEl.value = '';
         guessInputEl.maxLength = config.digits;
-        guessInputEl.placeholder = `Enter ${config.digits}-digit code`;
+        guessInputEl.placeholder = `Enter code... (${config.digits} digits)`;
         guessInputEl.disabled = false;
     }
     if (submitGuessBtn) submitGuessBtn.disabled = false;
@@ -345,7 +344,7 @@ function renderKVGameContent() {
         </div>
     `;
 
-    // 2. Fetch DOM References
+    // 2. Fetch DOM References (CRITICAL FIX: Fetch local variables after setting innerHTML)
     introDiv = document.getElementById('kv-game-intro-content');
     kvGameControlsEl = document.getElementById('kv-game-controls-content'); 
     
@@ -382,10 +381,13 @@ async function updateKVProgressInfo() {
             <p>Your current challenge: <strong>KV${nextGate.kv}: ${nextGate.name}</strong>.</p>
             <p>Cost to attempt: ${LEVEL_COST} ☥.</p>
         `;
-        if (startBtn) {
-            startBtn.textContent = `Start KV Gate ${nextGate.kv}`;
-            startBtn.onclick = startNewKVGame;
+        // Attach listener to the dynamically created start button
+        const kvStartBtn = document.getElementById('kv-start-btn');
+        if (kvStartBtn) {
+             kvStartBtn.textContent = `Start KV Gate ${nextGate.kv}`;
+             kvStartBtn.onclick = startNewKVGame;
         }
+
     } else {
         progressDiv.innerHTML = `<p style="color:var(--success-color)">All known gates conquered!</p>`;
         if (startBtn) startBtn.style.display = 'none';
