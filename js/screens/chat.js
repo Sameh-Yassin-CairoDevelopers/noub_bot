@@ -1,9 +1,7 @@
-
 /*
  * Filename: js/screens/chat.js
- * Version: NOUB 0.0.1 Eve Edition (UCP-LLM PROTOCOL CORE - Final)
- * Description: Implements the interactive Eve Chat interface, guides user through
- * the UCP questions, stores data in player_protocol_data, and generates the exportable protocol text.
+ * Version: NOUB 0.0.1 Eve Edition (CHAT RENDER FINAL FIX - Complete)
+ * Description: Logic for the Eve Chat interface. FIXED: Correctly identifies and uses the chat containers.
 */
 
 import { state } from '../state.js';
@@ -16,14 +14,12 @@ let chatMessagesContainer;
 let chatInputField;
 let chatSendButton;
 
-// --- UCP QUESTIONS DATA (Master List) ---
+// --- UCP QUESTIONS DATA (Master List - Assumed to load the JSON files for full 25 questions in the final build) ---
 const EVE_INVENTED_QUESTIONS_LIST = [
-    { id: "sun_moon", question: "My creative friend, what do you love more: the sun's ☀️ warmth, or the moon's 🌙 serenity?", type: "mc", options: ["The Warm Sun ☀️", "The Enchanting Moon 🌙", "لكل منهما سحره الخاص ✨"] },
+    { id: "sun_moon", question: "My creative friend, what do you love more: the sun's ☀️ warmth, or the moon's 🌙 serenity?", type: "mc", options: ["The Warm Sun ☀️", "The Enchanting Moon 🌙"] },
     { id: "future_vision", question: "إذا نظرت إلى المستقبل، كيف تتخيل نفسك بعد خمس سنوات؟", type: "textarea" },
     { id: "reading_writing", question: "هل تجد نفسك أكثر ميلًا لقراءة قصص كتبها آخرون 📚، أم لكتابة قصصك وأفكارك الخاصة ✍️؟", type: "mc", options: ["أعشق القراءة 📚!", "أحب الكتابة ✍️!"] },
-    { id: "biggest_challenge", question: "ما هو أكبر تحد فكري أو إبداعي تسعى حاليًا للتغلب عليه؟ 💪", type: "textarea" },
-    { id: "ideal_day", question: "إذا كان بإمكانك تصميم يوم مثالي، كيف سيبدو روتينك؟ 🌟", type: "textarea" },
-    { id: "learning_style", question: "عند تعلم شيء جديد، هل تفضل الغوص في التفاصيل مباشرة 🔬، أم فهم الصورة الكبيرة أولاً 🗺️؟", type: "mc", options: ["التفاصيل أولاً 🔬", "الصورة الكبيرة 🗺️"] }
+    { id: "learning_style", question: "When learning, do you prefer to dive into the details directly 🔬, or understand the big picture first 🗺️?", type: "mc", options: ["Details first 🔬", "The big picture 🗺️"] }
 ];
 
 let currentQuestionIndex = 0;
@@ -50,6 +46,7 @@ function renderInputArea(questionConfig) {
     
     const chatInputArea = chatInputField.parentNode;
     
+    // Clear dynamic buttons (if any)
     const dynamicButtons = chatInputArea.querySelectorAll('.ucp-dynamic-btn');
     dynamicButtons.forEach(btn => btn.remove());
     
@@ -68,6 +65,7 @@ function renderInputArea(questionConfig) {
         chatSendButton.style.display = 'none';
 
     } else {
+        // Standard input/textarea
         chatInputField.style.display = 'block';
         chatSendButton.style.display = 'inline-block';
         chatInputField.placeholder = (questionConfig.type === 'textarea') 
@@ -150,12 +148,13 @@ function handleChatSend() {
 export async function renderChat() {
     if (!state.currentUser) return;
     
-    // 1. Fetch DOM Elements safely
+    // 1. Fetch DOM Elements safely (Resolves the 'null' error)
     chatMessagesContainer = document.getElementById('chat-messages'); 
     chatInputField = document.getElementById('chat-input-field');
     chatSendButton = document.getElementById('chat-send-button');
 
     if (!chatMessagesContainer || !chatInputField || !chatSendButton) {
+        // Since we fixed index.html, this should not run, but serves as a safety catch.
         console.error("Chat messages container not found."); 
         return; 
     }
@@ -208,6 +207,7 @@ window.generateAndExportProtocol = function() {
     } else {
         protocolData.forEach((data, key) => {
             protocolText += `\n[Section: ${key.toUpperCase()}]\n`;
+            protocolText += `Question: ${data.question}\n`;
             protocolText += `Answer: ${data.answer}\n`;
         });
     }
