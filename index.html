@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- TON Connect Library -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
@@ -49,7 +50,8 @@
                 <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
                 <!-- Blessing (الخنجر) -->
                 <div class="currency-display"><span class="icon">🗡️</span> <span id="blessing-display">0</span></div>
-                <div id="connectButton"></div>
+                <!-- TON Wallet Connect Button -->
+                <div id="connectButton"></div> 
             </div>
         </header>
 
@@ -95,18 +97,28 @@
             <!-- My Collection Screen -->
             <div id="collection-screen" class="screen hidden"><h2>My Collection</h2><div class="card-grid" id="collection-container"></div></div>
             
-            <!-- Unified Production Screen -->
+            <!-- Unified Production Screen (CRITICAL: Now includes Stockpile content) -->
             <div id="production-screen" class="screen hidden">
-                <h2>Production</h2>
-                <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
-                <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
-            </div>
+                <h2>Economy Hub</h2>
+                
+                <!-- Stockpile Tabs Integrated Here -->
+                 <div class="stock-tabs-container">
+                    <button class="stock-tab-btn active" data-stock-tab="production">Production</button>
+                    <button class="stock-tab-btn" data-stock-tab="resources">Resources</button>
+                    <button class="stock-tab-btn" data-stock-tab="materials">Materials</button>
+                    <button class="stock-tab-btn" data-stock-tab="goods">Goods</button>
+                </div>
+                
+                <!-- Production Content -->
+                <div id="stock-content-production" class="stock-content-tab active">
+                     <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
+                     <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
+                </div>
 
-            <!-- Stockpile Screen -->
-            <div id="stock-screen" class="screen hidden">
-                <h2>Stockpile</h2>
-                <div class="stock-tabs"><button class="stock-tab active" data-target="stock-resources">Resources</button><button class="stock-tab" data-target="stock-materials">Materials</button><button class="stock-tab" data-target="stock-goods">Goods</button></div>
-                <div id="stock-resources" class="stock-content active"></div><div id="stock-materials" class="stock-content"></div><div id="stock-goods" class="stock-content"></div>
+                <!-- Stockpile Content (NEW TABS) -->
+                <div id="stock-content-resources" class="stock-content-tab"></div>
+                <div id="stock-content-materials" class="stock-content-tab"></div>
+                <div id="stock-content-goods" class="stock-content-tab"></div>
             </div>
 
             <!-- Contracts Screen -->
@@ -127,11 +139,14 @@
             <div id="slot-game-screen" class="screen hidden">
                 <h2>Tomb of Treasures (Slot)</h2>
                  <div id="slot-machine-container" class="game-container">
+                    <div id="slot-result-message"></div> <!-- Message area -->
                     <div class="balance-info">Spins Available: <span id="spin-ticket-display">0</span> 🗡️</div>
                     <div class="reels-container">
                         <div class="reel" id="reel-1"></div>
                         <div class="reel" id="reel-2"></div>
                         <div class="reel" id="reel-3"></div>
+                        <div class="reel" id="reel-4"></div>
+                        <div class="reel" id="reel-5"></div> <!-- 5 Reels -->
                     </div>
                     <button id="spin-button" class="action-button small">SPIN (1 🗡️)</button>
                 </div>
@@ -146,7 +161,7 @@
             </div>
 
             <!-- Placeholder Screens -->
-            <div id="albums-screen" class="screen hidden"><h2>Albums</h2></div>
+            <div id="albums-screen" class="screen hidden"><h2>Albums (Encyclopedia)</h2></div>
             
             <!-- Profile Screen Content -->
             <div id="profile-screen" class="screen hidden">
@@ -167,18 +182,12 @@
                 </div>
             </div>
             
-            <!-- Chat Screen (CRITICAL FIX: Including the required IDs) -->
+            <!-- Chat Screen (Eve/UCP) -->
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
-                
-                <!-- Chat Messages Container (CRITICAL FIX) -->
-                <div id="chat-messages" style="height: 70vh; background-color: var(--surface-dark); padding: 15px; border-radius: 10px; margin-bottom: 15px; overflow-y: auto;">
-                    <!-- Messages will be dynamically added here -->
-                </div>
-
-                <!-- Chat Input Area -->
+                <div id="chat-messages"></div>
                 <div id="chat-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                    <input type="text" id="chat-input-field" placeholder="Type your message..." style="flex-grow: 1;">
+                    <input type="text" id="chat-input-field" placeholder="Chat with Eve..." style="flex-grow: 1;">
                     <button id="chat-send-button" class="action-button small">Send</button>
                 </div>
             </div>
@@ -192,34 +201,19 @@
                 <h2>Shop</h2>
                 
                 <div class="shop-tabs-container">
-                    <!-- Shop Tabs will be controlled by shop.js -->
                     <button class="shop-tab-btn active" data-shop-tab="cards">Card Packs</button>
                     <button class="shop-tab-btn" data-shop-tab="game_items">Game Items</button>
                     <button class="shop-tab-btn" data-shop-tab="ton_exchange">TON Exchange</button>
                 </div>
 
-                <div id="shop-content-cards" class="shop-content-tab active">
-                    <div id="shop-items-cards-container">
-                         <!-- Card Packs will be rendered here -->
-                    </div>
-                </div>
-                 <div id="shop-content-game_items" class="shop-content-tab">
-                     <div id="shop-items-game_items-container">
-                         <!-- Game Consumables will be rendered here -->
-                     </div>
-                </div>
-                 <div id="shop-content-ton_exchange" class="shop-content-tab">
-                     <div id="shop-items-ton_exchange-container">
-                         <!-- TON Packages will be rendered here -->
-                     </div>
-                </div>
+                <div id="shop-content-cards" class="shop-content-tab active"><div id="shop-items-cards-container"></div></div>
+                <div id="shop-content-game_items" class="shop-content-tab"><div id="shop-items-game_items-container"></div></div>
+                <div id="shop-content-ton_exchange" class="shop-content-tab"><div id="shop-items-ton_exchange-container"></div></div>
             </div>
         </div>
         <div id="toast-container"></div>
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
-
-        <!-- "More" Menu Modal (Hamburger Menu) -->
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
                 <a class="more-menu-item" data-target="slot-game-screen"><div class="icon">🎰</div><span>Slot Game</span></a>
@@ -234,21 +228,12 @@
         </div>
     </div>
 
-    <!-- Refined Bottom Navigation Bar -->
+    <!-- Refined Bottom Navigation Bar (5 Icons) -->
     <nav class="bottom-nav">
-        <!-- Home Button is now the default active button -->
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
-        <!-- Production -->
-        <a class="nav-item" data-target="production-screen" title="Production"><div class="icon">⛏️</div><span>Production</span></a>
-        <!-- Stockpile -->
-        <a class="nav-item" data-target="stock-screen" title="Stockpile"><div class="icon">📦</div><span>Stockpile</span></a>
-        <!-- My Cards -->
+        <a class="nav-item" data-target="production-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
         <a class="nav-item" data-target="collection-screen" title="My Collection"><div class="icon">🏛️</div><span>My Cards</span></a>
-        <!-- Contracts -->
         <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
-        <!-- Shop (Opens Modal) -->
-        <a class="nav-item" id="shop-nav-btn" title="Shop"><div class="icon">💰</div><span>Shop</span></a>
-        <!-- More (Opens Modal) -->
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
     </nav>
     
