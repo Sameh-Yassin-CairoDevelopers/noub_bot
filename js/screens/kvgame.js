@@ -3,7 +3,6 @@
  * Version: NOUB 0.0.1 Eve Edition (KV GAME FINAL LOGIC FIX - Complete)
  * Description: Implements all core logic for the Valley of the Kings (Crack the Code) game.
  * Integrates the original 62-level mathematical logic, timer, progression, and consumable items.
- * FIXED: ReferenceError for updateKVProgress and ensures full UI functionality.
 */
 
 import { state } from '../state.js';
@@ -15,12 +14,12 @@ import { trackDailyActivity } from './contracts.js';
 const kvGameContainer = document.getElementById('kv-game-content');
 
 // --- KV Game Constants & State ---
-const LEVEL_COST = 100; // Ankh cost to start a KV game attempt
+const LEVEL_COST = 100;
 const WIN_REWARD_BASE = 500;
-const HINT_SCROLL_ITEM_KEY = 'hint_scroll'; // Key for the last digit hint consumable
-const TIME_AMULET_ITEM_KEY = 'time_amulet_45s'; // Key for time boost consumable
-const HINT_SCROLL_COST_BLESSING = 5; // Cost to buy the consumable if needed
-const TIME_AMULET_COST_BLESSING = 10; // Cost to buy the time boost
+const HINT_SCROLL_ITEM_KEY = 'hint_scroll'; 
+const HINT_SCROLL_COST_BLESSING = 5; 
+const TIME_AMULET_ITEM_KEY = 'time_amulet_45s'; 
+const TIME_AMULET_COST_BLESSING = 10; 
 
 let kvGameState = {
     active: false,
@@ -28,7 +27,7 @@ let kvGameState = {
     timeLeft: 0,
     interval: null,
     levelIndex: 0, 
-    hintsRevealed: [true, true, true, false], // T1, T2, T3 are FREE (Original Game Logic)
+    hintsRevealed: [true, true, true, false], 
 };
 
 // CRITICAL DATA: Full 62 KV Gates Data
@@ -41,17 +40,14 @@ const kvGatesData = [
     { kv: 16, name: "Ramses" }, { kv: 17, name: "Seti I" }, { kv: 18, name: "Ramses X" },
     { kv: 19, name: "Montuherkhepshef" }, { kv: 20, name: "Thutmose I & Hatshepsut" }, { kv: 21, name: "Unknown" },
     { kv: 22, name: "Amenhotep III" }, { kv: 23, name: "Ay" }, { kv: 24, name: "Unknown" }, 
-    // 4 digits start (Levels 25-40)
     { kv: 25, name: "Unknown" }, { kv: 26, name: "Unknown" }, { kv: 27, name: "Unknown" }, { kv: 28, name: "Unknown" },
     { kv: 29, name: "Unknown" }, { kv: 30, name: "Unknown" }, { kv: 31, name: "Unknown" }, { kv: 32, name: "Tia'a" },
     { kv: 33, name: "Unknown" }, { kv: 34, name: "Thutmose III" }, { kv: 35, name: "Amenhotep II" }, { kv: 36, name: "Maiherpri" },
     { kv: 37, name: "Unknown" }, { kv: 38, name: "Thutmose I" }, { kv: 39, name: "Unknown" }, { kv: 40, name: "Unknown" },
-    // 5 digits start (Levels 41-52)
     { kv: 41, name: "Unknown" }, { kv: 42, name: "Hatshepsut-Meryet-Ra" }, { kv: 43, name: "Thutmose IV" }, { kv: 44, name: "Unknown" },
     { kv: 45, name: "Userhet" }, { kv: 46, name: "Yuya & Thuya" }, { kv: 47, name: "Siptah" }, 
     { kv: 48, name: "Amenemope" }, { kv: 49, name: "Unknown" }, { kv: 50, name: "Unknown" }, { kv: 51, name: "Unknown" },
     { kv: 52, name: "Unknown" },
-    // 6 digits start (Levels 53-62)
     { kv: 53, name: "Unknown" }, { kv: 54, name: "Unknown (Tutankhamun cache?)" }, { kv: 55, name: "Amarna Cache (Akhenaten?)" }, { kv: 56, name: "Unknown (Gold Tomb?)" },
     { kv: 57, name: "Horemheb" }, { kv: 58, name: "Unknown (Chariot Tomb?)" }, { kv: 59, name: "Unknown" }, { kv: 60, name: "Sitre" },
     { kv: 61, name: "Unknown" }, { kv: 62, name: "Tutankhamun" }
@@ -59,10 +55,10 @@ const kvGatesData = [
 
 
 // Local DOM Element Variables (Initialized inside renderKVGameContent)
-let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, introDiv, progressInfoDiv, hintDisplayDiv, kvGameControlsEl, useItemButtonContainer;
+let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, introDiv, progressInfoDiv, hintDisplayDiv, kvGameControlsEl;
 
 
-// --- CORE LOGIC FUNCTIONS ---
+// --- CORE LOGIC FUNCTIONS (CRITICAL TO FIX REFERENCE ERRORS) ---
 
 function getLevelConfig(levelIndex) {
     const level = levelIndex + 1;
@@ -93,11 +89,11 @@ function calculateHints(code) {
 }
 
 function addChatMessage(sender, text, type = 'system', avatar = null) {
-    // Send messages to console for debugging and validation purposes
+    // Note: Logging chat to console for debugging errors observed in screenshots
     console.log(`[Chat - ${sender} (${type})]: ${text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1')}`);
 }
 
-// CRITICAL FIX: Defined function properly in global module scope
+// CRITICAL FIX: Moved to module scope to resolve ReferenceError
 async function updateKVProgress(isWin, timeTaken) {
     if (!state.currentUser) return;
     
@@ -142,7 +138,7 @@ function updateHintDisplay() {
     hintDisplayDiv.innerHTML = '';
     const hints = calculateHints(kvGameState.code);
     
-    // T1-T3: Free Hints (as per original game logic)
+    // T1-T3: Free Hints (displayed immediately)
     hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 1 (Sum): <span>${hints.sum}</span>.</div>`;
     hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 2 (Product): <span>${hints.product}</span>.</div>`;
     hintDisplayDiv.innerHTML += `<div class="kv-hint-item">Hint 3 (Even/Odd): <span>${hints.odds} odd / ${hints.evens} even</span>.</div>`;
@@ -165,7 +161,7 @@ function updateHintDisplay() {
         hintBtn.onclick = () => handlePurchaseAndUseHint(HINT_SCROLL_ITEM_KEY, HINT_SCROLL_COST_BLESSING);
         hintDisplayDiv.appendChild(hintBtn);
 
-        // Time Boost Button (Always available to buy/use)
+        // Time Boost Button
         const timeBtn = document.createElement('button');
         timeBtn.className = 'action-button small';
         timeBtn.style.backgroundColor = '#95a5a6'; // Grey color
@@ -349,7 +345,7 @@ function renderKVGameContent() {
         </div>
     `;
 
-    // 2. Fetch DOM References (CRITICAL FIX: Fetch local variables after setting innerHTML)
+    // 2. Fetch DOM References
     introDiv = document.getElementById('kv-game-intro-content');
     kvGameControlsEl = document.getElementById('kv-game-controls-content'); 
     
