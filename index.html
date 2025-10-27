@@ -166,8 +166,22 @@
                     <button id="logout-btn" class="action-button danger">Logout</button>
                 </div>
             </div>
-            <!-- Chat Screen -->
-            <div id="chat-screen" class="screen hidden"><h2>Chat with Eve</h2></div>
+            
+            <!-- Chat Screen (CRITICAL FIX: Including the required IDs) -->
+            <div id="chat-screen" class="screen hidden">
+                <h2>Chat with Eve</h2>
+                
+                <!-- Chat Messages Container (CRITICAL FIX) -->
+                <div id="chat-messages" style="height: 70vh; background-color: var(--surface-dark); padding: 15px; border-radius: 10px; margin-bottom: 15px; overflow-y: auto;">
+                    <!-- Messages will be dynamically added here -->
+                </div>
+
+                <!-- Chat Input Area -->
+                <div id="chat-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="chat-input-field" placeholder="Type your message..." style="flex-grow: 1;">
+                    <button id="chat-send-button" class="action-button small">Send</button>
+                </div>
+            </div>
         </main>
         
         <!-- Modals -->
@@ -212,7 +226,7 @@
                 <a class="more-menu-item" data-target="kv-game-screen"><div class="icon">🗝️</div><span>KV Game</span></a>
                 <a class="more-menu-item" data-target="card-upgrade-screen"><div class="icon">✨</div><span>Card Upgrades</span></a>
                 <a class="more-menu-item" data-target="profile-screen"><div class="icon">👤</div><span>Profile</span></a>
-                <a class="more-menu-item" data-target="albums-screen"><div class="icon">📖</div><span>Albums</span></a>
+                <a class="more-menu-item" data-target="albums-screen"><div class="icon">📖</div><span>Albums (Encyclopedia)</span></a>
                 <a class="more-menu-item" data-target="chat-screen"><div class="icon">💬</div><span>Chat with Eve</span></a>
                 <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
                 <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
