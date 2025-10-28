@@ -1,29 +1,34 @@
 /*
  * Filename: style.css
- * Version: NOUB 0.0.1 Eve Edition (Final Design Integration)
- * Description: Main stylesheet for the "Noub" game. Includes all styles for Core, Dashboard,
- * Split Games, Upgrade, and the new Shop Tabs.
+ * Version: NOUB 0.0.2 - Unification & RTL Ready
+ * Description: Main stylesheet for the "Noub" game. Optimized for Mobile/Telegram Web App.
+ * Includes explicit RTL overrides for Arabic support.
 */
 
 
-/* --- Global Settings & Variables --- */
+/* =================================================================================
+   --- 0. Global Settings & Variables (Dark Theme Standard) ---
+   ================================================================================= */
 :root {
     --background-dark: #121212;
     --surface-dark: #1e1e1e;
-    --primary-accent: #D4AF37;
+    --primary-accent: #D4AF37; /* Gold/Bronze */
     --text-primary: #ffffff;
     --text-secondary: #aaaaaa;
-    --ankh-color: #29b6f6;
+    --ankh-color: #29b6f6; /* Cyan Blue */
     --success-color: #34c759;
     --danger-color: #ff453a;
+    --ton-color: #0088cc;
+    --input-bg: #2a2a2e;
+    --kv-gate-color: #f7d794; /* Color for KV game elements */
+    --chat-eve-color: #f0f0f0;
+    --chat-user-color: #d4edda;
+    /* Rarity Colors */
     --rarity-common: #7f8c8d;
     --rarity-rare: #3498db;
     --rarity-epic: #9b59b6;
     --rarity-legendary: #f39c12;
     --rarity-diamond: #f1c40f;
-    --kv-gate-color: #f7d794; /* Color for KV game elements */
-    --chat-eve-color: #f0f0f0;
-    --chat-user-color: #d4edda;
 }
 
 * {
@@ -36,36 +41,29 @@ body {
     background-color: var(--background-dark);
     color: var(--text-primary);
     margin: 0;
-    padding: 75px 15px 95px 15px;
-    direction: ltr;
+    padding: 75px 15px 95px 15px; /* Adjust padding for fixed header/nav */
     min-height: 100vh;
 }
 
-.hidden {
-    display: none !important;
-}
+.hidden { display: none !important; }
 
-.screen {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
+.screen { animation: fadeIn 0.3s ease-in-out; }
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 
-/* --- Header & Bottom Navigation --- */
+/* --- Header & Bottom Navigation (Telegram App Feel) --- */
 header, .bottom-nav {
     position: fixed;
     left: 0;
     right: 0;
-    background-color: rgba(28, 28, 30, 0.85);
+    background-color: rgba(28, 28, 30, 0.85); /* Slightly transparent background */
     backdrop-filter: blur(10px);
     z-index: 100;
 }
@@ -80,30 +78,36 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    gap: 15px;
+    gap: 10px; /* Reduced gap */
 }
 
 .currency-display {
     display: flex;
     align-items: center;
     font-weight: bold;
-    font-size: 1.1em;
+    font-size: 1em; /* Optimized for mobile header */
+    background: var(--input-bg);
+    padding: 5px 10px;
+    border-radius: 8px;
 }
 
 .currency-display .icon {
-    font-size: 20px;
-    margin-right: 8px;
+    font-size: 18px;
+    margin-right: 5px;
+    color: var(--primary-accent); /* Standard color for icons */
 }
 
-#connectButton {
+.ton-connect-btn {
     flex-shrink: 0;
+    width: 32px; 
+    height: 32px;
 }
 
 .bottom-nav {
     bottom: 0;
     display: flex;
     justify-content: space-around;
-    padding: 10px 0 20px 0;
+    padding: 10px 0 20px 0; /* Increased bottom padding for iPhone X/notch safety */
     border-top: 1px solid #3a3a3c;
     overflow-x: auto;
 }
@@ -117,8 +121,9 @@ header {
     font-size: 11px;
     cursor: pointer;
     user-select: none;
+    flex-grow: 1; /* Ensure equal spacing in the 5-item bar */
     flex-shrink: 0;
-    padding: 0 12px;
+    padding: 0 10px;
 }
 
 .nav-item.active {
@@ -130,18 +135,123 @@ header {
     margin-bottom: 4px;
 }
 
-
-/* --- General Content Styles --- */
+/* --- General Content, Buttons, Inputs --- */
 .screen h2 {
+    color: var(--primary-accent);
     margin-bottom: 25px;
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 10px;
 }
-
 .error-message {
     color: var(--danger-color);
 }
 
-.buildings-grid, .card-grid {
-    padding-bottom: 20px;
+.action-button {
+    width: 100%;
+    margin-top: 15px;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-family: inherit;
+    font-size: 1.1em;
+    cursor: pointer;
+    color: #121212;
+    background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 3px 0 #9e7f2c; /* Shadow for click depth */
+}
+
+.action-button:disabled {
+    background: var(--text-secondary);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.action-button:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+.action-button.danger {
+    background: var(--danger-color);
+    color: white;
+}
+.action-button.small {
+    padding: 10px 15px;
+    font-size: 1em;
+    width: auto;
+}
+.text-button {
+    background: none;
+    border: none;
+    color: var(--ankh-color);
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 5px;
+}
+
+/* Inputs and Textareas */
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background: var(--input-bg);
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1em;
+    box-sizing: border-box;
+}
+input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-accent);
+}
+
+/* --- MODAL STYLES (Bottom-Sheet Feel) --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end; /* Align content to bottom */
+    justify-content: center;
+    padding: 0; /* Remove top/side padding */
+}
+
+.modal-content {
+    /* Critical: Change modal from center-pop to bottom-sheet style */
+    position: relative; /* Relative position inside flex container */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--surface-dark);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 20px;
+    width: 100%;
+    max-width: none; /* Full width on mobile */
+    max-height: 90vh;
+    overflow-y: auto;
+    border-top: 3px solid var(--primary-accent);
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+    animation: slideUp 0.3s ease-out; /* Use slideUp animation */
+}
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.8em;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
 }
 
 
@@ -181,9 +291,6 @@ header {
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     transition: transform 0.2s;
 }
-.action-icon-link:hover .icon-box {
-    transform: scale(1.05);
-}
 .daily-task-summary {
     text-align: left;
 }
@@ -201,10 +308,6 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
-    transition: background-color 0.2s;
-}
-.daily-quest-card:hover {
-    background-color: #2a2a2e;
 }
 .daily-quest-card .progress-bar {
     width: 100px;
@@ -220,118 +323,6 @@ header {
 .daily-quest-card .reward {
     color: var(--primary-accent);
     font-weight: bold;
-}
-
-
-/* --- Production Screen --- */
-.production-section {
-    margin-bottom: 40px;
-}
-.production-section h3 {
-    color: var(--primary-accent);
-    margin-bottom: 15px;
-    border-bottom: 1px solid #3a3a3c;
-    padding-bottom: 10px;
-}
-
-
-/* --- Contracts Screen --- */
-.contracts-section {
-    margin-bottom: 40px;
-}
-.contracts-section h3 {
-    color: var(--primary-accent);
-    margin-bottom: 15px;
-    border-bottom: 1px solid #3a3a3c;
-    padding-bottom: 10px;
-}
-.contracts-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.contracts-list {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 15px;
-}
-.contract-card {
-    background-color: var(--surface-dark);
-    border-radius: 12px;
-    padding: 15px;
-    border-left: 4px solid var(--primary-accent);
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.contract-card:hover {
-    background-color: #2a2a2e;
-}
-.contract-card h4 {
-    margin: 0 0 10px 0;
-}
-.contract-rewards {
-    display: flex;
-    gap: 20px;
-    font-size: 0.9em;
-    color: var(--text-secondary);
-}
-.contract-rewards span {
-    font-weight: bold;
-    color: var(--primary-accent);
-}
-
-
-/* --- Contract Detail Modal --- */
-.contract-modal-header { text-align: center; }
-.contract-modal-header h3 { color: var(--primary-accent); font-size: 1.5em; margin: 0 0 10px 0; }
-.contract-modal-desc {
-    color: var(--text-secondary);
-    font-size: 1em;
-    margin: 20px 0;
-    text-align: center;
-    border-top: 1px solid #3a3a3c;
-    border-bottom: 1px solid #3a3a3c;
-    padding: 15px 0;
-}
-.contract-modal-subtitle {
-    font-weight: bold;
-    color: var(--text-primary);
-    margin-bottom: 10px;
-}
-.contract-modal-reqs {
-    margin-bottom: 20px;
-}
-.req-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #121212;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-}
-.req-item-name {
-    display: flex;
-    align-items: center;
-}
-.req-item-name img {
-    width: 30px;
-    height: 30px;
-    margin-right: 10px;
-}
-.req-item-progress.met {
-    color: var(--success-color);
-}
-.contract-modal-rewards {
-    display: flex;
-    justify-content: space-around;
-    text-align: center;
-}
-.reward-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
 }
 
 
@@ -352,12 +343,6 @@ header {
     text-align: center;
     transition: transform 0.2s, border-color 0.2s;
 }
-.building-card:hover, .card-stack:hover {
-    transform: translateY(-4px);
-    border-color: var(--primary-accent);
-}
-
-/* Card Rarity Aura/Border */
 .card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
 .card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
 .card-stack[data-rarity="4"] { border-color: var(--rarity-epic); }
@@ -391,67 +376,77 @@ header {
     font-weight: bold;
     color: var(--primary-accent);
 }
+.burn-btn {
+    background-color: var(--danger-color);
+    color: white;
+    padding: 5px;
+    margin-top: 5px;
+    font-size: 0.8em;
+    width: 100%;
+    border-radius: 5px;
+}
 
 
+/* --- Economy Hub (Production/Stockpile) --- */
+.production-section {
+    margin-bottom: 40px;
+}
 .building-card .level {
     font-size: 0.8em;
     color: var(--primary-accent);
     font-weight: bold;
 }
-
 .building-card .status {
     font-size: 0.8em;
     color: var(--success-color);
     margin-top: 4px;
     min-height: 1.2em;
 }
-
-
-/* --- Stockpile Screen --- */
-.stock-tabs {
+.stock-tabs-container {
     display: flex;
-    margin-bottom: 20px;
+    justify-content: space-around;
     border-bottom: 1px solid #3a3a3c;
-    justify-content: center;
+    margin-bottom: 15px;
 }
-.stock-tab {
-    padding: 10px 20px;
+.stock-tab-btn {
+    padding: 10px 15px;
     border: none;
     background: none;
     color: var(--text-secondary);
-    font-size: 1.1em;
+    font-size: 0.9em;
+    font-weight: bold;
     cursor: pointer;
 }
-.stock-tab.active {
+.stock-tab-btn.active {
     color: var(--primary-accent);
     border-bottom: 2px solid var(--primary-accent);
 }
-.stock-content { display: none; }
-.stock-content.active { display: block; }
+.stock-content-tab { display: none; }
+.stock-content-tab.active { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; }
+
 .stock-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
     background: var(--surface-dark);
     padding: 10px;
     border-radius: 8px;
-    margin-bottom: 10px;
+    text-align: center;
+    border: 1px solid #3a3a3c;
 }
 .stock-item img {
-    width: 40px;
-    height: 40px;
-    margin-right: 15px;
+    width: 60px;
+    height: 60px;
+    margin-bottom: 5px;
 }
-.stock-item .details { flex-grow: 1; }
-.stock-item .quantity { font-size: 1.2em; font-weight: bold; }
+.stock-item .details h4 { margin: 0 0 5px 0; font-size: 1em;}
+.stock-item .quantity { font-size: 1.1em; font-weight: bold; color: var(--ankh-color); }
 
-
-/* --- Production Modal --- */
+/* Production Modal */
 .prod-modal-header { text-align: center; }
 .prod-modal-header img { width: 80px; height: 80px; }
 .prod-modal-header h3 { color: var(--primary-accent); margin: 10px 0 5px 0; }
-.prod-modal-header .level { color: var(--text-secondary); }
 
-.prod-modal-body { margin: 20px 0; }
 .prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 15px; border-radius: 10px; }
 .prod-item { text-align: center; }
 .prod-item img { width: 50px; height: 50px; }
@@ -465,34 +460,79 @@ header {
 .progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
 
 
+/* --- Contracts Screen --- */
+.contracts-section {
+    margin-bottom: 40px;
+}
+.contracts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.contracts-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+.contract-card {
+    background-color: var(--surface-dark);
+    border-radius: 12px;
+    padding: 15px;
+    border-left: 4px solid var(--primary-accent);
+    cursor: pointer;
+}
+.contract-rewards {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+.contract-rewards span {
+    font-weight: bold;
+    color: var(--primary-accent);
+}
+.req-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #121212;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+.req-item-name {
+    display: flex;
+    align-items: center;
+}
+.req-item-name img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+.req-item-progress.met {
+    color: var(--success-color);
+}
+
+
 /* --- Upgrade Screen --- */
 .upgrade-select-area {
     margin-bottom: 40px;
 }
-.upgrade-select-area h3 {
-    color: var(--text-primary);
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #3a3a3c;
-}
-
 .upgrade-detail-area {
     background-color: var(--surface-dark);
     padding: 20px;
     border-radius: 12px;
     margin-top: 20px;
     text-align: center;
+    border: 1px solid var(--primary-accent);
 }
 .upgrade-card-target {
     width: 150px;
-    height: 150px;
     margin: 0 auto 20px auto;
-    border-radius: 12px;
-    background-color: #333;
 }
 .upgrade-cost-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 10px;
     margin-bottom: 20px;
 }
@@ -502,6 +542,12 @@ header {
     border-radius: 8px;
     font-size: 0.9em;
     color: var(--text-secondary);
+    text-align: center;
+}
+.cost-item img {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 5px;
 }
 .cost-item .value {
     font-weight: bold;
@@ -509,26 +555,9 @@ header {
     margin-top: 5px;
     color: var(--text-primary);
 }
-.cost-item .material-icon {
-    width: 20px;
-    height: 20px;
-    vertical-align: middle;
-    margin-right: 5px;
-}
-.upgrade-cost-grid img {
-    width: 30px;
-    height: 30px;
-    margin-bottom: 5px;
-}
 
-/* --- Games Screen (Slots) --- */
-.games-section {
-    margin-bottom: 40px;
-}
-.games-section h3 {
-    color: var(--primary-accent);
-    margin-bottom: 15px;
-}
+
+/* --- Games Screen (Slots / KV) --- */
 .game-container {
     background-color: var(--surface-dark);
     padding: 20px;
@@ -540,6 +569,7 @@ header {
     color: var(--ankh-color);
     margin-bottom: 15px;
 }
+/* Slots */
 .reels-container {
     display: flex;
     justify-content: center;
@@ -556,8 +586,8 @@ header {
 }
 .reel-inner {
     width: 100%;
-    height: 1000px; 
-    transition: transform 0.5s ease-out; 
+    /* Large enough to allow smooth, multiple cycles */
+    transition: transform 3s cubic-bezier(0.2, 0.9, 0.5, 1);
 }
 .reel-item {
     width: 100%;
@@ -566,14 +596,17 @@ header {
     font-size: 30px;
     color: var(--primary-accent);
 }
-.action-button.small {
-    padding: 10px 15px;
-    font-size: 1em;
-    width: auto;
+.game-status-message {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: var(--success-color);
+}
+.game-status-message.lose {
+    color: var(--danger-color);
 }
 
-
-/* --- KV Game Styles (NEW) --- */
+/* KV Game */
 #kv-game-content h3 {
     color: var(--kv-gate-color);
     margin-top: 0;
@@ -591,15 +624,6 @@ header {
 .kv-hint-item span {
     font-weight: bold;
     color: var(--kv-gate-color);
-}
-.game-status-message {
-    font-size: 1.1em;
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: var(--success-color);
-}
-.game-status-message.lose {
-    color: var(--danger-color);
 }
 .kv-controls-grid {
     display: grid;
@@ -623,9 +647,16 @@ header {
     color: var(--primary-accent);
     margin-bottom: 15px;
 }
+#kv-use-item-button-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
 
 
-/* --- Chat Screen Styles (NEW) --- */
+/* --- Chat Screen Styles --- */
 #chat-messages {
     background-color: var(--surface-dark);
     border-radius: 12px;
@@ -662,15 +693,10 @@ header {
 }
 #chat-input-field {
     flex-grow: 1;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #3a3a3c;
-    background: var(--background-dark);
-    color: var(--text-primary);
 }
 
 
-/* --- Store Tabs Styles (NEW) --- */
+/* --- Shop Tabs Styles --- */
 .shop-tabs-container {
     display: flex;
     justify-content: space-around;
@@ -696,79 +722,6 @@ header {
 .shop-content-tab.active {
     display: block;
 }
-
-
-/* --- Modals --- */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0,0,0,0.7);
-    backdrop-filter: blur(5px);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-/* CRITICAL FIX: Hamburger menu z-index must be higher than other overlays */
-#more-modal {
-    z-index: 300; 
-}
-
-
-.modal-content {
-    background-color: var(--surface-dark);
-    border-radius: 20px;
-    padding: 20px;
-    width: 100%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-    border: 1px solid var(--primary-accent);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.modal-close-btn {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 1.8em;
-    cursor: pointer;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-}
-
-/* --- "More" Menu (Hamburger) --- */
-.more-menu .more-menu-item {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    border-bottom: 1px solid #3a3a3c;
-    cursor: pointer;
-    text-decoration: none;
-    color: var(--text-primary);
-}
-.more-menu .more-menu-item:last-child {
-    border-bottom: none;
-}
-.more-menu .more-menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-.more-menu .more-menu-item .icon {
-    font-size: 24px;
-    margin-right: 20px;
-    color: var(--primary-accent);
-}
-.more-menu .more-menu-item span {
-    font-size: 1.1em;
-    font-weight: bold;
-}
-
-
-/* --- Shop --- */
 .shop-item {
     display: flex;
     align-items: center;
@@ -790,80 +743,6 @@ header {
     border-radius: 8px;
     font-weight: bold;
     cursor: pointer;
-}
-.buy-btn:disabled { background: var(--text-secondary); cursor: not-allowed; }
-
-
-/* --- Buttons & Auth Form --- */
-.action-button {
-    width: 100%;
-    margin-top: 15px;
-    padding: 15px;
-    border: none;
-    border-radius: 10px;
-    font-weight: bold;
-    font-family: 'Cairo', sans-serif;
-    font-size: 1.1em;
-    cursor: pointer;
-    color: #121212;
-    background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-.action-button.danger {
-    background: var(--danger-color);
-    color: white;
-}
-.text-button {
-    background: none;
-    border: none;
-    color: var(--ankh-color);
-    cursor: pointer;
-    font-size: 0.9em;
-    padding: 5px;
-}
-.text-button:hover {
-    text-decoration: underline;
-}
-
-#auth-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: var(--background-dark);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-.auth-form {
-    width: 100%;
-    max-width: 400px;
-    text-align: center;
-}
-.auth-form h2 {
-    color: var(--primary-accent);
-}
-.auth-form input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    background: var(--surface-dark);
-    border: 1px solid #3a3a3c;
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 1.1em;
-    text-align: left;
-}
-.switch-form {
-    color: var(--ankh-color);
-    cursor: pointer;
-    margin-top: 20px;
-}
-.auth-error {
-    color: var(--danger-color);
-    margin-bottom: 15px;
-    min-height: 20px;
 }
 
 
@@ -920,86 +799,32 @@ header {
     margin-top: 5px;
 }
 
-/* ==================================================================== */
-/* --- 4. ECONOMY HUB (Production & Stockpile) (Lines 351-500) --- */
-/* ==================================================================== */
 
-.stock-tabs-container {
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 5px;
-    flex-wrap: wrap;
-}
-.stock-tab-btn {
-    padding: 8px 5px; 
-    font-size: 0.85em; 
-    flex-grow: 1; 
-}
-.stock-tab-btn.active {
-    border-bottom: 2px solid var(--primary-accent);
-}
-.stock-content-tab {
-    padding-top: 8px;
-}
-.production-section h3 {
-    font-size: 1.1em;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 10px;
-}
-.buildings-grid {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
-    gap: 6px; 
-}
-.building-card {
-    background-color: var(--surface-dark);
-    border-radius: var(--border-radius-base);
-    padding: 5px;
-    border: 1px solid #3a3a3c;
-}
-.building-card img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border-radius: 6px;
-    margin-bottom: 4px;
-}
-.building-card h4 {
-    font-size: 0.85em;
-    margin: 2px 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.building-card .status {
-    font-size: 0.75em;
-    margin-top: 2px;
-}
-
-.stock-item {
+/* --- More Modal (Hamburger Menu) --- */
+.more-menu .more-menu-item {
     display: flex;
     align-items: center;
-    background: var(--surface-dark);
-    padding: 6px 10px;
-    border-radius: var(--border-radius-base);
-    margin-bottom: 6px;
+    padding: 15px;
+    border-bottom: 1px solid #3a3a3c;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-primary);
 }
-.stock-item img {
-    width: 30px;
-    height: 30px;
-    margin-right: 10px;
+.more-menu .more-menu-item:last-child {
+    border-bottom: none;
 }
-.stock-item .quantity { 
-    font-size: 1em; 
+.more-menu .more-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.more-menu .more-menu-item .icon {
+    font-size: 24px;
+    margin-right: 20px;
+    color: var(--primary-accent);
+}
+.more-menu .more-menu-item span {
+    font-size: 1.1em;
     font-weight: bold;
 }
-
-/* Production Modal Detail */
-.prod-modal-header img { width: 70px; height: 70px; }
-.prod-modal-header h3 { font-size: 1.4em; }
-.prod-io { background-color: #1a1a1a; padding: 10px; border-radius: 8px; }
-.prod-item img { width: 40px; height: 40px; }
-.prod-timer .time-left { font-size: 1.6em; }
 
 
 /* --- Toast Notifications --- */
@@ -1018,4 +843,122 @@ header {
     margin-bottom: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     font-size: 0.9em;
+    border-left: 5px solid;
+}
+.toast.success { border-color: var(--success-color); }
+.toast.error { border-color: var(--danger-color); }
+.toast.info { border-color: var(--ankh-color); }
+
+
+/* =================================================================================
+   --- RTL OVERRIDES (Right-to-Left Support from v0002.html) ---
+   ================================================================================= */
+[dir="rtl"] body {
+    direction: rtl;
+    text-align: right;
+}
+
+/* General Overrides */
+[dir="rtl"] .currency-display .icon {
+    margin-right: 0;
+    margin-left: 5px;
+}
+[dir="rtl"] .nav-item {
+    text-align: center;
+}
+[dir="rtl"] .screen h2 {
+    border-bottom: 1px solid #3a3a3c;
+}
+[dir="rtl"] .text-button {
+    text-align: left; /* Aligns refresh button to the left if used in RTL context */
+}
+
+/* Chat Overrides */
+[dir="rtl"] #chat-messages {
+    align-items: flex-end; /* Messages align to the right edge by default */
+}
+
+[dir="rtl"] .user-bubble {
+    align-self: flex-start; /* User messages on the left side of the chat area (visually on the right) */
+    border-bottom-left-radius: 15px; 
+    border-bottom-right-radius: 4px; /* Move tail to the right */
+}
+
+[dir="rtl"] .eve-bubble {
+    align-self: flex-end; /* Eve messages on the right side of the chat area (visually on the left) */
+    border-bottom-right-radius: 15px; 
+    border-bottom-left-radius: 4px; /* Move tail to the left */
+}
+
+[dir="rtl"] #chat-input-area {
+    flex-direction: row-reverse; /* Ensure input field is on the left of the button */
+}
+[dir="rtl"] #chat-input-field {
+    margin-right: 0;
+    margin-left: 10px;
+    text-align: right;
+}
+
+/* Card Overrides (for stacking text/details) */
+[dir="rtl"] .card-stack .card-details {
+    flex-direction: row-reverse; /* Swap count and level display */
+}
+
+/* Economy/Production Overrides */
+[dir="rtl"] .prod-io {
+    flex-direction: row-reverse; /* Swap Input/Output order visually */
+}
+[dir="rtl"] .prod-modal-header {
+    text-align: center;
+}
+
+/* Contracts/Quests Overrides */
+[dir="rtl"] .contracts-header {
+    flex-direction: row-reverse; /* Swap title and refresh button */
+}
+[dir="rtl"] .contract-card {
+    border-left: none;
+    border-right: 4px solid var(--primary-accent);
+}
+
+[dir="rtl"] .req-item {
+    flex-direction: row-reverse; /* Swap item name/image and progress */
+}
+
+[dir="rtl"] .req-item-name {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .req-item-name img {
+    margin-right: 0;
+    margin-left: 10px;
+}
+
+/* Game Overrides */
+[dir="rtl"] #kv-game-content {
+    text-align: right;
+}
+[dir="rtl"] .kv-hint-item {
+    text-align: right;
+}
+
+/* Input/Textarea Overrides */
+[dir="rtl"] input[type="text"], 
+[dir="rtl"] input[type="email"], 
+[dir="rtl"] input[type="password"], 
+[dir="rtl"] input[type="number"], 
+[dir="rtl"] textarea {
+    text-align: right;
+}
+/* More Modal Overrides */
+[dir="rtl"] .more-menu .more-menu-item .icon {
+    margin-right: 0;
+    margin-left: 20px;
+}
+
+/* Profile Overrides */
+[dir="rtl"] .profile-stats-grid {
+    direction: ltr; /* Temporarily set LTR for the grid to keep it consistent 1|2, 3|4 */
+}
+[dir="rtl"] .stat-box {
+    direction: rtl; /* Resetting back to RTL for content inside stat box */
 }
