@@ -51,7 +51,7 @@
                 <!-- Blessing (الخنجر/Daggers) -->
                 <div class="currency-display"><span class="icon">🗡️</span> <span id="blessing-display">0</span></div>
                 <!-- TON Wallet Connect Button Container -->
-                <div id="connectButton"></div> 
+                <div id="connectButton" class="ton-connect-btn"></div> 
             </div>
         </header>
 
@@ -165,6 +165,29 @@
                 <h2>Valley of the Kings - Crack the Code</h2>
                 <div id="kv-game-content" class="game-container">
                     <!-- KV Game structure will be fully rendered here by its module -->
+                    <div id="kv-game-intro-content">
+                         <div id="kv-progress-info" class="game-status-message hidden">
+                            <div id="kv-timer-display">Time Left: 0s</div>
+                            <div id="kv-attempts-display">Attempts Left: 0</div>
+                         </div>
+                         <h2 style="margin-top: 0; padding-top: 0;"><span id="kv-level-name-display">KV Gate Name</span></h2>
+                         <button id="kv-start-btn" class="action-button small" style="width: 200px;">Load Game</button>
+                    </div>
+                    
+                    <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
+                        <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+                            <input type="number" id="kv-guess-input" style="width: 150px; font-size: 1.2em; text-align: center;" placeholder="Enter code...">
+                        </div>
+                        
+                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 5px;">
+                             <!-- Dynamic hint content here -->
+                        </ul>
+                        
+                        <div class="kv-controls-grid">
+                            <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
+                            <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
