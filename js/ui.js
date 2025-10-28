@@ -30,7 +30,7 @@ import { renderHome } from './screens/home.js';
 
 
 // --- EXPORTS (RE-EXPORTING all corrected functions) ---
-// These exports are what makes the function available outside of this file (e.g. to main.js)
+// NOTE: These exports are what makes the function available outside of this file (e.g. to main.js)
 export const renderCollection = collectionModule.renderCollection;
 export const renderUpgrade = upgradeModule.renderUpgrade;
 export const renderHistory = historyModule.renderHistory;
