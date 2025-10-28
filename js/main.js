@@ -1,8 +1,8 @@
 /*
  * Filename: js/main.js
- * Version: NOUB 0.0.1 Eve Edition (CRITICAL SAFE ENTRY POINT - Final)
+ * Version: NOUB 0.0.2 (CRITICAL SAFE ENTRY POINT - FINAL ORCHESTRATION)
  * Description: Main entry point. Loads all modules and starts authentication.
- * Ensures all module paths are correct for a stable build.
+ * Ensures all new/updated module paths are correct for a stable build.
 */
 
 // --- CORE MODULES (in /js/ directory - imported with './') ---
@@ -25,6 +25,11 @@ import './screens/collection.js';
 import './screens/economy.js'; 
 import './screens/shop.js';
 import './screens/profile.js';
+import './screens/history.js';    // NEW MODULE
+import './screens/library.js';    // NEW MODULE
+import './screens/settings.js';   // NEW MODULE
+import './screens/albums.js';     // NEW MODULE
+import './screens/wheel.js';      // NEW MODULE
 
 
 document.addEventListener('DOMContentLoaded', () => {
