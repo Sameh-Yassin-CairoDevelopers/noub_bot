@@ -1,7 +1,7 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.2 (UI Controller - FINAL PRODUCTION CODE)
- * Description: UI Controller Module. Handles navigation, toast messages, and routing.
+ * Version: NOUB 0.0.2 (UI Controller - FINAL PRODUCTION CODE - ALL EXPORT FIXES)
+ * Description: UI Controller Module. The final module to handle all module imports and exports.
  * This file is 100% complete and guarantees compatibility with the new module structure.
 */
 
@@ -9,8 +9,16 @@
 import { state } from './state.js'; 
 
 // --- SCREEN MODULES IMPORTS (Use * as alias to prevent import/export conflicts) ---
-import * as collectionModule from './screens/collection.js';
-import * as upgradeModule from './screens/upgrade.js'; // IMPORT FOR UPGRADE FIX
+// FIX: Using * as Alias for all screen modules
+import * as collectionModule from './screens/collection.js'; 
+import * as upgradeModule from './screens/upgrade.js';       
+import * as historyModule from './screens/history.js';       
+import * as libraryModule from './screens/library.js';       
+import * as settingsModule from './screens/settings.js';     
+import * as albumsModule from './screens/albums.js';         
+import * as wheelModule from './screens/wheel.js';           
+
+// Modules that were correct initially (KEPT AS IS):
 import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
@@ -19,16 +27,20 @@ import { renderSlotGame } from './screens/slotgame.js';
 import { renderKVGame } from './screens/kvgame.js'; 
 import { renderChat } from './screens/chat.js'; 
 import { renderHome } from './screens/home.js'; 
-import { renderHistory } from './screens/history.js';      
-import { renderLibrary } from './screens/library.js';      
-import { renderSettings } from './screens/settings.js';    
-import { renderAlbums } from './screens/albums.js';        
-import { renderWheel } from './screens/wheel.js';          
 
 
-// --- EXPORTS (RE-EXPORTING functions from their modules) ---
+// --- EXPORTS (RE-EXPORTING all corrected functions) ---
+// NOTE: These exports are what makes the function available outside of this file (e.g. to main.js)
 export const renderCollection = collectionModule.renderCollection;
-export const renderUpgrade = upgradeModule.renderUpgrade; // EXPORT FOR UPGRADE FIX
+export const renderUpgrade = upgradeModule.renderUpgrade;
+export const renderHistory = historyModule.renderHistory;
+export const renderLibrary = libraryModule.renderLibrary;
+export const renderSettings = settingsModule.renderSettings;
+export const renderAlbums = albumsModule.renderAlbums;
+export const renderWheel = wheelModule.renderWheel;
+
+// Other imports needed for the old structure (kept as is)
+import { refreshPlayerState } from './auth.js';
 
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
@@ -54,10 +66,8 @@ export function navigateTo(targetId) {
     const screen = document.getElementById(targetId);
     if (screen) screen.classList.remove('hidden');
 
-    // Reset active navigation item first
     navItems.forEach(i => i.classList.remove('active'));
 
-    // Check if the target is a bottom nav item, if so, set it active
     const targetNavItem = document.querySelector(`.bottom-nav a[data-target="${targetId}"]`);
     if(targetNavItem) {
         targetNavItem.classList.add('active');
@@ -79,7 +89,7 @@ export function navigateTo(targetId) {
             renderAvailableContracts();
             break;
         case 'card-upgrade-screen':
-            upgradeModule.renderUpgrade(); // USE MODULE FUNCTION
+            upgradeModule.renderUpgrade(); 
             break;
         case 'slot-game-screen':
             renderSlotGame(); 
@@ -94,19 +104,19 @@ export function navigateTo(targetId) {
             renderChat(); 
             break;
         case 'history-screen':
-            renderHistory();
+            historyModule.renderHistory(); 
             break;
         case 'library-screen':
-            renderLibrary();
+            libraryModule.renderLibrary(); 
             break;
         case 'settings-screen':
-            renderSettings();
+            settingsModule.renderSettings(); 
             break;
         case 'albums-screen':
-            renderAlbums();
+            albumsModule.renderAlbums(); 
             break;
         case 'wheel-screen':
-            renderWheel();
+            wheelModule.renderWheel(); 
             break;
     }
 }
