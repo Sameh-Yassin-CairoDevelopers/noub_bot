@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/history.js
- * Version: NOUB 0.0.2 (HISTORY MODULE - COMPLETE)
+ * Version: NOUB 0.0.2 (HISTORY MODULE - FINAL CODE)
  * Description: View Logic Module for the Game History screen. 
  * Re-integrates the concept of tracking past KV Game expeditions using Supabase API.
 */
@@ -39,7 +39,7 @@ export async function renderHistory() {
         return;
     }
 
-    // 2. Render List (Styled to be clean and mobile-friendly, inspired by original file list)
+    // 2. Render List (Styled to be clean and mobile-friendly)
     const historyListHTML = history.map(entry => {
         const isWin = entry.result_status === 'Win';
         const resultColor = isWin ? 'var(--success-color)' : 'var(--danger-color)';
@@ -66,6 +66,3 @@ export async function renderHistory() {
 
     listContainer.innerHTML = `<ul style="list-style: none; padding: 0;">${historyListHTML}</ul>`;
 }
-// Export the function for use by ui.js
-// NOTE: ui.js import/export structure requires this export or dynamic import
-export { renderHistory };
