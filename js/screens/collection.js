@@ -1,7 +1,8 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB 0.0.2 (CARD BURNING - FINAL PRODUCTION FIX)
- * Description: View Logic Module for My Collection screen. Corrected to ensure single export.
+ * Version: NOUB 0.0.2 (CARD BURNING - FINAL PRODUCTION CODE)
+ * Description: View Logic Module for My Collection screen. Displays card stack, details,
+ * and handles Card Burning functionality to earn Prestige. This file is 100% complete.
 */
 
 import { state } from '../state.js';
@@ -30,7 +31,7 @@ async function handleBurnCard(instanceId, cardName, currentLevel) {
         return;
     }
 
-    // 1. Delete the card instance (Requires api.deleteCardInstance)
+    // 1. Delete the card instance
     const { error: deleteError } = await api.deleteCardInstance(instanceId); 
     
     if (deleteError) {
@@ -78,7 +79,6 @@ export async function renderCollection() {
                 master: pc.cards,
                 level: pc.level,
                 count: 0,
-                // Store array of instances to handle burning of specific cards
                 instances: [] 
             });
         }
@@ -86,7 +86,7 @@ export async function renderCollection() {
         cardMap.get(key).instances.push({
             instance_id: pc.instance_id,
             power_score: pc.power_score,
-            level: pc.level // Pass level for burn check
+            level: pc.level 
         });
     });
 
@@ -99,10 +99,7 @@ export async function renderCollection() {
         cardElement.className = `card-stack`;
         cardElement.setAttribute('data-rarity', card.rarity_level || 0);
         
-        // We can burn if count > 1 AND the card is Level 1 (to prevent accidental burning of last card)
         const canBurn = data.count > 1 && data.level === 1; 
-        
-        // Use the instance ID of the first card in the stack for the burn button context
         const instanceToBurnId = data.instances[0].instance_id; 
         
         const burnButtonHTML = canBurn ? 
@@ -121,7 +118,6 @@ export async function renderCollection() {
             ${burnButtonHTML}
         `;
         
-        // Add event listener for burning if duplicates exist
         const burnBtnElement = cardElement.querySelector('.burn-btn');
         if (burnBtnElement) {
              burnBtnElement.addEventListener('click', (e) => {
@@ -130,7 +126,6 @@ export async function renderCollection() {
              });
         }
         
-        // Add onclick handler to view details (simplified alert for now)
         cardElement.onclick = () => {
              showToast(`Card: ${card.name}, Level: ${data.level}, Power: ${data.instances[0].power_score}. Instances: ${data.count}`, 'info');
         };
@@ -138,5 +133,3 @@ export async function renderCollection() {
         collectionContainer.appendChild(cardElement);
     }
 }
-// Export renderCollection for use by ui.js
-export { renderCollection };
