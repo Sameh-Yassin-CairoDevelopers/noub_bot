@@ -1,9 +1,8 @@
-
 /*
  * Filename: js/screens/upgrade.js
  * Version: NOUB 0.0.2 (UPGRADE MODULE - FINAL PRODUCTION CODE)
- * Description: View Logic Module for the Card Upgrade screen. 
- * This file is 100% complete and ready to run (No internal exports).
+ * Description: View Logic Module for the Card Upgrade screen.
+ * Handles both Card Leveling (using resources and Prestige) and Factory Upgrades. This file is 100% complete.
 */
 
 import { state } from '../state.js';
@@ -22,7 +21,7 @@ const FACTORY_UPGRADE_COST = 500;
 const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
 const FACTORY_UPGRADE_QTY = 10; 
 
-// --- Factory Upgrade Logic (Identical to NOUB 0.0.1) ---
+// --- Factory Upgrade Logic ---
 async function executeFactoryUpgrade(playerFactory) { 
     if (!playerFactory) return;
 
@@ -77,7 +76,7 @@ async function executeFactoryUpgrade(playerFactory) {
 /**
  * Renders the initial list of cards available for upgrade selection.
  */
-export async function renderUpgrade() { // **NOTE: REMOVED EXPORT HERE**
+export async function renderUpgrade() { 
     if (!state.currentUser) return;
     upgradeSelectionContainer.innerHTML = 'Loading cards for upgrade...';
     upgradeDetailArea.classList.add('hidden'); 
