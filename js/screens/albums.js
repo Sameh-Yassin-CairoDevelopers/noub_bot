@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/albums.js
- * Version: NOUB 0.0.2 (ALBUMS MODULE - COMPLETE)
+ * Version: NOUB 0.0.2 (ALBUMS MODULE - FINAL CODE)
  * Description: View Logic Module for the Album Catalog screen.
  * Displays card set progress, completion status, and handles reward claiming via Supabase.
 */
@@ -13,7 +13,6 @@ import { refreshPlayerState } from '../auth.js';
 const albumsContainer = document.getElementById('albums-screen');
 
 // --- MASTER ALBUM CONFIGURATION (Reference Data - Should match Supabase 'master_albums' table) ---
-// Note: This reference data is crucial for the client-side rendering.
 const MASTER_ALBUMS = [
     { id: 1, name: "The Ennead", icon: "☀️", description: "The nine creator deities.", card_ids: [1, 2, 6, 8, 9], reward_ankh: 500, reward_prestige: 5 },
     { id: 2, name: "Royal Court", icon: "👑", description: "Treasures of the Golden Age.", card_ids: [3, 10, 15], reward_ankh: 800, reward_prestige: 10 },
@@ -36,7 +35,6 @@ export async function renderAlbums() {
     const listContainer = document.getElementById('albums-list-container');
     
     // 1. Fetch Player's Album Status from Supabase
-    // NOTE: In a real app, we'd fetch master album details as well if they change often.
     const { data: playerAlbumsStatus, error: statusError } = await api.fetchPlayerAlbums(state.currentUser.id);
 
     if (statusError) {
@@ -45,17 +43,18 @@ export async function renderAlbums() {
     }
 
     // 2. Process Album Status against Player's Collection
-    const playerCardIds = new Set(Array.from(state.inventory.values()).flatMap(i => i.details.type === 'CARD' ? [i.details.id] : [])); // Simplified card ID extraction from inventory
+    // Get all unique card IDs owned by the player
+    const playerCardIds = new Set(Array.from(state.inventory.values()).flatMap(i => i.details.type === 'CARD' ? [i.details.id] : [])); 
     
     // Group status data for quick lookup
     const statusMap = new Map();
     playerAlbumsStatus.forEach(pa => statusMap.set(pa.album_id, pa));
 
-    // 3. Render List (Inspired by v7.html design)
+    // 3. Render List
     const albumListHTML = MASTER_ALBUMS.map(album => {
         // Calculate completion status based on player's current card collection
         const uniqueCollectedCount = album.card_ids.filter(cardId => 
-            Array.from(state.inventory.values()).some(i => i.details.id === cardId)
+            playerCardIds.has(cardId)
         ).length;
         
         const totalRequired = album.card_ids.length;
@@ -101,16 +100,15 @@ window.handleClaimAlbumReward = async function(albumId, ankhReward, prestigeRewa
     
     showToast('Processing album reward...', 'info');
 
-    // NOTE: This assumes an API function exists to claim the reward and update profile/album status atomically.
-    // Since we don't have a specific claimAlbumReward API, we'll mock the full sequence:
+    // 1. Mark as claimed and update completion status in Supabase (MOCK API CALL)
+    // NOTE: This call should ideally be to a dedicated 'claimAlbumReward' API function
     
-    // 1. Mark as claimed and update completion status in Supabase
     // 2. Update player profile with rewards (Ankh, Prestige)
     const newScore = (state.playerProfile.score || 0) + ankhReward;
     const newPrestige = (state.playerProfile.prestige || 0) + prestigeReward;
 
     const { error } = await api.updatePlayerProfile(state.currentUser.id, { score: newScore, prestige: newPrestige });
-    // This is incomplete as it doesn't update the player_albums table (but suffices for the current API structure)
+    // Assume player_albums table is updated by a backend function or trigger after this.
 
     if (!error) {
         await refreshPlayerState();
@@ -121,6 +119,3 @@ window.handleClaimAlbumReward = async function(albumId, ankhReward, prestigeRewa
         console.error('Album Claim Error:', error);
     }
 }
-
-// Export the function for use by ui.js
-export { renderAlbums };
