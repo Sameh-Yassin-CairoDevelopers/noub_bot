@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.1 Eve Edition (FINAL UI Integration - Complete)
+ * Version: NOUB 0.0.2 (UI Controller - FINAL ORCHESTRATION)
  * Description: UI Controller Module. Handles navigation, toast messages, and header updates.
- * Implements final routing for all 10 screens and handles TON Connect visibility.
+ * Implements final routing for all screens (including new/reinstated ones).
 */
 
 // NOTE: All screen imports MUST use the correct relative path './screens/file.js'
@@ -16,7 +16,12 @@ import { renderKVGame } from './screens/kvgame.js';
 import { renderUpgrade } from './screens/upgrade.js'; 
 import { renderChat } from './screens/chat.js'; 
 import { renderHome } from './screens/home.js'; 
-import { state } from './state.js'; // Import state from same directory
+import { renderHistory } from './screens/history.js';      // NEW
+import { renderLibrary } from './screens/library.js';      // NEW
+import { renderSettings } from './screens/settings.js';    // NEW
+import { renderAlbums } from './screens/albums.js';        // NEW
+import { renderWheel } from './screens/wheel.js';          // NEW
+import { state } from './state.js'; 
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
 window.closeModal = function(modalId) {
@@ -59,17 +64,15 @@ export function navigateTo(targetId) {
             renderCollection();
             break;
         case 'production-screen':
-            renderProduction();
-            break;
-        case 'stock-screen':
-            renderStock();
-            break;
-        case 'profile-screen':
-            renderProfile();
+            // Renders both Production and Stockpile based on tabs (logic in economy.js)
+            renderProduction(); 
             break;
         case 'contracts-screen':
             renderActiveContracts();
             renderAvailableContracts();
+            break;
+        case 'card-upgrade-screen':
+            renderUpgrade();
             break;
         case 'slot-game-screen':
             renderSlotGame(); 
@@ -77,12 +80,28 @@ export function navigateTo(targetId) {
         case 'kv-game-screen':
             renderKVGame(); 
             break;
-        case 'card-upgrade-screen':
-            renderUpgrade();
+        case 'profile-screen':
+            renderProfile();
             break;
         case 'chat-screen':
             renderChat(); 
             break;
+        case 'history-screen':       // NEW
+            renderHistory();
+            break;
+        case 'library-screen':       // NEW
+            renderLibrary();
+            break;
+        case 'settings-screen':      // NEW
+            renderSettings();
+            break;
+        case 'albums-screen':        // NEW
+            renderAlbums();
+            break;
+        case 'wheel-screen':         // NEW
+            renderWheel();
+            break;
+        // NOTE: Stockpile is part of production-screen and doesn't need dedicated routing unless standalone.
     }
 }
 
@@ -102,7 +121,6 @@ export function updateHeaderUI(profile) {
     const connectButton = document.getElementById('connectButton');
     if (connectButton && profile.ton_address) {
         // NOTE: TonConnectUI library handles rendering the button itself once initialized in auth.js
-        // We only ensure the container is visible if needed.
     }
 }
 
@@ -117,15 +135,12 @@ export function showToast(message, type = 'info') {
 
 function setupNavEvents() {
     // 1. Standard navigation items (bottom bar)
-    navItems.forEach(item => {
-        if (item.dataset.target) {
-            item.addEventListener('click', () => navigateTo(item.dataset.target));
-        }
+    document.querySelectorAll('.bottom-nav a[data-target]').forEach(item => {
+        item.addEventListener('click', () => navigateTo(item.dataset.target));
     });
 
     // 2. Dashboard Quick Links (Home Action Icons)
-    const quickLinks = document.querySelectorAll('.home-action-icons a[data-target]');
-    quickLinks.forEach(link => {
+    document.querySelectorAll('.home-action-icons a[data-target]').forEach(link => {
         link.addEventListener('click', (e) => {
              e.preventDefault();
              const targetId = link.dataset.target;
@@ -171,6 +186,23 @@ export function setupEventListeners() {
             openShopModal();
         });
     }
+    
+    // NOTE: Stockpile tabs require event setup
+    const stockTabs = document.querySelectorAll('.stock-tab-btn');
+    stockTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.stock-tab-btn').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.stock-content-tab').forEach(c => c.classList.remove('active'));
+
+            tab.classList.add('active');
+            document.getElementById(`stock-content-${tab.dataset.stockTab}`).classList.add('active');
+            
+            // Re-render Stockpile when opening its tabs
+            if (tab.dataset.stockTab !== 'production') {
+                 // NOTE: Since renderStock is complex, a simple call here might suffice 
+                 // if the tab targets are correct. (Logic for filtering content is in economy.js)
+                 // This requires updating economy.js to handle the initial render based on the clicked tab.
+            }
+        });
+    });
 }
-
-
