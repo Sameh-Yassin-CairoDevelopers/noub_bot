@@ -920,6 +920,87 @@ header {
     margin-top: 5px;
 }
 
+/* ==================================================================== */
+/* --- 4. ECONOMY HUB (Production & Stockpile) (Lines 351-500) --- */
+/* ==================================================================== */
+
+.stock-tabs-container {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #3a3a3c;
+    margin-bottom: 5px;
+    flex-wrap: wrap;
+}
+.stock-tab-btn {
+    padding: 8px 5px; 
+    font-size: 0.85em; 
+    flex-grow: 1; 
+}
+.stock-tab-btn.active {
+    border-bottom: 2px solid var(--primary-accent);
+}
+.stock-content-tab {
+    padding-top: 8px;
+}
+.production-section h3 {
+    font-size: 1.1em;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #3a3a3c;
+    margin-bottom: 10px;
+}
+.buildings-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
+    gap: 6px; 
+}
+.building-card {
+    background-color: var(--surface-dark);
+    border-radius: var(--border-radius-base);
+    padding: 5px;
+    border: 1px solid #3a3a3c;
+}
+.building-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    margin-bottom: 4px;
+}
+.building-card h4 {
+    font-size: 0.85em;
+    margin: 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.building-card .status {
+    font-size: 0.75em;
+    margin-top: 2px;
+}
+
+.stock-item {
+    display: flex;
+    align-items: center;
+    background: var(--surface-dark);
+    padding: 6px 10px;
+    border-radius: var(--border-radius-base);
+    margin-bottom: 6px;
+}
+.stock-item img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+.stock-item .quantity { 
+    font-size: 1em; 
+    font-weight: bold;
+}
+
+/* Production Modal Detail */
+.prod-modal-header img { width: 70px; height: 70px; }
+.prod-modal-header h3 { font-size: 1.4em; }
+.prod-io { background-color: #1a1a1a; padding: 10px; border-radius: 8px; }
+.prod-item img { width: 40px; height: 40px; }
+.prod-timer .time-left { font-size: 1.6em; }
+
 
 /* --- Toast Notifications --- */
 #toast-container {
