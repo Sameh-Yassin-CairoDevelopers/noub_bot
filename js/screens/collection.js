@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB 0.0.1 Eve Edition (Collection Module - Complete)
+ * Version: NOUB 0.0.2 (CARD BURNING - COMPLETE)
  * Description: View Logic Module for My Collection screen. Displays card level, stack count,
- * and handles the Card Burning functionality.
+ * and handles the Card Burning functionality to earn Prestige.
 */
 
 import { state } from '../state.js';
@@ -15,13 +15,19 @@ const collectionContainer = document.getElementById('collection-container');
 // --- Card Burning Logic ---
 const BURN_REWARD_PRESTIGE = 1; 
 
+/**
+ * Handles the burning of a single card instance.
+ * @param {string} instanceId - The unique instance ID of the card to burn.
+ * @param {string} cardName - Name for confirmation/toast message.
+ * @param {number} currentLevel - Level of the card.
+ */
 async function handleBurnCard(instanceId, cardName, currentLevel) {
     if (currentLevel > 1) {
         showToast("Cannot burn leveled cards!", 'error');
         return;
     }
     
-    if (!confirm(`Are you sure you want to burn one instance of ${cardName} for 1 Prestige (🐞)?`)) {
+    if (!confirm(`Are you sure you want to burn one instance of ${cardName} for ${BURN_REWARD_PRESTIGE} Prestige (🐞)?`)) {
         return;
     }
 
@@ -37,7 +43,7 @@ async function handleBurnCard(instanceId, cardName, currentLevel) {
     const newPrestige = (state.playerProfile.prestige || 0) + BURN_REWARD_PRESTIGE;
     await api.updatePlayerProfile(state.currentUser.id, { prestige: newPrestige });
 
-    showToast(`Burn successful! +1 Prestige (🐞) received.`, 'success');
+    showToast(`Burn successful! +${BURN_REWARD_PRESTIGE} Prestige (🐞) received.`, 'success');
     await refreshPlayerState();
     renderCollection(); // Re-render the collection view
 }
@@ -80,6 +86,7 @@ export async function renderCollection() {
         cardMap.get(key).count++;
         cardMap.get(key).instances.push({
             instance_id: pc.instance_id,
+            power_score: pc.power_score,
             level: pc.level // Pass level for burn check
         });
     });
@@ -93,7 +100,7 @@ export async function renderCollection() {
         cardElement.className = `card-stack`;
         cardElement.setAttribute('data-rarity', card.rarity_level || 0);
         
-        // We can burn if count > 1 AND the card is Level 1
+        // We can burn if count > 1 AND the card is Level 1 (to prevent accidental burning of last card)
         const canBurn = data.count > 1 && data.level === 1; 
         
         // Use the instance ID of the first card in the stack for the burn button context
@@ -124,11 +131,13 @@ export async function renderCollection() {
              });
         }
         
-        // Add onclick handler to view details
+        // Add onclick handler to view details (simplified alert for now)
         cardElement.onclick = () => {
-             alert(`Card: ${card.name}, Level: ${data.level}, Power: ${data.instances[0].power_score}. Instances: ${data.count}`);
+             showToast(`Card: ${card.name}, Level: ${data.level}, Power: ${data.instances[0].power_score}. Instances: ${data.count}`, 'info');
         };
         
         collectionContainer.appendChild(cardElement);
     }
 }
+// Export renderCollection for use by ui.js
+export { renderCollection };
