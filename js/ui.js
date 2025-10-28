@@ -10,13 +10,13 @@ import { state } from './state.js';
 
 // --- SCREEN MODULES IMPORTS (Use * as alias to prevent import/export conflicts) ---
 import * as collectionModule from './screens/collection.js';
+import * as upgradeModule from './screens/upgrade.js'; // IMPORT FOR UPGRADE FIX
 import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
 import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
 import { renderSlotGame } from './screens/slotgame.js'; 
 import { renderKVGame } from './screens/kvgame.js'; 
-import { renderUpgrade } from './screens/upgrade.js'; 
 import { renderChat } from './screens/chat.js'; 
 import { renderHome } from './screens/home.js'; 
 import { renderHistory } from './screens/history.js';      
@@ -26,8 +26,9 @@ import { renderAlbums } from './screens/albums.js';
 import { renderWheel } from './screens/wheel.js';          
 
 
-// --- EXPORTS (RE-EXPORTING collectionModule.renderCollection to the outside world) ---
+// --- EXPORTS (RE-EXPORTING functions from their modules) ---
 export const renderCollection = collectionModule.renderCollection;
+export const renderUpgrade = upgradeModule.renderUpgrade; // EXPORT FOR UPGRADE FIX
 
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
@@ -68,7 +69,7 @@ export function navigateTo(targetId) {
             renderHome();
             break;
         case 'collection-screen':
-            collectionModule.renderCollection(); // Use the imported module's function
+            collectionModule.renderCollection(); 
             break;
         case 'production-screen':
             renderProduction(); 
@@ -78,7 +79,7 @@ export function navigateTo(targetId) {
             renderAvailableContracts();
             break;
         case 'card-upgrade-screen':
-            renderUpgrade();
+            upgradeModule.renderUpgrade(); // USE MODULE FUNCTION
             break;
         case 'slot-game-screen':
             renderSlotGame(); 
