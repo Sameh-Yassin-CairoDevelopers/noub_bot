@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/library.js
- * Version: NOUB 0.0.2 (LIBRARY MODULE - COMPLETE)
+ * Version: NOUB 0.0.2 (LIBRARY MODULE - FINAL CODE)
  * Description: View Logic Module for the Tomb Encyclopedia (Library) screen. 
  * Integrates data structure from 'noub original game.html' with Supabase status.
 */
@@ -11,15 +11,13 @@ import { showToast } from '../ui.js';
 
 const libraryContainer = document.getElementById('library-screen');
 
-// --- MASTER LIBRARY DATA (Derived from noub original game.html logic) ---
-// This acts as the *reference* data, while Supabase stores *which* entries are unlocked.
+// --- MASTER LIBRARY DATA (Reference Data - Should match Supabase logic) ---
 const MASTER_LIBRARY_DATA = {
     'valley_intro': { id: 'valley_intro', title: "Valley of the Kings", content: "The principal burial place of the major royal figures of the Egyptian New Kingdom...", unlockCondition: { type: 'initial', level: 0} },
     'kv1_info': { id: 'kv1_info', title: "KV1: Ramses VII", content: "The tomb of Ramses VII, a pharaoh of the 20th Dynasty. It's relatively small and unfinished compared to others.", unlockCondition: { type: 'kv_completion', level: 1 } },
     'dynasty_20': { id: 'dynasty_20', title: "The 20th Dynasty", content: "Characterized by the Ramesside pharaohs, internal strife, and the decline of royal power...", unlockCondition: { type: 'kv_completion', level: 7 } },
     'kv62_tut': { id: 'kv62_tut', title: "KV62: Tutankhamun's Tomb", content: "The legendary, nearly intact tomb of the Boy King. Unlocking this requires solving the final gate!", unlockCondition: { type: 'kv_completion', level: 62 } },
     'egyptian_gods': { id: 'egyptian_gods', title: "Major Egyptian Gods (Poster)", content: "Ra, Osiris, Isis, Horus, Anubis, Thoth - the most potent forces in the Egyptian cosmos.", unlockCondition: { type: 'item_purchase', itemId: 'lore_egypt'} }
-    // More entries would be defined here...
 };
 
 /**
@@ -40,7 +38,7 @@ export async function renderLibrary() {
     // 1. Fetch Unlocked Entries from Supabase
     const { data: unlockedData, error } = await api.fetchPlayerLibrary(state.currentUser.id);
 
-    if (error) {
+    if (error || !unlockedData) {
         listContainer.innerHTML = '<p class="error-message">Error loading Encyclopedia data.</p>';
         return;
     }
@@ -73,7 +71,6 @@ export async function renderLibrary() {
         } else if (unlockType === 'kv_completion') {
             unlockText = `Requires completing KV Gate ${entry.unlockCondition.level}.`;
         } else if (unlockType === 'item_purchase') {
-             // Placeholder for fetching item name, assuming a master item table exists later
             unlockText = `Unlockable by purchasing a specific item from the Shop.`;
         }
         
@@ -89,6 +86,3 @@ export async function renderLibrary() {
 
     listContainer.innerHTML = `<ul style="list-style: none; padding: 0;">${libraryListHTML}</ul>`;
 }
-
-// Export the function for use by ui.js
-export { renderLibrary };
