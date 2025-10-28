@@ -1,15 +1,15 @@
 /*
  * Filename: js/screens/upgrade.js
- * Version: NOUB 0.0.1 Eve Edition (Upgrade & Factory Leveling - Complete)
+ * Version: NOUB 0.0.2 (UPGRADE MODULE - FINAL)
  * Description: View Logic Module for the Card Upgrade screen.
- * Implements transaction logic for upgrading both Player Cards and Player Factories.
+ * Handles both Card Leveling (using resources and Prestige) and Factory Upgrades.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { renderProduction } from './economy.js'; // Import production render to refresh buildings
+import { renderProduction } from './economy.js'; 
 
 const upgradeSelectionContainer = document.getElementById('upgrade-card-selection-container');
 const upgradeDetailArea = document.getElementById('upgrade-detail-area');
@@ -17,14 +17,12 @@ const upgradeDetailArea = document.getElementById('upgrade-detail-area');
 let selectedInstance = null; // The specific card instance the player wants to upgrade
 
 // --- Factory Upgrade Constants ---
-const FACTORY_UPGRADE_COST = 500; // Base Ankh cost
+const FACTORY_UPGRADE_COST = 500; 
 const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
 const FACTORY_UPGRADE_QTY = 10; 
 
-/**
- * Executes the factory upgrade transaction.
- */
-async function executeFactoryUpgrade(playerFactory) {
+// --- Factory Upgrade Logic (Identical to NOUB 0.0.1) ---
+async function executeFactoryUpgrade(playerFactory) { 
     if (!playerFactory) return;
 
     showToast('Processing factory upgrade...', 'info');
@@ -127,7 +125,10 @@ export async function renderUpgrade() {
 }
 
 
-async function executeUpgrade(requirements) {
+/**
+ * Executes the card upgrade transaction after all checks.
+ */
+async function executeUpgrade(requirements) { 
     if (!selectedInstance) return;
     
     showToast('Processing upgrade...', 'info');
@@ -136,9 +137,9 @@ async function executeUpgrade(requirements) {
     btn.disabled = true;
 
     // --- 1. Consume Currencies ---
-    const newAnkh = state.playerProfile.score - requirements.cost_ankh;
-    const newPrestige = state.playerProfile.prestige - requirements.cost_prestige;
-    const newBlessing = state.playerProfile.blessing - requirements.cost_blessing;
+    const newAnkh = (state.playerProfile.score || 0) - requirements.cost_ankh;
+    const newPrestige = (state.playerProfile.prestige || 0) - requirements.cost_prestige;
+    const newBlessing = (state.playerProfile.blessing || 0) - requirements.cost_blessing;
 
     const profileUpdate = {
         score: newAnkh,
@@ -167,8 +168,6 @@ async function executeUpgrade(requirements) {
         }
     }
     
-    // NOTE: Burning Cards logic would be implemented here (v21.0 Advanced)
-
     // --- 3. Update Card Level ---
     const newLevel = selectedInstance.level + 1;
     const newPowerScore = selectedInstance.power_score + requirements.power_increase;
@@ -181,7 +180,7 @@ async function executeUpgrade(requirements) {
     }
     
     // --- 4. Success & Refresh ---
-    showToast(`Upgrade Success! LVL ${selectedInstance.level} -> LVL ${newLevel}`, 'success');
+    showToast(`Upgrade Success! LVL ${selectedInstance.level} → LVL ${newLevel}`, 'success');
     
     await refreshPlayerState(); 
     
@@ -242,7 +241,7 @@ async function renderUpgradeDetails(playerCardInstance) {
             <div class="cost-item">
                 <img src="${materialImg}" alt="${materialName}">
                 <span>${materialName}</span>
-                <span class="value" style="color: ${allRequirementsMet ? 'white' : 'var(--danger-color)'}">
+                <span class="value" style="color: ${playerMaterialQty >= requirements.cost_item_qty ? 'white' : 'var(--danger-color)'}">
                     ${playerMaterialQty} / ${requirements.cost_item_qty}
                 </span>
             </div>
@@ -306,3 +305,5 @@ async function renderUpgradeDetails(playerCardInstance) {
         document.getElementById('execute-upgrade-btn').addEventListener('click', () => executeUpgrade(requirements));
     }
 }
+// Export renderUpgrade for use by ui.js
+export { renderUpgrade };
