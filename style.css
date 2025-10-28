@@ -1,8 +1,8 @@
+
 /*
  * Filename: style.css
- * Version: NOUB 0.0.2 - Unification & RTL Ready
+ * Version: NOUB 0.0.2 - TWA & RTL FINAL FIXES
  * Description: Main stylesheet for the "Noub" game. Optimized for Mobile/Telegram Web App.
- * Includes explicit RTL overrides for Arabic support.
 */
 
 
@@ -78,14 +78,14 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    gap: 10px; /* Reduced gap */
+    gap: 10px; 
 }
 
 .currency-display {
     display: flex;
     align-items: center;
     font-weight: bold;
-    font-size: 1em; /* Optimized for mobile header */
+    font-size: 1em; 
     background: var(--input-bg);
     padding: 5px 10px;
     border-radius: 8px;
@@ -94,7 +94,7 @@ header {
 .currency-display .icon {
     font-size: 18px;
     margin-right: 5px;
-    color: var(--primary-accent); /* Standard color for icons */
+    color: var(--primary-accent); 
 }
 
 .ton-connect-btn {
@@ -107,7 +107,7 @@ header {
     bottom: 0;
     display: flex;
     justify-content: space-around;
-    padding: 10px 0 20px 0; /* Increased bottom padding for iPhone X/notch safety */
+    padding: 10px 0 20px 0; 
     border-top: 1px solid #3a3a3c;
     overflow-x: auto;
 }
@@ -121,7 +121,7 @@ header {
     font-size: 11px;
     cursor: pointer;
     user-select: none;
-    flex-grow: 1; /* Ensure equal spacing in the 5-item bar */
+    flex-grow: 1; 
     flex-shrink: 0;
     padding: 0 10px;
 }
@@ -135,7 +135,7 @@ header {
     margin-bottom: 4px;
 }
 
-/* --- General Content, Buttons, Inputs --- */
+/* --- General Content, Buttons, Inputs (TWA/Mobile optimized) --- */
 .screen h2 {
     color: var(--primary-accent);
     margin-bottom: 25px;
@@ -147,20 +147,26 @@ header {
 }
 
 .action-button {
-    width: 100%;
+    /* Critical TWA/Mobile Adjustment */
+    width: 95%; 
+    max-width: 300px; /* New constraint for TWA size */
     margin-top: 15px;
-    padding: 15px;
+    margin-left: auto;
+    margin-right: auto;
+    display: block; /* To center the button */
+    
+    padding: 12px; /* Reduced padding */
     border: none;
-    border-radius: 10px;
+    border-radius: 8px; 
     font-weight: bold;
     font-family: inherit;
-    font-size: 1.1em;
+    font-size: 1em; /* Adjusted font size */
     cursor: pointer;
     color: #121212;
     background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
     text-transform: uppercase;
     letter-spacing: 1px;
-    box-shadow: 0 3px 0 #9e7f2c; /* Shadow for click depth */
+    box-shadow: 0 3px 0 #9e7f2c; 
 }
 
 .action-button:disabled {
@@ -177,9 +183,11 @@ header {
     color: white;
 }
 .action-button.small {
-    padding: 10px 15px;
-    font-size: 1em;
+    padding: 8px 12px;
+    font-size: 0.9em;
     width: auto;
+    max-width: none;
+    display: inline-block;
 }
 .text-button {
     background: none;
@@ -215,14 +223,13 @@ input:focus, textarea:focus {
     backdrop-filter: blur(5px);
     z-index: 200;
     display: flex;
-    align-items: flex-end; /* Align content to bottom */
+    align-items: flex-end; 
     justify-content: center;
-    padding: 0; /* Remove top/side padding */
+    padding: 0; 
 }
 
 .modal-content {
-    /* Critical: Change modal from center-pop to bottom-sheet style */
-    position: relative; /* Relative position inside flex container */
+    position: relative; 
     bottom: 0;
     left: 0;
     right: 0;
@@ -231,12 +238,12 @@ input:focus, textarea:focus {
     border-top-right-radius: 20px;
     padding: 20px;
     width: 100%;
-    max-width: none; /* Full width on mobile */
+    max-width: none; 
     max-height: 90vh;
     overflow-y: auto;
     border-top: 3px solid var(--primary-accent);
     box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
-    animation: slideUp 0.3s ease-out; /* Use slideUp animation */
+    animation: slideUp 0.3s ease-out; 
 }
 @keyframes slideUp {
     from { transform: translateY(100%); }
@@ -586,7 +593,6 @@ input:focus, textarea:focus {
 }
 .reel-inner {
     width: 100%;
-    /* Large enough to allow smooth, multiple cycles */
     transition: transform 3s cubic-bezier(0.2, 0.9, 0.5, 1);
 }
 .reel-item {
@@ -631,7 +637,7 @@ input:focus, textarea:focus {
     gap: 10px;
     margin-top: 15px;
 }
-#guess-input {
+#kv-guess-input {
     width: 100%;
     padding: 12px;
     font-size: 1.2em;
@@ -641,7 +647,7 @@ input:focus, textarea:focus {
     color: var(--text-primary);
     border-radius: 8px;
 }
-#timer-display {
+#kv-timer-display {
     font-size: 1.8em;
     font-weight: bold;
     color: var(--primary-accent);
@@ -660,7 +666,7 @@ input:focus, textarea:focus {
 #chat-messages {
     background-color: var(--surface-dark);
     border-radius: 12px;
-    height: 400px; /* Fixed height for chat area */
+    height: 400px; 
     overflow-y: auto;
     padding: 15px;
     margin-bottom: 15px;
@@ -870,28 +876,28 @@ input:focus, textarea:focus {
     border-bottom: 1px solid #3a3a3c;
 }
 [dir="rtl"] .text-button {
-    text-align: left; /* Aligns refresh button to the left if used in RTL context */
+    text-align: left; 
 }
 
 /* Chat Overrides */
 [dir="rtl"] #chat-messages {
-    align-items: flex-end; /* Messages align to the right edge by default */
+    align-items: flex-end; 
 }
 
 [dir="rtl"] .user-bubble {
-    align-self: flex-start; /* User messages on the left side of the chat area (visually on the right) */
+    align-self: flex-start; 
     border-bottom-left-radius: 15px; 
-    border-bottom-right-radius: 4px; /* Move tail to the right */
+    border-bottom-right-radius: 4px; 
 }
 
 [dir="rtl"] .eve-bubble {
-    align-self: flex-end; /* Eve messages on the right side of the chat area (visually on the left) */
+    align-self: flex-end; 
     border-bottom-right-radius: 15px; 
-    border-bottom-left-radius: 4px; /* Move tail to the left */
+    border-bottom-left-radius: 4px; 
 }
 
 [dir="rtl"] #chat-input-area {
-    flex-direction: row-reverse; /* Ensure input field is on the left of the button */
+    flex-direction: row-reverse; 
 }
 [dir="rtl"] #chat-input-field {
     margin-right: 0;
@@ -901,12 +907,12 @@ input:focus, textarea:focus {
 
 /* Card Overrides (for stacking text/details) */
 [dir="rtl"] .card-stack .card-details {
-    flex-direction: row-reverse; /* Swap count and level display */
+    flex-direction: row-reverse; 
 }
 
 /* Economy/Production Overrides */
 [dir="rtl"] .prod-io {
-    flex-direction: row-reverse; /* Swap Input/Output order visually */
+    flex-direction: row-reverse; 
 }
 [dir="rtl"] .prod-modal-header {
     text-align: center;
@@ -914,7 +920,7 @@ input:focus, textarea:focus {
 
 /* Contracts/Quests Overrides */
 [dir="rtl"] .contracts-header {
-    flex-direction: row-reverse; /* Swap title and refresh button */
+    flex-direction: row-reverse; 
 }
 [dir="rtl"] .contract-card {
     border-left: none;
@@ -922,7 +928,7 @@ input:focus, textarea:focus {
 }
 
 [dir="rtl"] .req-item {
-    flex-direction: row-reverse; /* Swap item name/image and progress */
+    flex-direction: row-reverse; 
 }
 
 [dir="rtl"] .req-item-name {
@@ -957,8 +963,8 @@ input:focus, textarea:focus {
 
 /* Profile Overrides */
 [dir="rtl"] .profile-stats-grid {
-    direction: ltr; /* Temporarily set LTR for the grid to keep it consistent 1|2, 3|4 */
+    direction: ltr; 
 }
 [dir="rtl"] .stat-box {
-    direction: rtl; /* Resetting back to RTL for content inside stat box */
+    direction: rtl; 
 }
