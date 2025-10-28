@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/wheel.js
- * Version: NOUB 0.0.2 (WHEEL MODULE - COMPLETE)
+ * Version: NOUB 0.0.2 (WHEEL MODULE - FINAL CODE)
  * Description: View Logic Module for the Wheel of Fortune screen.
  * Implements full spin logic, prize calculation, and integration with tickets/currency.
 */
@@ -11,9 +11,7 @@ import { showToast, updateHeaderUI } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
 const wheelContainer = document.getElementById('wheel-screen');
-const wheelElement = document.getElementById('wheel');
-const spinButton = document.getElementById('wheel-spin-button'); // Assuming ID is changed from generic 'spin-button'
-const spinsLeftDisplay = document.getElementById('wheel-spins-left');
+// Elements will be dynamically created/injected if they don't exist in the HTML
 
 // --- WHEEL CONFIGURATION ---
 const WHEEL_PRIZES = [
@@ -42,10 +40,8 @@ export async function renderWheel() {
         return;
     }
     
-    // --- Initial Screen Setup (Need to ensure the base HTML exists first) ---
-    // Since we assume index.html contains a placeholder for this screen, 
-    // we'll inject the core wheel structure if the container is empty.
-    if (!wheelContainer.innerHTML.trim()) {
+    // --- Initial Screen Setup (Inject core structure if needed) ---
+    if (!wheelContainer.querySelector('.wheel-container')) {
         wheelContainer.innerHTML = `
             <div class="wheel-container">
                 <h2>Wheel of Fortune</h2>
@@ -69,7 +65,6 @@ export async function renderWheel() {
     // 1. Initialize Wheel Segments (Color and Text)
     const numPrizes = WHEEL_PRIZES.length;
     const angle = 360 / numPrizes;
-    let gradient = 'conic-gradient(';
     wheelEl.innerHTML = '';
 
     WHEEL_PRIZES.forEach((prize, i) => {
@@ -95,10 +90,7 @@ export async function renderWheel() {
         
         segment.appendChild(label);
         wheelEl.appendChild(segment);
-
-        gradient += `${prize.color} ${i * angle}deg, ${prize.color} ${(i + 1) * angle}deg,`;
     });
-    // wheelEl.style.background = gradient.slice(0, -1) + ')'; // Use CSS colors instead of gradient fill
 
     // 2. Attach Listener
     spinBtn.onclick = runWheelSpin;
@@ -189,11 +181,10 @@ async function handleWheelPrize(prize) {
     } else if (prize.type === 'spin_ticket') {
         profileUpdates.spin_tickets = (state.playerProfile.spin_tickets || 0) + prize.value;
     } else if (prize.type === 'card_pack') {
-        // NOTE: Actual pack opening logic will be in shop.js/api.js, so we only award the item here.
-        // For simplicity, we award a single common card directly as a bonus.
+        // We award a single common card directly as a bonus.
         const { data: allCards } = await api.fetchAllMasterCards();
         if (allCards && allCards.length > 0) {
-            const commonCard = allCards[0]; // Assuming first card is common
+            const commonCard = allCards[0]; 
             await api.addCardToPlayerCollection(state.currentUser.id, commonCard.id);
             message += ` (+1 Common Card)`;
         }
@@ -208,6 +199,3 @@ async function handleWheelPrize(prize) {
         showToast('Error awarding prize!', 'error');
     }
 }
-
-// Export the function for use by ui.js
-export { renderWheel };
