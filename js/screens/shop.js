@@ -35,8 +35,8 @@ const GAME_ITEMS = [
 ];
 
 const TON_PACKAGES = [
-    { name: 'Minor Ankh Deposit', ton_amount: 0.1, ankh_amount: 2000 },
-    { name: 'Major Ankh Deposit', ton_amount: 0.5, ankh_amount: 10000 },
+    { name: 'Minor Ankh Deposit', ton_amount: 0.0051, ankh_amount: 2000 },
+    { name: 'Major Ankh Deposit', ton_amount: 0.0052, ankh_amount: 10000 },
     { name: 'Pharaoh\'s Treasury', ton_amount: 1.0, ankh_amount: 20000 }
 ];
 
@@ -124,7 +124,7 @@ async function handleTonExchange(tonAmount, ankhAmount) {
         return;
     }
 
-    const gameWalletAddress = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAABQoYw"; // Placeholder for Game Wallet (Needs real wallet address)
+    const gameWalletAddress = "UQDYpGLl1efwDOSJb_vFnbAZ5Rz5z-AmSzrbRwM5IcNN_erF"; // Placeholder for Game Wallet (Needs real wallet address)
 
     const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 60,
@@ -277,3 +277,4 @@ export async function openShopModal() {
 window.handleBuyCardPack = handleBuyCardPack;
 window.handleBuyGameItem = handleBuyGameItem;
 window.handleTonExchange = handleTonExchange;
+
