@@ -1,46 +1,33 @@
-
 /*
  * Filename: style.css
- * Version: NOUB 0.0.1 Eve Edition (V35.0 - TELEGRAM MASTER BUILD - FINAL VERSION)
- * Description: Complete and extensively optimized stylesheet (over 1100 lines) for Noub. 
- * Covers all 10 screens, 5-Reel Slot, UCP Chat, and detailed component scaling for Telegram Mini App density.
+ * Version: NOUB 0.0.1 Eve Edition (Final Design Integration)
+ * Description: Main stylesheet for the "Noub" game. Includes all styles for Core, Dashboard,
+ * Split Games, Upgrade, and the new Shop Tabs.
 */
 
 
-/* ==================================================================== */
-/* --- 1. GLOBAL SETTINGS, VARIABLES & RESET (Lines 1-80) --- */
-/* ==================================================================== */
+/* --- Global Settings & Variables --- */
 :root {
     --background-dark: #121212;
     --surface-dark: #1e1e1e;
-    --primary-accent: #D4AF37; 
+    --primary-accent: #D4AF37;
     --text-primary: #ffffff;
     --text-secondary: #aaaaaa;
-    --ankh-color: #29b6f6; 
+    --ankh-color: #29b6f6;
     --success-color: #34c759;
     --danger-color: #ff453a;
-    
-    /* Rarity Tiers */
     --rarity-common: #7f8c8d;
     --rarity-rare: #3498db;
     --rarity-epic: #9b59b6;
     --rarity-legendary: #f39c12;
     --rarity-diamond: #f1c40f;
-
-    /* Game Specific */
-    --kv-gate-color: #f7d794; 
-    --chat-eve-color: #3a3a3c;
-    --chat-user-color: #1a3a1a; 
-    --ui-spacing: 10px; 
-    --padding-sm: 8px;
-    --padding-md: 12px;
-    --border-radius-base: 8px;
+    --kv-gate-color: #f7d794; /* Color for KV game elements */
+    --chat-eve-color: #f0f0f0;
+    --chat-user-color: #d4edda;
 }
 
 * {
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -48,11 +35,10 @@ body {
     font-family: 'Cairo', sans-serif;
     background-color: var(--background-dark);
     color: var(--text-primary);
-    padding: 60px var(--ui-spacing) 80px var(--ui-spacing); 
+    margin: 0;
+    padding: 75px 15px 95px 15px;
     direction: ltr;
     min-height: 100vh;
-    font-size: 14px; 
-    line-height: 1.4;
 }
 
 .hidden {
@@ -61,83 +47,65 @@ body {
 
 .screen {
     animation: fadeIn 0.3s ease-in-out;
-    padding-bottom: 20px;
-    min-height: calc(100vh - 140px);
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideUp { 
-    from { transform: translateY(100%); } 
-    to { transform: translateY(0); } 
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 
-/* ==================================================================== */
-/* --- 2. HEADER & NAVIGATION (Lines 81-190) --- */
-/* ==================================================================== */
-
+/* --- Header & Bottom Navigation --- */
 header, .bottom-nav {
     position: fixed;
     left: 0;
     right: 0;
-    background-color: rgba(28, 28, 30, 0.98); 
-    backdrop-filter: blur(8px);
-    z-index: 1000;
+    background-color: rgba(28, 28, 30, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 100;
 }
 
 header {
     top: 0;
-    padding: 8px var(--ui-spacing); 
+    padding: 10px 15px;
     border-bottom: 1px solid #3a3a3c;
-    display: flex;
-    justify-content: space-between;
 }
 
 .balance-bar {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    gap: 8px; 
-    width: 100%;
+    gap: 15px;
 }
 
 .currency-display {
     display: flex;
     align-items: center;
     font-weight: bold;
-    font-size: 1em;
-    padding: 2px 5px;
-    border-radius: var(--border-radius-base);
-    background-color: var(--surface-dark);
-    flex-grow: 1;
-    justify-content: center;
-    min-width: 60px;
+    font-size: 1.1em;
 }
 
 .currency-display .icon {
-    font-size: 16px;
-    margin-right: 3px;
-    color: var(--primary-accent); 
+    font-size: 20px;
+    margin-right: 8px;
 }
 
 #connectButton {
     flex-shrink: 0;
-    margin-left: 10px;
-    width: 40px;
-    height: 30px;
 }
 
 .bottom-nav {
     bottom: 0;
     display: flex;
     justify-content: space-around;
-    padding: 8px 0 12px 0; 
+    padding: 10px 0 20px 0;
     border-top: 1px solid #3a3a3c;
-    z-index: 1000;
+    overflow-x: auto;
 }
 
 .nav-item {
@@ -146,14 +114,11 @@ header {
     align-items: center;
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 10px;
-    padding: 0 8px;
-    flex-grow: 1;
-    transition: color 0.2s;
-}
-
-.nav-item:hover {
-    color: var(--primary-accent);
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+    padding: 0 12px;
 }
 
 .nav-item.active {
@@ -161,60 +126,89 @@ header {
 }
 
 .nav-item .icon {
-    font-size: 20px; 
-    margin-bottom: 3px;
+    font-size: 24px;
+    margin-bottom: 4px;
 }
 
 
-/* ==================================================================== */
-/* --- 3. DASHBOARD & SHARED COMPONENTS (Lines 191-350) --- */
-/* ==================================================================== */
-
+/* --- General Content Styles --- */
 .screen h2 {
-    margin-bottom: var(--ui-spacing); 
-    font-size: 1.4em;
-    color: var(--primary-accent);
-    font-weight: 700;
+    margin-bottom: 25px;
 }
 
 .error-message {
     color: var(--danger-color);
 }
 
-/* Home Dashboard */
+.buildings-grid, .card-grid {
+    padding-bottom: 20px;
+}
+
+
+/* --- HOME SCREEN STYLES (DASHBOARD) --- */
+#home-screen {
+    text-align: center;
+}
 .home-action-icons {
     display: flex;
     justify-content: space-around;
-    gap: 8px;
-    margin-bottom: 20px;
-    margin-top: var(--ui-spacing);
+    gap: 15px;
+    margin-bottom: 40px;
+    margin-top: 15px;
     flex-wrap: wrap; 
 }
 .action-icon-link {
-    min-width: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-primary);
     font-size: 0.9em;
+    font-weight: bold;
+    min-width: 80px;
 }
 .icon-box {
-    width: 55px; 
-    height: 55px;
-    border-radius: 10px;
-    font-size: 26px;
-    margin-bottom: 4px;
+    width: 60px;
+    height: 60px;
+    background: var(--surface-dark);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 8px;
     border: 2px solid var(--primary-accent);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+.action-icon-link:hover .icon-box {
+    transform: scale(1.05);
+}
+.daily-task-summary {
+    text-align: left;
 }
 .daily-task-summary h3 {
-    font-size: 1.1em;
-    padding-bottom: 5px;
-    margin-bottom: 8px;
+    color: var(--primary-accent);
+    margin-bottom: 15px;
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 10px;
 }
 .daily-quest-card {
     background-color: var(--surface-dark);
-    padding: var(--padding-sm);
-    margin-bottom: 8px;
-    border-radius: var(--border-radius-base);
+    padding: 15px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    transition: background-color 0.2s;
+}
+.daily-quest-card:hover {
+    background-color: #2a2a2e;
 }
 .daily-quest-card .progress-bar {
-    height: 5px;
+    width: 100px;
+    height: 6px;
     background: #444;
     border-radius: 3px;
     overflow: hidden;
@@ -223,37 +217,602 @@ header {
     height: 100%;
     background: var(--success-color);
 }
-
-
-/* General Buttons & Inputs */
-.action-button {
-    width: 100%;
-    height: var(--button-height);
-    padding: 8px;
-    border: none;
-    border-radius: 8px;
+.daily-quest-card .reward {
+    color: var(--primary-accent);
     font-weight: bold;
-    font-size: 0.95em;
+}
+
+
+/* --- Production Screen --- */
+.production-section {
+    margin-bottom: 40px;
+}
+.production-section h3 {
+    color: var(--primary-accent);
+    margin-bottom: 15px;
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 10px;
+}
+
+
+/* --- Contracts Screen --- */
+.contracts-section {
+    margin-bottom: 40px;
+}
+.contracts-section h3 {
+    color: var(--primary-accent);
+    margin-bottom: 15px;
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 10px;
+}
+.contracts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.contracts-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+.contract-card {
+    background-color: var(--surface-dark);
+    border-radius: 12px;
+    padding: 15px;
+    border-left: 4px solid var(--primary-accent);
     cursor: pointer;
-    color: var(--background-dark);
-    background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
-    margin-top: 8px;
     transition: background-color 0.2s;
 }
-.action-button:disabled {
-    background: var(--text-secondary);
-    cursor: not-allowed;
+.contract-card:hover {
+    background-color: #2a2a2e;
+}
+.contract-card h4 {
+    margin: 0 0 10px 0;
+}
+.contract-rewards {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+.contract-rewards span {
+    font-weight: bold;
+    color: var(--primary-accent);
+}
+
+
+/* --- Contract Detail Modal --- */
+.contract-modal-header { text-align: center; }
+.contract-modal-header h3 { color: var(--primary-accent); font-size: 1.5em; margin: 0 0 10px 0; }
+.contract-modal-desc {
+    color: var(--text-secondary);
+    font-size: 1em;
+    margin: 20px 0;
+    text-align: center;
+    border-top: 1px solid #3a3a3c;
+    border-bottom: 1px solid #3a3a3c;
+    padding: 15px 0;
+}
+.contract-modal-subtitle {
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+.contract-modal-reqs {
+    margin-bottom: 20px;
+}
+.req-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #121212;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+.req-item-name {
+    display: flex;
+    align-items: center;
+}
+.req-item-name img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+.req-item-progress.met {
+    color: var(--success-color);
+}
+.contract-modal-rewards {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+}
+.reward-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+
+/* --- Cards & Grids --- */
+.card-grid, .buildings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+}
+
+.card-stack, .building-card {
+    background-color: var(--surface-dark);
+    border-radius: 12px;
+    padding: 8px;
+    position: relative;
+    border: 2px solid #3a3a3c;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s;
+}
+.building-card:hover, .card-stack:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-accent);
+}
+
+/* Card Rarity Aura/Border */
+.card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
+.card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
+.card-stack[data-rarity="4"] { border-color: var(--rarity-epic); }
+.card-stack[data-rarity="6"] { border-color: var(--rarity-legendary); }
+.card-stack[data-rarity="8"] { border-color: var(--rarity-diamond); }
+
+.card-stack .card-image, .building-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    object-fit: cover;
+    margin-bottom: 8px;
+}
+
+.card-stack h4, .building-card h4 {
+    margin: 5px 0;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.card-stack .card-details {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+.card-stack .card-level {
+    font-weight: bold;
+    color: var(--primary-accent);
+}
+
+
+.building-card .level {
+    font-size: 0.8em;
+    color: var(--primary-accent);
+    font-weight: bold;
+}
+
+.building-card .status {
+    font-size: 0.8em;
+    color: var(--success-color);
+    margin-top: 4px;
+    min-height: 1.2em;
+}
+
+
+/* --- Stockpile Screen --- */
+.stock-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #3a3a3c;
+    justify-content: center;
+}
+.stock-tab {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 1.1em;
+    cursor: pointer;
+}
+.stock-tab.active {
+    color: var(--primary-accent);
+    border-bottom: 2px solid var(--primary-accent);
+}
+.stock-content { display: none; }
+.stock-content.active { display: block; }
+.stock-item {
+    display: flex;
+    align-items: center;
+    background: var(--surface-dark);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.stock-item img {
+    width: 40px;
+    height: 40px;
+    margin-right: 15px;
+}
+.stock-item .details { flex-grow: 1; }
+.stock-item .quantity { font-size: 1.2em; font-weight: bold; }
+
+
+/* --- Production Modal --- */
+.prod-modal-header { text-align: center; }
+.prod-modal-header img { width: 80px; height: 80px; }
+.prod-modal-header h3 { color: var(--primary-accent); margin: 10px 0 5px 0; }
+.prod-modal-header .level { color: var(--text-secondary); }
+
+.prod-modal-body { margin: 20px 0; }
+.prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 15px; border-radius: 10px; }
+.prod-item { text-align: center; }
+.prod-item img { width: 50px; height: 50px; }
+.prod-item p { margin: 5px 0 0 0; }
+.prod-item .label { font-size: 0.8em; color: var(--text-secondary); }
+.arrow { font-size: 2em; color: var(--primary-accent); }
+
+.prod-timer { text-align: center; margin-top: 20px; }
+.prod-timer .time-left { font-size: 1.8em; font-weight: bold; letter-spacing: 2px; }
+.progress-bar { background-color: #444; border-radius: 5px; height: 10px; overflow: hidden; margin-top: 10px; }
+.progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
+
+
+/* --- Upgrade Screen --- */
+.upgrade-select-area {
+    margin-bottom: 40px;
+}
+.upgrade-select-area h3 {
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #3a3a3c;
+}
+
+.upgrade-detail-area {
+    background-color: var(--surface-dark);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 20px;
+    text-align: center;
+}
+.upgrade-card-target {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 20px auto;
+    border-radius: 12px;
+    background-color: #333;
+}
+.upgrade-cost-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.cost-item {
+    background-color: #1a1a1a;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+.cost-item .value {
+    font-weight: bold;
+    display: block;
+    margin-top: 5px;
+    color: var(--text-primary);
+}
+.cost-item .material-icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+.upgrade-cost-grid img {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 5px;
+}
+
+/* --- Games Screen (Slots) --- */
+.games-section {
+    margin-bottom: 40px;
+}
+.games-section h3 {
+    color: var(--primary-accent);
+    margin-bottom: 15px;
+}
+.game-container {
+    background-color: var(--surface-dark);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+.balance-info {
+    font-weight: bold;
+    color: var(--ankh-color);
+    margin-bottom: 15px;
+}
+.reels-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.reel {
+    width: 60px;
+    height: 90px;
+    overflow: hidden;
+    border: 2px solid var(--primary-accent);
+    border-radius: 8px;
+    background-color: #000;
+}
+.reel-inner {
+    width: 100%;
+    height: 1000px; 
+    transition: transform 0.5s ease-out; 
+}
+.reel-item {
+    width: 100%;
+    height: 90px;
+    line-height: 90px;
+    font-size: 30px;
+    color: var(--primary-accent);
 }
 .action-button.small {
-    height: 35px;
-    padding: 5px 10px;
-    font-size: 0.85em;
-    margin-top: 5px;
+    padding: 10px 15px;
+    font-size: 1em;
     width: auto;
+}
+
+
+/* --- KV Game Styles (NEW) --- */
+#kv-game-content h3 {
+    color: var(--kv-gate-color);
+    margin-top: 0;
+    padding-top: 0;
+}
+.kv-hint-item {
+    background-color: #1a1a1a;
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    text-align: left;
+}
+.kv-hint-item span {
+    font-weight: bold;
+    color: var(--kv-gate-color);
+}
+.game-status-message {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: var(--success-color);
+}
+.game-status-message.lose {
+    color: var(--danger-color);
+}
+.kv-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 15px;
+}
+#guess-input {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.2em;
+    text-align: center;
+    background: var(--background-dark);
+    border: 1px solid var(--primary-accent);
+    color: var(--text-primary);
+    border-radius: 8px;
+}
+#timer-display {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--primary-accent);
+    margin-bottom: 15px;
+}
+
+
+/* --- Chat Screen Styles (NEW) --- */
+#chat-messages {
+    background-color: var(--surface-dark);
+    border-radius: 12px;
+    height: 400px; /* Fixed height for chat area */
+    overflow-y: auto;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+.eve-bubble, .user-bubble {
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin-bottom: 10px;
+    max-width: 80%;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+.eve-bubble {
+    background-color: var(--chat-eve-color);
+    color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+.user-bubble {
+    background-color: var(--chat-user-color);
+    color: #155724;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+#chat-input-area {
+    display: flex;
+    gap: 10px;
+}
+#chat-input-field {
+    flex-grow: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3c;
+    background: var(--background-dark);
+    color: var(--text-primary);
+}
+
+
+/* --- Store Tabs Styles (NEW) --- */
+.shop-tabs-container {
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 1px solid #3a3a3c;
+    margin-bottom: 15px;
+}
+.shop-tab-btn {
+    padding: 10px 15px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    font-weight: bold;
+    cursor: pointer;
+}
+.shop-tab-btn.active {
+    color: var(--primary-accent);
+    border-bottom: 2px solid var(--primary-accent);
+}
+.shop-content-tab {
+    display: none;
+}
+.shop-content-tab.active {
+    display: block;
+}
+
+
+/* --- Modals --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* CRITICAL FIX: Hamburger menu z-index must be higher than other overlays */
+#more-modal {
+    z-index: 300; 
+}
+
+
+.modal-content {
+    background-color: var(--surface-dark);
+    border-radius: 20px;
+    padding: 20px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    border: 1px solid var(--primary-accent);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.8em;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+}
+
+/* --- "More" Menu (Hamburger) --- */
+.more-menu .more-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #3a3a3c;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-primary);
+}
+.more-menu .more-menu-item:last-child {
+    border-bottom: none;
+}
+.more-menu .more-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.more-menu .more-menu-item .icon {
+    font-size: 24px;
+    margin-right: 20px;
+    color: var(--primary-accent);
+}
+.more-menu .more-menu-item span {
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+
+/* --- Shop --- */
+.shop-item {
+    display: flex;
+    align-items: center;
+    background: #2a2a2e;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+.shop-item .icon { font-size: 40px; margin-right: 20px; }
+.shop-item .details { flex-grow: 1; }
+.shop-item h4 { margin: 0 0 5px 0; }
+.shop-item p { margin: 0; color: var(--text-secondary); font-size: 0.9em; }
+
+.buy-btn {
+    background: var(--primary-accent);
+    color: #121212;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.buy-btn:disabled { background: var(--text-secondary); cursor: not-allowed; }
+
+
+/* --- Buttons & Auth Form --- */
+.action-button {
+    width: 100%;
+    margin-top: 15px;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-family: 'Cairo', sans-serif;
+    font-size: 1.1em;
+    cursor: pointer;
+    color: #121212;
+    background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 .action-button.danger {
     background: var(--danger-color);
-    color: var(--text-primary);
+    color: white;
 }
 .text-button {
     background: none;
@@ -263,316 +822,119 @@ header {
     font-size: 0.9em;
     padding: 5px;
 }
-
-
-/* ==================================================================== */
-/* --- 4. ECONOMY HUB (Production & Stockpile) (Lines 351-500) --- */
-/* ==================================================================== */
-
-.stock-tabs-container {
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 5px;
-    flex-wrap: wrap;
-}
-.stock-tab-btn {
-    padding: 8px 5px; 
-    font-size: 0.85em; 
-    flex-grow: 1; 
-}
-.stock-tab-btn.active {
-    border-bottom: 2px solid var(--primary-accent);
-}
-.stock-content-tab {
-    padding-top: 8px;
-}
-.production-section h3 {
-    font-size: 1.1em;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 10px;
-}
-.buildings-grid {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
-    gap: 6px; 
-}
-.building-card {
-    background-color: var(--surface-dark);
-    border-radius: var(--border-radius-base);
-    padding: 5px;
-    border: 1px solid #3a3a3c;
-}
-.building-card img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border-radius: 6px;
-    margin-bottom: 4px;
-}
-.building-card h4 {
-    font-size: 0.85em;
-    margin: 2px 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.building-card .status {
-    font-size: 0.75em;
-    margin-top: 2px;
+.text-button:hover {
+    text-decoration: underline;
 }
 
-.stock-item {
+#auth-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: var(--background-dark);
+    z-index: 1000;
     display: flex;
     align-items: center;
-    background: var(--surface-dark);
-    padding: 6px 10px;
-    border-radius: var(--border-radius-base);
-    margin-bottom: 6px;
-}
-.stock-item img {
-    width: 30px;
-    height: 30px;
-    margin-right: 10px;
-}
-.stock-item .quantity { 
-    font-size: 1em; 
-    font-weight: bold;
-}
-
-/* Production Modal Detail */
-.prod-modal-header img { width: 70px; height: 70px; }
-.prod-modal-header h3 { font-size: 1.4em; }
-.prod-io { background-color: #1a1a1a; padding: 10px; border-radius: 8px; }
-.prod-item img { width: 40px; height: 40px; }
-.prod-timer .time-left { font-size: 1.6em; }
-
-
-/* ==================================================================== */
-/* --- 5. CARDS & UPGRADES (Lines 501-650) --- */
-/* ==================================================================== */
-
-.card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
-    gap: 6px; 
-}
-.card-stack {
-    padding: 5px;
-    border-radius: 8px;
-}
-.card-stack h4 {
-    font-size: 0.85em;
-}
-.card-stack .card-level {
-    font-size: 0.8em;
-}
-.card-stack .card-count {
-    font-size: 0.9em;
-}
-.card-stack .burn-btn {
-    padding: 3px 5px;
-    font-size: 0.7em;
-    margin-top: 3px;
-    height: auto;
-}
-
-.upgrade-detail-area {
-    padding: 15px;
-    border-radius: 10px;
-}
-.upgrade-card-target {
-    width: 120px; 
-    height: 120px;
-}
-.upgrade-cost-grid {
-    gap: 8px;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); 
-}
-
-
-/* ==================================================================== */
-/* --- 6. GAMES SCREENS (SLOT & KV) (Lines 651-850) --- */
-/* ==================================================================== */
-
-.game-container {
-    padding: 15px;
-}
-
-/* Slot Machine (5 Reels - Video Poker Style) */
-.reels-container {
-    display: flex;
     justify-content: center;
-    gap: 4px; 
-    margin-bottom: 15px;
-    padding: 0 5px;
-}
-.reel {
-    width: 18%; 
-    max-width: 55px; 
-    height: 90px; 
-    border-radius: 6px;
-}
-.reel-item {
-    height: 90px;
-    line-height: 90px;
-    font-size: 28px;
-}
-#slot-result-message {
-    font-weight: bold;
-    font-size: 1.1em;
-    padding: 10px;
-    margin-bottom: 15px;
-    min-height: 40px;
-    text-align: center;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-}
-#slot-result-message.win { background-color: var(--success-color); color: var(--background-dark); }
-#slot-result-message.lose { background-color: var(--danger-color); color: white; }
-#slot-result-message.pair { background-color: #e6e600; color: var(--background-dark); }
-#slot-result-message.info { background-color: var(--surface-dark); color: var(--text-primary); }
-
-
-/* KV Game Console */
-#kv-game-content h3 {
-    font-size: 1.3em;
-}
-#timer-display {
-    font-size: 1.6em;
-}
-.kv-hint-item {
-    padding: 6px 10px;
-    border: 1px solid var(--text-secondary);
-    border-radius: 6px;
-}
-#guess-input {
-    padding: 8px;
-    font-size: 1.1em;
-}
-
-
-/* ==================================================================== */
-/* --- 7. CHAT / UCP SCREEN (Lines 851-950) --- */
-/* ==================================================================== */
-
-#chat-messages {
-    background-color: var(--surface-dark);
-    border-radius: 12px;
-    height: 50vh; 
-    overflow-y: auto;
-    padding: 10px;
-    margin-bottom: 10px;
-    min-height: 300px;
-    display: flex;
-    flex-direction: column;
-}
-.eve-bubble, .user-bubble {
-    font-size: 0.9em;
-    padding: 8px 12px;
-    border-radius: 12px;
-    margin-bottom: 6px;
-    max-width: 85%;
-}
-.eve-bubble {
-    background-color: var(--chat-eve-color);
-    color: var(--text-primary);
-    align-self: flex-start;
-}
-.user-bubble {
-    background-color: var(--chat-user-color);
-    color: var(--background-dark);
-    align-self: flex-end;
-}
-#chat-input-area {
-    display: flex;
-    flex-direction: column; 
-    gap: 8px; 
-}
-#chat-input-field {
-    padding: 10px;
-    font-size: 0.9em;
-}
-.ucp-dynamic-btn {
-    padding: 5px 10px;
-    font-size: 0.85em;
-    margin-top: 5px !important;
-}
-
-
-/* ==================================================================== */
-/* --- 8. SHOP MODAL (TON Integration) (Lines 951-1100+) --- */
-/* ==================================================================== */
-
-.modal-overlay {
-    z-index: 200;
-}
-#more-modal {
-    z-index: 300; 
-}
-.modal-content {
-    padding: 15px;
-    max-width: 95%;
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
-}
-.modal-close-btn {
-    font-size: 1.6em;
-}
-
-/* Shop Tabs */
-.shop-tabs-container {
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 10px;
-}
-.shop-tab-btn {
-    font-size: 0.85em;
-    padding: 8px 10px;
-}
-.shop-item {
-    padding: var(--padding-sm);
-    margin-bottom: var(--ui-spacing);
-}
-.shop-item .buy-btn {
-    font-size: 0.9em;
-    padding: 6px 12px;
-    height: auto;
-}
-.ton-exchange h4 {
-    color: var(--ankh-color);
-}
-.ton-buy-btn {
-    background-color: var(--ankh-color);
-    color: var(--background-dark);
-}
-.profile-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-}
-
-/* Authentication Forms */
-.auth-form {
-    width: 90%;
-    max-width: 350px;
     padding: 20px;
 }
+.auth-form {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+.auth-form h2 {
+    color: var(--primary-accent);
+}
 .auth-form input {
-    padding: 10px;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background: var(--surface-dark);
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1.1em;
+    text-align: left;
+}
+.switch-form {
+    color: var(--ankh-color);
+    cursor: pointer;
+    margin-top: 20px;
+}
+.auth-error {
+    color: var(--danger-color);
+    margin-bottom: 15px;
+    min-height: 20px;
 }
 
-/* Final Utility Styles */
+
+/* --- Profile Screen --- */
+.profile-container, .profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+.profile-header .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-accent);
+}
+.profile-power {
+    background: var(--surface-dark);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    width: 100%;
+}
+.profile-power .label {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin: 0 0 5px 0;
+}
+.profile-power .power-score {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--ankh-color);
+    margin: 0;
+}
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+}
+.stat-box {
+    background: var(--surface-dark);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+}
+.stat-box .value {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+.stat-box .label {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin-top: 5px;
+}
+
+
+/* --- Toast Notifications --- */
 #toast-container {
-    bottom: 80px;
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
 }
 .toast {
-    padding: 10px 18px;
+    background-color: var(--surface-dark);
+    color: var(--text-primary);
+    padding: 12px 20px;
+    border-radius: 25px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     font-size: 0.9em;
 }
-
-/* Ensure ALL styles mentioned in previous responses are explicitly defined */
-.card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
-.card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
-.card-stack[data-rarity="4"] { border-color: var(--rarity-epic); }
-.card-stack[data-rarity="6"] { border-color: var(--rarity-legendary); }
-.card-stack[data-rarity="8"] { border-color: var(--rarity-diamond); }
-.req-item-progress.met { color: var(--success-color); }
-.contract-rewards span { font-weight: bold; color: var(--primary-accent); }
-.level-badge { background-color: var(--primary-accent); color: #121212; padding: 3px 10px; border-radius: 15px; font-size: 0.9em; font-weight: bold; display: inline-block; }
