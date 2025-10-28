@@ -30,7 +30,7 @@ import { renderHome } from './screens/home.js';
 
 
 // --- EXPORTS (RE-EXPORTING all corrected functions) ---
-// NOTE: These exports are what makes the function available outside of this file (e.g. to main.js)
+// These exports are what makes the function available outside of this file (e.g. to main.js)
 export const renderCollection = collectionModule.renderCollection;
 export const renderUpgrade = upgradeModule.renderUpgrade;
 export const renderHistory = historyModule.renderHistory;
@@ -38,9 +38,6 @@ export const renderLibrary = libraryModule.renderLibrary;
 export const renderSettings = settingsModule.renderSettings;
 export const renderAlbums = albumsModule.renderAlbums;
 export const renderWheel = wheelModule.renderWheel;
-
-// Other imports needed for the old structure (kept as is)
-import { refreshPlayerState } from './auth.js';
 
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
@@ -130,6 +127,11 @@ export function updateHeaderUI(profile) {
     const spinDisplay = document.getElementById('spin-ticket-display');
     if(spinDisplay) {
         spinDisplay.textContent = profile.spin_tickets || 0;
+    }
+    
+    // TON Connect UI update (ensures button status is current)
+    if (window.TonConnectUI) {
+        // NOTE: The button is rendered via index.html init. We just check if needed.
     }
 }
 
