@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.1 Eve Edition (FINAL API INTEGRATION - Complete)
+ * Version: NOUB 0.0.2 (API EXPANSION - COMPLETE)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * This file is 100% complete and contains all required API functions for the project.
+ * Includes all required functions for Player, Cards, Economy, Contracts, Games, UCP, History, Library, and Albums.
 */
 
 import { supabaseClient } from './config.js';
@@ -36,9 +36,6 @@ export async function addCardToPlayerCollection(playerId, cardId) {
     });
 }
 
-/**
- * Fetches the specific upgrade costs for a card instance.
- */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
         .from('card_levels')
@@ -51,9 +48,6 @@ export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
         .single();
 }
 
-/**
- * Executes the full card upgrade: updates the card instance level and power score.
- */
 export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) {
     return await supabaseClient
         .from('player_cards')
@@ -61,7 +55,6 @@ export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) 
         .eq('instance_id', playerCardId);
 }
 
-// NOTE: This function is required for the Card Burning logic in collection.js
 export async function deleteCardInstance(instanceId) {
     return await supabaseClient
         .from('player_cards')
@@ -96,9 +89,6 @@ export async function fetchPlayerFactories(playerId) {
         .eq('player_id', playerId);
 }
 
-/**
- * CRITICAL FIX: Function required by upgrade.js for factory leveling.
- */
 export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
     return await supabaseClient
         .from('player_factories')
@@ -280,8 +270,53 @@ export async function fetchUCPProtocol(playerId) {
         .eq('player_id', playerId);
 }
 
+
 // --- TON Integration Functions ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkh) {
     return { success: true, amount: amountAnkh }; // Mock success for client-side testing
+}
+
+
+// =================================================================================
+// --- NOUB 0.0.2 ADDITIONS (History, Library, Albums) ---
+// =================================================================================
+
+/**
+ * Fetches the complete game history for the player.
+ * Assumes a 'game_history' table exists with entries like (player_id, game_type, result, time_taken, level_kv, date).
+ */
+export async function fetchGameHistory(playerId) {
+    return await supabaseClient
+        .from('game_history')
+        .select('*')
+        .eq('player_id', playerId)
+        .order('date', { ascending: false });
+}
+
+/**
+ * Fetches the player's current status on all master card albums/sets.
+ * Assumes 'player_albums' stores (player_id, album_id, is_completed, reward_claimed).
+ */
+export async function fetchPlayerAlbums(playerId) {
+    return await supabaseClient
+        .from('player_albums')
+        .select(`
+            album_id, 
+            is_completed, 
+            reward_claimed,
+            master_albums (id, name, icon, description, card_ids)
+        `)
+        .eq('player_id', playerId);
+}
+
+/**
+ * Fetches the player's unlocked entries in the Tomb Encyclopedia (Library).
+ * Assumes 'player_library' stores (player_id, entry_key).
+ */
+export async function fetchPlayerLibrary(playerId) {
+    return await supabaseClient
+        .from('player_library')
+        .select('entry_key')
+        .eq('player_id', playerId);
 }
