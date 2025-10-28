@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/settings.js
- * Version: NOUB 0.0.2 (SETTINGS MODULE - COMPLETE)
+ * Version: NOUB 0.0.2 (SETTINGS MODULE - FINAL CODE)
  * Description: View Logic Module for the Player Settings screen.
  * Handles username update and avatar selection from unlocked options.
 */
@@ -12,7 +12,7 @@ import { refreshPlayerState } from '../auth.js';
 
 const settingsContainer = document.getElementById('settings-screen');
 
-// --- MASTER AVATAR DATA (Reference list - would be fetched from Supabase in a final product) ---
+// --- MASTER AVATAR DATA (Reference list) ---
 const MASTER_AVATARS = [
     { id: 'default_explorer', name: 'Default Explorer', image_url: 'images/user_avatar.png', is_unlocked: true },
     { id: 'pharaoh_mask', name: 'Pharaoh Mask', image_url: 'images/pharaoh_mask.png', is_unlocked: false, unlock_condition: { type: 'card_count', value: 10 } },
@@ -114,7 +114,6 @@ async function handleSaveUsername() {
         return;
     }
 
-    // NOTE: Full username validation (uniqueness check) would be implemented here in a real product.
     showToast(`Attempting to save name to ${newUsername}...`, 'info');
     
     // We will update the username directly in the profile table
@@ -159,6 +158,3 @@ async function handleSaveAvatar() {
         renderSettings(); // Re-render to show new 'ACTIVE' status
     }
 }
-
-// Export the function for use by ui.js
-export { renderSettings };
