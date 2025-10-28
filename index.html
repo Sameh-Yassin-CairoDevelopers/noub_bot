@@ -279,7 +279,7 @@
     <nav class="bottom-nav">
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
         <a class="nav-item" data-target="production-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
-        <a class="nav-item" data-target="collection-screen" title="My Collection"><div class="icon">🏛️</div><span>My Cards</span></a>
+        <a class="nav-item" data-target="collection-screen" title="My Cards"><div class="icon">🏛️</div><span>My Cards</span></a>
         <a class="nav-item" data-target="albums-screen" title="Albums"><div class="icon">📖</div><span>Albums</span></a>
         <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
@@ -295,7 +295,6 @@
                 const manifestUrl = 'https://raw.githubusercontent.com/sameh-yassin-cairodevelopers/noub_bot/main/tonconnect-manifest.json';
                 
                 // Initialize the UI manager immediately to ensure the button is rendered into #connectButton
-                // If a connection already exists, it will restore it.
                 window.TonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
                     manifestUrl: manifestUrl,
                     buttonRootId: 'connectButton' 
