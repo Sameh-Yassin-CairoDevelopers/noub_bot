@@ -164,7 +164,7 @@
             <div id="kv-game-screen" class="screen hidden">
                 <h2>Valley of the Kings - Crack the Code</h2>
                 <div id="kv-game-content" class="game-container">
-                    <!-- KV Game structure will be fully rendered here by its module -->
+                    <!-- KV Game structure: includes necessary IDs for kvgame.js fix -->
                     <div id="kv-game-intro-content">
                          <div id="kv-progress-info" class="game-status-message hidden">
                             <div id="kv-timer-display">Time Left: 0s</div>
@@ -286,5 +286,22 @@
     </nav>
     
     <script type="module" src="js/main.js?v=202510281800"></script> 
+    
+    <!-- CRITICAL FIX: TON Connect immediate initialization -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.TON_CONNECT_UI) {
+                // NOTE: Use your actual manifest URL here if hosted separately
+                const manifestUrl = 'https://raw.githubusercontent.com/sameh-yassin-cairodevelopers/noub_bot/main/tonconnect-manifest.json';
+                
+                // Initialize the UI manager immediately to ensure the button is rendered into #connectButton
+                // If a connection already exists, it will restore it.
+                window.TonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: manifestUrl,
+                    buttonRootId: 'connectButton' 
+                });
+            }
+        });
+    </script>
 </body>
 </html>
