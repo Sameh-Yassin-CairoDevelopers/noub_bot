@@ -1,8 +1,7 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB 0.0.2 (CARD BURNING - FINAL FIX)
- * Description: View Logic Module for My Collection screen. Displays card level, stack count,
- * and handles the Card Burning functionality to earn Prestige.
+ * Version: NOUB 0.0.2 (CARD BURNING - FINAL PRODUCTION FIX)
+ * Description: View Logic Module for My Collection screen. Corrected to ensure single export.
 */
 
 import { state } from '../state.js';
@@ -139,5 +138,5 @@ export async function renderCollection() {
         collectionContainer.appendChild(cardElement);
     }
 }
-// Export renderCollection for use by ui.js (ONLY ONE EXPORT HERE)
+// Export renderCollection for use by ui.js
 export { renderCollection };
