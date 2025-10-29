@@ -9,7 +9,7 @@
 import { state } from './state.js'; 
 
 // --- SCREEN MODULES IMPORTS (Use * as alias to prevent import/export conflicts) ---
-// FIX: Using * as Alias for all screen modules
+// FIX: Using * as Alias for all screen modules to prevent import/export conflicts
 import * as collectionModule from './screens/collection.js'; 
 import * as upgradeModule from './screens/upgrade.js';       
 import * as historyModule from './screens/history.js';       
