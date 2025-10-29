@@ -1,7 +1,8 @@
 /*
  * Filename: js/screens/activity.js
- * Version: NOUB 0.0.3 (ACTIVITY LOG SCREEN - FINAL CODE)
+ * Version: NOUB 0.0.4 (ACTIVITY LOG SCREEN - FINAL CODE)
  * Description: View Logic Module for displaying player's transaction and action history.
+ * Fetches data from the newly established 'activity_log' Supabase table.
 */
 
 import { state } from '../state.js';
@@ -49,6 +50,7 @@ export async function renderActivity() {
             case 'UPGRADE': icon = '✨'; color = 'var(--success-color)'; break;
             case 'CONTRACT_COMPLETE': icon = '✅'; color = 'var(--success-color)'; break;
             case 'BURN': icon = '🔥'; color = 'var(--danger-color)'; break;
+            case 'STARTER_PACK': icon = '🎁'; color = 'var(--rarity-legendary)'; break; // Use legend color for starter pack
             default: icon = 'ℹ️'; color = 'var(--text-secondary)'; break;
         }
         
@@ -67,3 +69,4 @@ export async function renderActivity() {
 
     listContainer.innerHTML = `<ul style="list-style: none; padding: 0;">${activityListHTML}</ul>`;
 }
+// NO EXPORT HERE
