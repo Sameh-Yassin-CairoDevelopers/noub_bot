@@ -1,7 +1,6 @@
-
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.3 (UI Controller - FINAL PRODUCTION CODE - ALL EXPORT FIXES)
+ * Version: NOUB 0.0.4 (UI Controller - FINAL PRODUCTION CODE - ALL EXPORT FIXES)
  * Description: UI Controller Module. The final module to handle all module imports and exports.
  * This file is 100% complete and guarantees compatibility with the new module structure.
 */
