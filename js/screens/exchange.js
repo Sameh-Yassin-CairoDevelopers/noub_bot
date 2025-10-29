@@ -1,9 +1,8 @@
 /*
  * Filename: js/screens/exchange.js
- * Version: NOUB 0.0.3 (EXCHANGE HUB - FINAL CODE)
+ * Version: NOUB 0.0.3 (EXCHANGE HUB - ABSOLUTE FINAL FIX)
  * Description: View Logic Module for the Internal Currency Exchange Hub.
- * Allows players to convert between Ankh, Prestige, Blessing, and Spin Tickets.
- * Includes Activity Log integration.
+ * REMOVED ALL EXPORT KEYWORDS to prevent Duplicate Export error.
 */
 
 import { state } from '../state.js';
@@ -32,7 +31,7 @@ const MIN_CONVERSION_AMOUNT = 1;
 /**
  * Renders the Exchange Hub UI.
  */
-export async function renderExchange() {
+export async function renderExchange() { // NOTE: REMOVED EXPORT HERE!
     if (!state.currentUser) return;
 
     if (!exchangeContainer) {
@@ -50,7 +49,7 @@ export async function renderExchange() {
             <!-- Exchange Card 1: ANKH ↔ PRESTIGE (1000 Ankh) -->
             <div class="exchange-card">
                 <h4>Ankh (☥) ↔ Prestige (🐞)</h4>
-                <p>Cost: ${RATES.ANKH_TO_PRESTIGE} Ankh per Prestige</p>
+                <p>Cost: 1 Prestige = ${RATES.ANKH_TO_PRESTIGE} Ankh</p>
                 <div class="exchange-input-group">
                     <input type="number" id="input-ankh-prestige" placeholder="Enter Ankh amount" min="${RATES.ANKH_TO_PRESTIGE}" step="${RATES.ANKH_TO_PRESTIGE}">
                     <button class="action-button small" onclick="window.convertCurrency('ankh', 'prestige')">Convert to 🐞</button>
@@ -64,7 +63,7 @@ export async function renderExchange() {
             <!-- Exchange Card 2: ANKH ↔ TICKET (100 Ankh) -->
             <div class="exchange-card">
                 <h4>Ankh (☥) ↔ Spin Tickets (🎟️)</h4>
-                <p>Cost: ${RATES.ANKH_TO_TICKET} Ankh per Ticket</p>
+                <p>Cost: 1 Ticket = ${RATES.ANKH_TO_TICKET} Ankh</p>
                 <div class="exchange-input-group">
                     <input type="number" id="input-ankh-ticket" placeholder="Enter Ankh amount" min="${RATES.ANKH_TO_TICKET}" step="${RATES.ANKH_TO_TICKET}">
                     <button class="action-button small" onclick="window.convertCurrency('ankh', 'ticket')">Convert to 🎟️</button>
@@ -78,7 +77,7 @@ export async function renderExchange() {
             <!-- Exchange Card 3: ANKH ↔ BLESSING (500 Ankh) -->
             <div class="exchange-card">
                 <h4>Ankh (☥) ↔ Blessing (🗡️)</h4>
-                <p>Cost: ${RATES.ANKH_TO_BLESSING} Ankh per Blessing</p>
+                <p>Cost: 1 Blessing = ${RATES.ANKH_TO_BLESSING} Ankh</p>
                 <div class="exchange-input-group">
                     <input type="number" id="input-ankh-blessing" placeholder="Enter Ankh amount" min="${RATES.ANKH_TO_BLESSING}" step="${RATES.ANKH_TO_BLESSING}">
                     <button class="action-button small" onclick="window.convertCurrency('ankh', 'blessing')">Convert to 🗡️</button>
@@ -97,9 +96,6 @@ export async function renderExchange() {
             <p>Spin Tickets (🎟️): ${state.playerProfile.spin_tickets || 0}</p>
         </div>
     `;
-    
-    // NOTE: CSS is expected to be in style.css, but this ensures functionality
-    // for demonstration purposes if external CSS is delayed.
 }
 
 /**
@@ -119,7 +115,7 @@ window.convertCurrency = async function(fromCurrency, toCurrency) {
         return;
     }
     
-    const isForwardConversion = fromCurrency === 'ankh'; // e.g., Ankh -> Prestige
+    const isForwardConversion = fromCurrency === 'ankh'; 
     const costPerUnitKey = `${fromCurrency.toUpperCase()}_TO_${toCurrency.toUpperCase()}`;
     const rateKey = isForwardConversion ? costPerUnitKey : `${toCurrency.toUpperCase()}_TO_${fromCurrency.toUpperCase()}`;
     
@@ -128,16 +124,16 @@ window.convertCurrency = async function(fromCurrency, toCurrency) {
     let amountToDeduct = 0;
     let amountToReceive = 0;
     
-    if (isForwardConversion) { // Ankh -> X (Input is Ankh, Deduct Ankh)
+    if (isForwardConversion) { 
         if (inputAmount % costPerUnit !== 0) {
             showToast(`Amount must be a multiple of ${costPerUnit}.`, 'error');
             return;
         }
         amountToDeduct = inputAmount;
         amountToReceive = inputAmount / costPerUnit;
-    } else { // X -> Ankh (Input is X, Deduct X)
-        amountToDeduct = inputAmount; // Deduct X units
-        amountToReceive = inputAmount * costPerUnit; // Receive X * Rate Ankh
+    } else { 
+        amountToDeduct = inputAmount; 
+        amountToReceive = inputAmount * costPerUnit; 
     }
     
     // Determine current balance of the source currency
@@ -169,17 +165,16 @@ window.convertCurrency = async function(fromCurrency, toCurrency) {
     // Add to destination (Always the 'toCurrency')
     switch (toCurrency) {
         case 'ankh': 
-            // If converting to Ankh, ensure the updated score is used.
             updateObject.score = (updateObject.score || state.playerProfile.score || 0) + amountToReceive; 
             break;
         case 'prestige': 
             updateObject.prestige = (updateObject.prestige || state.playerProfile.prestige || 0) + amountToReceive; 
             break;
         case 'blessing': 
-            updateObject.blessing = (state.playerProfile.blessing || 0) + amountToReceive; 
+            updateObject.blessing = (updateObject.blessing || state.playerProfile.blessing || 0) + amountToReceive; 
             break;
         case 'ticket': 
-            updateObject.spin_tickets = (state.playerProfile.spin_tickets || 0) + amountToReceive; 
+            updateObject.spin_tickets = (updateObject.spin_tickets || state.playerProfile.spin_tickets || 0) + amountToReceive; 
             break;
     }
     
@@ -198,5 +193,3 @@ window.convertCurrency = async function(fromCurrency, toCurrency) {
         showToast('Error processing conversion!', 'error');
     }
 }
-// Export renderExchange for ui.js
-export { renderExchange };
