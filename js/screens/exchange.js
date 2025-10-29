@@ -314,5 +314,4 @@ window.executeSwap = async function() {
         showToast('Error processing swap!', 'error');
     }
 }
-// Export renderExchange for ui.js
-export { renderExchange };
+
