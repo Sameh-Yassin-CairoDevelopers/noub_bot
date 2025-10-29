@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/albums.js
- * Version: NOUB 0.0.4 (ALBUMS MODULE - ALBUM-CENTRIC VIEW)
+ * Version: NOUB 0.0.4 (ALBUMS MODULE - ALBUM-CENTRIC VIEW - FINAL FIX)
  * Description: View Logic Module for the Album Catalog screen.
  * Implements the Album Detail Modal to show owned/unowned cards (like the Burble Boinker example).
 */
@@ -9,7 +9,7 @@ import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, openModal, closeModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { supabaseClient } from '../config.js'; // Import Supabase client for generic card fetch
+import { supabaseClient } from '../config.js'; 
 
 const albumsContainer = document.getElementById('albums-screen');
 
@@ -24,7 +24,7 @@ const MASTER_ALBUMS = [
 /**
  * Renders the initial Album Catalog (List View).
  */
-export async function renderAlbums() {
+export async function renderAlbums() { 
     if (!state.currentUser) return;
     
     if (!albumsContainer) return;
@@ -87,7 +87,6 @@ export async function renderAlbums() {
 
 /**
  * Opens the detail modal for a specific album, showing the 9 card slots.
- * Implements the Burble Boinker Set #2 visual style.
  */
 window.openAlbumDetail = async function(albumId, albumName) {
     const modalContent = document.getElementById('album-detail-modal-content');
@@ -196,5 +195,4 @@ window.handleClaimAlbumReward = async function(albumId, ankhReward, prestigeRewa
         showToast('Error claiming reward!', 'error');
     }
 }
-// Export renderAlbums for ui.js
-export { renderAlbums };
+// NO EXPORT HERE
