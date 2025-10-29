@@ -1,14 +1,13 @@
-
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB 0.0.2 (ECONOMY MODULE - FINAL FIX)
+ * Version: NOUB 0.0.4 (ECONOMY MODULE - FINAL FIX)
  * Description: View Logic Module for Production and Stockpile screens.
- * FIX: Ensures refreshPlayerState is called before rendering Stockpile tabs.
+ * FIX: Added missing navigateTo import and fixed timeElapsed scope.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, openModal } from '../ui.js';
+import { showToast, openModal, navigateTo } from '../ui.js'; // NOTE: Added navigateTo import
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
 
@@ -113,9 +112,7 @@ async function handleClaimProduction(playerFactory, outputItem) {
     if (!state.currentUser || !outputItem) return;
 
     const factory = playerFactory.factories;
-    const masterTime = factory.base_production_time * ONE_MINUTE; // Master time in ms
-
-    // Logic for calculating production speed based on factory level would go here
+    const masterTime = factory.base_production_time * ONE_MINUTE; 
     const productionTimeMs = masterTime; 
     
     const timeElapsed = new Date().getTime() - new Date(playerFactory.production_start_time).getTime();
@@ -127,7 +124,6 @@ async function handleClaimProduction(playerFactory, outputItem) {
 
     showToast('Claiming resources...', 'info');
 
-    // Determine quantity produced (simple level 1 logic: 1 unit)
     const quantityProduced = 1;
 
     // 1. Update Inventory Quantity
@@ -226,11 +222,12 @@ function openProductionModal(playerFactory, outputItem) {
     
     const isRunning = startTime !== null;
     let buttonHTML = '';
-    let timeLeft = 0;
     
+    // CRITICAL FIX: Define timeElapsed here to be used in the template string later
+    let timeElapsed = 0;
     if (isRunning) {
-        const timeElapsed = new Date().getTime() - new Date(startTime).getTime();
-        timeLeft = masterTime - timeElapsed;
+        timeElapsed = new Date().getTime() - new Date(startTime).getTime();
+        const timeLeft = masterTime - timeElapsed;
 
         if (timeLeft <= 0) {
             buttonHTML = `<button id="claim-prod-btn" class="action-button">Claim ${outputItem.name}</button>`;
@@ -290,18 +287,13 @@ function openProductionModal(playerFactory, outputItem) {
         document.getElementById('claim-prod-btn').onclick = () => handleClaimProduction(playerFactory, outputItem);
     }
     
-    // Attach UPGRADE listener
+    // Attach UPGRADE listener (CRITICAL FIX: Use imported navigateTo)
     const upgradeFactoryBtn = document.getElementById('upgrade-factory-btn');
     if(upgradeFactoryBtn) {
         upgradeFactoryBtn.onclick = () => {
             window.closeModal('production-modal');
-            navigateTo('card-upgrade-screen'); // Navigate to the dedicated upgrade screen
+            navigateTo('card-upgrade-screen'); // Use the imported navigateTo function
         };
-    }
-
-    // Optional: Start a detailed timer update inside the modal if running
-    if (isRunning && timeLeft > 0) {
-        // Timer logic is managed by updateProductionCard, but we keep this here for structure
     }
 }
 
@@ -412,3 +404,4 @@ export async function renderStock() {
         if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
+// NO EXPORT HERE
