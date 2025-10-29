@@ -1,15 +1,16 @@
 /*
  * Filename: js/screens/albums.js
- * Version: NOUB 0.0.4 (ALBUMS MODULE - ALBUM-CENTRIC VIEW - FINAL FIX)
+ * Version: NOUB 0.0.4 (ALBUMS MODULE - FINAL PRODUCTION CODE)
  * Description: View Logic Module for the Album Catalog screen.
  * Implements the Album Detail Modal to show owned/unowned cards (like the Burble Boinker example).
+ * FIX: Uses window.closeModal to resolve import error.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, openModal, closeModal } from '../ui.js';
+import { showToast, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { supabaseClient } from '../config.js'; 
+import { supabaseClient } from '../config.js'; // Import Supabase client for generic card fetch
 
 const albumsContainer = document.getElementById('albums-screen');
 
@@ -143,7 +144,7 @@ window.openAlbumDetail = async function(albumId, albumName) {
     // 3. Inject Modal Content
     modalContent.innerHTML = `
         <div style="padding: 15px; background: var(--background-dark); border-radius: 20px 20px 0 0;">
-            <button class="action-button small" style="position: absolute; top: 15px; left: 15px; background: #555; color: white; padding: 5px 10px;" onclick="closeModal('album-detail-modal-container')">← Back</button>
+            <button class="action-button small" style="position: absolute; top: 15px; left: 15px; background: #555; color: white; padding: 5px 10px;" onclick="window.closeModal('album-detail-modal-container')">← Back</button>
             <h2 style="text-align: center; margin-top: 0; color: var(--primary-accent);">${albumName}</h2>
             <div style="text-align: center; margin-bottom: 10px;">
                 <span style="font-size: 1.1em; font-weight: bold; color: var(--success-color);">
