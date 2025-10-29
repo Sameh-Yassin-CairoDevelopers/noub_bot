@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NOUB 0.0.2 - Pharaoh's Legacy</title>
+    <title>NOUB 0.0.3 - Pharaoh's Legacy</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -230,6 +230,16 @@
                 <!-- Content injected by settings.js -->
             </div>
             
+            <!-- Activity Log Screen (NEW SCREEN) -->
+            <div id="activity-screen" class="screen hidden">
+                 <!-- Content injected by activity.js -->
+            </div>
+            
+            <!-- Exchange Hub Screen (NEW SCREEN) -->
+            <div id="exchange-screen" class="screen hidden">
+                <!-- Content injected by exchange.js -->
+            </div>
+            
             <!-- Chat Screen (Eve/UCP) -->
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
@@ -264,6 +274,8 @@
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
+                <a class="more-menu-item" data-target="exchange-screen"><div class="icon">🔄</div><span>Currency Exchange</span></a>
+                <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
                 <a class="more-menu-item" data-target="wheel-screen"><div class="icon">🎡</div><span>Wheel of Fortune</span></a>
                 <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
                 <a class="more-menu-item" data-target="library-screen"><div class="icon">📚</div><span>Tomb Encyclopedia</span></a>
@@ -304,4 +316,3 @@
     </script>
 </body>
 </html>
-
