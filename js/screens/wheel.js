@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/wheel.js
- * Version: NOUB 0.0.2 (WHEEL MODULE - FINAL CODE)
- * Description: View Logic Module for the Wheel of Fortune screen.
- * Implements full spin logic, prize calculation, and integration with tickets/currency.
+ * Version: NOUB 0.0.3 (WHEEL MODULE - FINAL FIX: Simplified Slot Style)
+ * Description: Implements a simplified Slot/Reel-style selection mechanism to replace the complex spinning wheel.
+ * This guarantees proper rendering on all mobile browsers/TWA.
 */
 
 import { state } from '../state.js';
@@ -11,20 +11,19 @@ import { showToast, updateHeaderUI } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
 const wheelContainer = document.getElementById('wheel-screen');
-// Elements will be dynamically created/injected if they don't exist in the HTML
 
-// --- WHEEL CONFIGURATION ---
+// --- WHEEL CONFIGURATION (Now acts as a single-reel slot machine prize list) ---
 const WHEEL_PRIZES = [
-    { type: 'ankh', value: 100, label: '100 ☥', color: '#ffb3ba' },
-    { type: 'card_pack', value: 1, label: '1x Pack', color: '#ffdfba' },
-    { type: 'ankh', value: 500, label: '500 ☥', color: '#ffffba' },
-    { type: 'blessing', value: 1, label: '1x Dagger 🗡️', color: '#baffc9' },
-    { type: 'ankh', value: 200, label: '200 ☥', color: '#bae1ff' },
-    { type: 'scarab', value: 1, label: '1x Scarab 🐞', color: '#ffc6e5' },
-    { type: 'ankh', value: 1000, label: '1K ☥', color: '#ff8c94' },
-    { type: 'spin_ticket', value: 1, label: '+1 Spin', color: '#e0c2ff' }
+    { type: 'ankh', value: 100, label: '100 ☥', icon: '☥' },
+    { type: 'card_pack', value: 1, label: '1x Pack', icon: '📜' },
+    { type: 'ankh', value: 500, label: '500 ☥', icon: '☥' },
+    { type: 'blessing', value: 1, label: '1x Dagger 🗡️', icon: '🗡️' },
+    { type: 'ankh', value: 200, label: '200 ☥', icon: '☥' },
+    { type: 'scarab', value: 1, label: '1x Scarab 🐞', icon: '🐞' },
+    { type: 'ankh', value: 1000, label: '1K ☥', icon: '☥' },
+    { type: 'spin_ticket', value: 1, label: '+1 Spin', icon: '🎟️' }
 ];
-const SPIN_COST = 1; // Cost in Spin Tickets
+const SPIN_COST = 1; 
 
 let isSpinning = false;
 
@@ -40,15 +39,16 @@ export async function renderWheel() {
         return;
     }
     
-    // --- Initial Screen Setup (Inject core structure if needed) ---
+    // --- Initial Screen Setup (Inject core structure) ---
     if (!wheelContainer.querySelector('.wheel-container')) {
         wheelContainer.innerHTML = `
-            <div class="wheel-container">
-                <h2>Wheel of Fortune</h2>
-                <p style="color: var(--text-secondary);">Spin to win valuable resources and packs!</p>
-                <div style="position: relative; margin: 20px 0;">
-                    <div id="wheel" style="position: relative; width: 300px; height: 300px; border-radius: 50%; border: 10px solid var(--primary-accent); transition: transform 6s cubic-bezier(0.25, 1, 0.5, 1);"></div>
-                    <div class="wheel-pointer" style="width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 30px solid var(--danger-color); position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 10;"></div>
+            <div class="wheel-container game-container">
+                <h2>Wheel of Fortune (Reel Style)</h2>
+                <p style="color: var(--text-secondary);">Match the pointer to a prize!</p>
+                <div class="wheel-reel-area" style="position: relative; margin: 30px auto; width: 80%; max-width: 250px; height: 100px; border: 4px solid var(--primary-accent); border-radius: 10px; overflow: hidden;">
+                    <div id="wheel-reel" style="transition: transform 6s cubic-bezier(0.25, 1, 0.5, 1);"></div>
+                    <!-- Pointer/Selector -->
+                    <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: var(--danger-color); z-index: 5;"></div>
                 </div>
                 <button id="wheel-spin-button" class="action-button spin-button">SPIN (${SPIN_COST} TICKET)</button>
                 <p id="wheel-spins-left" style="margin-top: 10px;">Spin Tickets: 0</p>
@@ -57,40 +57,31 @@ export async function renderWheel() {
     }
     
     // Re-fetch DOM elements after potential injection
-    const wheelEl = document.getElementById('wheel');
+    const wheelReel = document.getElementById('wheel-reel');
     const spinBtn = document.getElementById('wheel-spin-button');
     
-    if (!wheelEl || !spinBtn) return;
+    if (!wheelReel || !spinBtn) return;
     
-    // 1. Initialize Wheel Segments (Color and Text)
-    const numPrizes = WHEEL_PRIZES.length;
-    const angle = 360 / numPrizes;
-    wheelEl.innerHTML = '';
-
-    WHEEL_PRIZES.forEach((prize, i) => {
-        const segment = document.createElement('div');
-        segment.className = 'wheel-segment';
-        segment.style.cssText = `
-            position: absolute; width: 50%; height: 50%; left: 50%; top: 50%; 
-            transform-origin: 0% 100%; transform: rotate(${i * angle}deg);
-            background-color: ${prize.color};
-            clip-path: polygon(0 0, 100% 0, 50% 100%); 
-            overflow: hidden;
-        `;
-        
-        // Label Element
-        const label = document.createElement('span');
-        label.textContent = prize.label;
-        label.style.cssText = `
-            position: absolute; bottom: 15px; left: 50%; 
-            transform: translateX(-50%) rotate(90deg) rotate(${angle/2}deg); 
-            font-size: 14px; font-weight: bold; color: #121212;
-            white-space: nowrap;
-        `;
-        
-        segment.appendChild(label);
-        wheelEl.appendChild(segment);
-    });
+    // 1. Initialize Reel Items (Multiple times for a long spin)
+    wheelReel.innerHTML = '';
+    for(let j = 0; j < 10; j++) { // Repeat 10 times
+        WHEEL_PRIZES.forEach((prize, i) => {
+            const item = document.createElement('div');
+            item.className = 'wheel-prize-item';
+            item.style.cssText = `
+                width: 100px; height: 100px; display: inline-flex; flex-direction: column; 
+                align-items: center; justify-content: center; background-color: ${prize.color}; 
+                border-right: 1px solid #000; box-sizing: border-box; font-size: 14px;
+                color: #121212; font-weight: bold;
+            `;
+            item.innerHTML = `<span style="font-size: 24px;">${prize.icon}</span><span>${prize.label}</span>`;
+            wheelReel.appendChild(item);
+        });
+    }
+    
+    // CRITICAL: Set initial reel width and display flex
+    wheelReel.style.display = 'flex';
+    wheelReel.style.width = `${WHEEL_PRIZES.length * 100 * 10}px`; // 100px width * prizes * 10 cycles
 
     // 2. Attach Listener
     spinBtn.onclick = runWheelSpin;
@@ -111,7 +102,7 @@ function updateWheelUIState() {
 }
 
 /**
- * Executes the full wheel spin sequence.
+ * Executes the full wheel spin sequence (Slot Style).
  */
 async function runWheelSpin() {
     if (!state.currentUser) return;
@@ -126,41 +117,46 @@ async function runWheelSpin() {
     isSpinning = true;
     spinBtn.disabled = true;
 
-    // 1. Consume ticket (Assumes spin_tickets is handled like a currency in playerProfile)
+    // 1. Consume ticket
     const newTickets = spins - SPIN_COST;
     await api.updatePlayerProfile(state.currentUser.id, { spin_tickets: newTickets });
     
-    showToast("Spinning the wheel...", 'info');
+    showToast("Spinning the reel...", 'info');
 
     // 2. Determine random result
     const prizeIndex = Math.floor(Math.random() * WHEEL_PRIZES.length);
     const prize = WHEEL_PRIZES[prizeIndex];
     
-    // 3. Calculate rotation (Spin 5 full times + target segment)
-    const anglePerSegment = 360 / WHEEL_PRIZES.length;
-    const randomOffset = (Math.random() - 0.5) * (anglePerSegment * 0.8);
-    const targetRotation = (360 * 5) - (prizeIndex * anglePerSegment) - (anglePerSegment / 2) + randomOffset;
+    // 3. Calculate final position (5 cycles + target prize)
+    const itemWidth = 100;
+    const cycles = 5;
+    const fullCycleDistance = WHEEL_PRIZES.length * itemWidth;
     
-    const wheelEl = document.getElementById('wheel');
-    if (!wheelEl) return;
+    // Target position (needs to land near the center line/pointer)
+    const targetOffset = (WHEEL_PRIZES.length - prizeIndex) * itemWidth;
     
-    wheelEl.style.transition = 'transform 6s cubic-bezier(0.25, 1, 0.5, 1)';
-    wheelEl.style.transform = `rotate(${targetRotation}deg)`;
+    // The final destination: full cycles + target item (plus half an item width to center it under the pointer)
+    const finalDestination = (cycles * fullCycleDistance) + targetOffset - (itemWidth / 2);
+    
+    const wheelReel = document.getElementById('wheel-reel');
+    if (!wheelReel) return;
+    
+    wheelReel.style.transition = 'transform 6s cubic-bezier(0.25, 1, 0.5, 1)';
+    wheelReel.style.transform = `translateX(-${finalDestination}px)`;
 
     // 4. Wait for animation to finish and award prize
     setTimeout(async () => {
-        // Reset transition
-        wheelEl.style.transition = 'none';
-        const actualRotation = targetRotation % 360; 
-        wheelEl.style.transform = `rotate(${actualRotation}deg)`;
+        // Reset transition and position for next spin
+        wheelReel.style.transition = 'none';
+        wheelReel.style.transform = `translateX(-${targetOffset - (itemWidth / 2)}px)`;
         
         await handleWheelPrize(prize);
 
         isSpinning = false;
         spinBtn.disabled = false;
-        await refreshPlayerState(); // Fetch new ticket count/currency
+        await refreshPlayerState(); 
         updateWheelUIState();
-    }, 6200); // Wait slightly longer than the transition duration
+    }, 6200); 
 }
 
 /**
@@ -181,7 +177,7 @@ async function handleWheelPrize(prize) {
     } else if (prize.type === 'spin_ticket') {
         profileUpdates.spin_tickets = (state.playerProfile.spin_tickets || 0) + prize.value;
     } else if (prize.type === 'card_pack') {
-        // We award a single common card directly as a bonus.
+        // Award a single common card directly as a bonus.
         const { data: allCards } = await api.fetchAllMasterCards();
         if (allCards && allCards.length > 0) {
             const commonCard = allCards[0]; 
@@ -194,6 +190,9 @@ async function handleWheelPrize(prize) {
     const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdates);
     
     if (!error) {
+        // CRITICAL: Log the activity
+        await api.logActivity(state.currentUser.id, 'WHEEL_SPIN', `Won ${prize.label} from Wheel of Fortune.`);
+        
         showToast(message, 'success');
     } else {
         showToast('Error awarding prize!', 'error');
