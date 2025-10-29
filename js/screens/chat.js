@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/chat.js
- * Version: NOUB 0.0.2 (EVE UCP PROTOCOL - COMPLETE)
- * Description: Logic for the Eve Chat interface. Implements the full 22-section UCP-LLM protocol
- * and creative question system.
+ * Version: NOUB 0.0.3 (EVE UCP PROTOCOL - FINAL CODE)
+ * Description: Logic for the Eve Chat interface. Implements the full 21-section UCP-LLM protocol
+ * and creative question system for data collection.
 */
 
 import { state } from '../state.js';
@@ -10,14 +10,14 @@ import * as api from '../api.js';
 import { showToast } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
-// Global references will be fetched inside renderChat for safety.
+// Global references 
 let chatMessagesContainer; 
 let chatInputField;
 let chatSendButton;
-let chatActionArea; // Reference to the area holding dynamic buttons/input
+let chatActionArea; 
 
-// --- UCP PROTOCOL DATA (Master List - Full 22 Sections + Invented Questions) ---
-// Combined UCP questions and creative questions from all source files.
+// --- UCP PROTOCOL DATA (Full 21 Sections + Invented Questions) ---
+// Note: This list is highly simplified for a quick chat flow, covering the 21 main concepts.
 const EVE_UCP_QUESTIONS_LIST = [
     // Direct Protocol Questions (Simplified for chat flow)
     { id: "preferredName", question: "First, what is your preferred name for interaction?", type: "text", jsonKey: "preferredName", sectionTitle: "Personal Data" },
@@ -78,6 +78,7 @@ function renderInputArea(questionConfig) {
     chatSendButton.style.display = 'none';
 
     if (questionConfig.type === 'mc' && questionConfig.options) {
+        // Multiple Choice Buttons
         questionConfig.options.forEach((opt) => {
             const btn = document.createElement('button');
             btn.className = 'action-button small ucp-dynamic-element';
@@ -89,6 +90,7 @@ function renderInputArea(questionConfig) {
         });
 
     } else if (questionConfig.type === 'select' && questionConfig.options) {
+        // Select Dropdown
         const select = document.createElement('select');
         select.className = 'ucp-dynamic-element';
         select.id = 'ucp-select-field';
@@ -118,25 +120,27 @@ function renderInputArea(questionConfig) {
 
     } else {
         // Standard input/textarea
-        chatInputField.style.display = 'block';
-        chatSendButton.style.display = 'inline-block';
-        chatInputField.type = (questionConfig.type === 'textarea') ? 'text' : questionConfig.type;
-        chatInputField.placeholder = (questionConfig.type === 'textarea') 
-            ? "Type your detailed answer here..." 
-            : "Type your answer here...";
         
-        // Use textarea if the question type is 'textarea' (since input can only be 'text', 'number', etc)
+        let targetElement;
+        
         if (questionConfig.type === 'textarea') {
-             const textarea = document.createElement('textarea');
-             textarea.id = 'ucp-textarea-field';
-             textarea.className = 'ucp-dynamic-element';
-             textarea.rows = 4;
-             textarea.placeholder = chatInputField.placeholder;
-             chatInputField.style.display = 'none'; // Hide input in favor of textarea
-             chatActionArea.insertBefore(textarea, chatSendButton); // Insert before send button
+             // Use textarea for long answers
+             targetElement = document.createElement('textarea');
+             targetElement.id = 'ucp-textarea-field';
+             targetElement.className = 'ucp-dynamic-element';
+             targetElement.rows = 4;
+             targetElement.placeholder = "Type your detailed answer here...";
+             chatActionArea.insertBefore(targetElement, chatSendButton);
+             chatInputField.style.display = 'none'; // Hide default input
+        } else {
+            // Use default input for short answers
+            targetElement = chatInputField;
+            targetElement.style.display = 'block';
+            targetElement.type = questionConfig.type;
+            targetElement.placeholder = "Type your answer here...";
         }
 
-        // Re-attach standard send handler
+        chatSendButton.style.display = 'inline-block';
         chatSendButton.onclick = handleChatSend; 
     }
 }
@@ -174,12 +178,12 @@ function processUCPAnswer(answer) {
     if (!isAwaitingUCPAnswer || !state.currentUser) return;
 
     const questionConfig = EVE_UCP_QUESTIONS_LIST[currentQuestionIndex];
-    const sectionKey = questionConfig.sectionTitle.replace(/[\s\&\.\/]+/g, '_').toLowerCase(); // Simplified key generation
-    const dataKey = questionConfig.jsonKey; // The specific key within the section data
+    const sectionKey = questionConfig.sectionTitle.replace(/[\s\&\.\/]+/g, '_').toLowerCase(); 
+    const dataKey = questionConfig.jsonKey; 
 
     const dataToSave = { 
         [dataKey]: answer, 
-        question: questionConfig.question // Save the question text itself for reference
+        question: questionConfig.question 
     };
     
     api.saveUCPSection(state.currentUser.id, sectionKey, dataToSave)
@@ -202,10 +206,13 @@ function handleChatSend() {
     const textareaEl = document.getElementById('ucp-textarea-field');
     if (textareaEl) {
         messageText = textareaEl.value.trim();
-        textareaEl.value = ''; // Clear textarea
+        textareaEl.value = ''; 
     }
     
-    chatInputField.value = ''; // Clear input field
+    if (chatInputField && chatInputField.style.display !== 'none') {
+        messageText = chatInputField.value.trim();
+        chatInputField.value = ''; 
+    }
 
     if (!messageText) return;
     
@@ -238,7 +245,6 @@ export async function renderChat() {
     chatMessagesContainer = document.getElementById('chat-messages'); 
     chatInputField = document.getElementById('chat-input-field');
     chatSendButton = document.getElementById('chat-send-button');
-    // Assume input field parent is the action area (or find a dedicated container)
     chatActionArea = chatInputField ? chatInputField.parentNode : null;
 
     if (!chatMessagesContainer || !chatInputField || !chatSendButton || !chatActionArea) {
@@ -256,23 +262,17 @@ export async function renderChat() {
     // 3. Check Protocol Status and Start Conversation
     await refreshPlayerState();
 
-    const protocolSize = state.ucp.size;
-    
-    // Determine last answered index by iterating through the UCP list and checking the saved state
     let lastAnsweredIndex = -1;
     for (let i = 0; i < EVE_UCP_QUESTIONS_LIST.length; i++) {
         const q = EVE_UCP_QUESTIONS_LIST[i];
         const sectionKey = q.sectionTitle.replace(/[\s\&\.\/]+/g, '_').toLowerCase();
         if (state.ucp.has(sectionKey)) {
-             // Basic check: if section exists, assume it was answered in the sequential flow
-             // A more robust check would verify the specific dataKey within the section data.
              lastAnsweredIndex = i; 
         }
     }
     
-    currentQuestionIndex = lastAnsweredIndex + 1; // Start from the next question
+    currentQuestionIndex = lastAnsweredIndex + 1;
     
-
     if (currentQuestionIndex >= EVE_UCP_QUESTIONS_LIST.length) {
         addMessage("Eve", "Welcome back. Your Cognitive Protocol is complete! I am now aligned with you.", 'eve-bubble');
         isAwaitingUCPAnswer = false;
@@ -284,18 +284,13 @@ export async function renderChat() {
         chatInputField.placeholder = "Click 'Start UCP Questions' to begin or continue.";
     }
     
-    // Add the Export button permanently (from UCP_LLM_Generator logic)
+    // Add the Export button permanently
     addMessage("Eve", `<button class='action-button small' onclick='window.generateAndExportProtocol()' style="background-color: #2ecc71; margin-top: 15px;">Generate & Export Protocol (TXT)</button>`, 'eve-bubble');
 }
 
 // CRITICAL: Global functions must be implemented 
 window.startUCPInterview = function() {
     if (chatMessagesContainer) chatMessagesContainer.innerHTML = ''; 
-    
-    // Re-calculate current question index to handle manual intervention
-    // (A full flow would check which questions were *specifically* answered via Supabase data structure)
-    // For now, we rely on the index calculated in renderChat()
-    
     askNextUCPQuestion();
 }
 
@@ -306,25 +301,21 @@ window.generateAndExportProtocol = function() {
     showToast('Generating Protocol...', 'info');
     
     // NOTE: This generation logic is a SIMPLIFIED MOCK of the full UCP_LLM_Generator.
-    // It is primarily to demonstrate the *capability* and link the data collected in state.ucp.
     const protocolData = state.ucp;
     const username = state.playerProfile.username || 'Explorer';
     let protocolText = `--- UCP-LLM FINAL PROTOCOL for ${username} ---\n`;
-    protocolText += `Version: NOUB 0.0.2 - Eve Edition\n`;
+    protocolText += `Version: NOUB 0.0.3 - Eve Edition\n`;
     protocolText += `Generation Date: ${new Date().toLocaleDateString()}\n\n`;
     
     if (protocolData.size === 0) {
         protocolText += "Profile is empty. Please answer Eve's questions first.\n";
     } else {
-        // Iterate over the UCP data map (section_key -> section_data)
         protocolData.forEach((sectionData, sectionKey) => {
             protocolText += `\n[Section: ${sectionKey.toUpperCase().replace(/_/g, ' ')}]\n`;
             
-            // sectionData contains { dataKey: answer, question: questionText }
             Object.keys(sectionData).forEach(dataKey => {
-                if (dataKey === 'question') return; // Skip the question text key itself
+                if (dataKey === 'question') return; 
                 
-                // Format the question and answer for TXT export (similar to the UCP Generator)
                 const questionText = sectionData.question || 'N/A';
                 const answerText = sectionData[dataKey];
                 
@@ -334,7 +325,7 @@ window.generateAndExportProtocol = function() {
         });
     }
     
-    // --- Export Logic (Copied from UCP_LLM_Generator for robustness) ---
+    // --- Export Logic ---
     const blob = new Blob([protocolText], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
