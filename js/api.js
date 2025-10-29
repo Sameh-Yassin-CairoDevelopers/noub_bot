@@ -1,13 +1,13 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.2 (API EXPANSION - COMPLETE)
+ * Version: NOUB 0.0.3 (API EXPANSION - ACTIVITY LOG)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * Includes all required functions for Player, Cards, Economy, Contracts, Games, UCP, History, Library, and Albums.
+ * ADDED: logActivity and fetchActivityLog functions.
 */
 
 import { supabaseClient } from './config.js';
 
-// --- Player and Card Functions ---
+// --- Player and Card Functions (UNCHANGED) ---
 
 export async function fetchProfile(userId) {
     return await supabaseClient.from('profiles').select('*').eq('id', userId).single();
@@ -63,7 +63,7 @@ export async function deleteCardInstance(instanceId) {
 }
 
 
-// --- Economy API Functions ---
+// --- Economy API Functions (UNCHANGED) ---
 
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
@@ -128,7 +128,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
 }
 
 
-// --- Contract API Functions ---
+// --- Contract API Functions (UNCHANGED) ---
 
 export async function fetchAvailableContracts(playerId) {
     const { data: playerContractIds, error: playerError } = await supabaseClient
@@ -204,7 +204,7 @@ export async function refreshAvailableContracts(playerId) {
 }
 
 
-// --- Games & Consumables API Functions ---
+// --- Games & Consumables API Functions (UNCHANGED) ---
 
 export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('*');
@@ -255,7 +255,7 @@ export async function updateKVProgress(playerId, updateObject) {
 }
 
 
-// --- UCP-LLM Protocol API Functions ---
+// --- UCP-LLM Protocol API Functions (UNCHANGED) ---
 
 export async function saveUCPSection(playerId, sectionKey, sectionData) {
     return await supabaseClient
@@ -271,20 +271,49 @@ export async function fetchUCPProtocol(playerId) {
 }
 
 
-// --- TON Integration Functions ---
+// --- TON Integration Functions (UNCHANGED) ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkh) {
-    return { success: true, amount: amountAnkh }; // Mock success for client-side testing
+    return { success: true, amount: amountAnkh }; 
 }
 
 
 // =================================================================================
-// --- NOUB 0.0.2 ADDITIONS (History, Library, Albums) ---
+// --- NOUB 0.0.3 ADDITIONS (Activity Log & Utility) ---
 // =================================================================================
 
 /**
+ * Logs a critical player activity to the database.
+ * @param {uuid} playerId - The user's ID.
+ * @param {string} activityType - 'EXCHANGE', 'PURCHASE', 'UPGRADE', 'CONTRACT_COMPLETE'.
+ * @param {string} description - Detailed description of the event.
+ */
+export async function logActivity(playerId, activityType, description) {
+    return await supabaseClient
+        .from('activity_log')
+        .insert({ 
+            player_id: playerId, 
+            activity_type: activityType, 
+            description: description 
+        });
+}
+
+/**
+ * Fetches the recent activity log for the player.
+ */
+export async function fetchActivityLog(playerId) {
+    return await supabaseClient
+        .from('activity_log')
+        .select('*')
+        .eq('player_id', playerId)
+        .order('created_at', { ascending: false })
+        .limit(50); 
+}
+
+// --- NOUB 0.0.2 ADDITIONS (History, Library, Albums - UNCHANGED) ---
+
+/**
  * Fetches the complete game history for the player.
- * Assumes a 'game_history' table exists with entries like (player_id, game_type, result, time_taken, level_kv, date).
  */
 export async function fetchGameHistory(playerId) {
     return await supabaseClient
@@ -296,7 +325,6 @@ export async function fetchGameHistory(playerId) {
 
 /**
  * Fetches the player's current status on all master card albums/sets.
- * Assumes 'player_albums' stores (player_id, album_id, is_completed, reward_claimed).
  */
 export async function fetchPlayerAlbums(playerId) {
     return await supabaseClient
@@ -312,7 +340,6 @@ export async function fetchPlayerAlbums(playerId) {
 
 /**
  * Fetches the player's unlocked entries in the Tomb Encyclopedia (Library).
- * Assumes 'player_library' stores (player_id, entry_key).
  */
 export async function fetchPlayerLibrary(playerId) {
     return await supabaseClient
