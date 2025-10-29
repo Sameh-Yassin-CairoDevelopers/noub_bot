@@ -1,6 +1,7 @@
+
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.2 (UI Controller - FINAL PRODUCTION CODE - ALL EXPORT FIXES)
+ * Version: NOUB 0.0.3 (UI Controller - FINAL PRODUCTION CODE - ALL EXPORT FIXES)
  * Description: UI Controller Module. The final module to handle all module imports and exports.
  * This file is 100% complete and guarantees compatibility with the new module structure.
 */
@@ -9,7 +10,7 @@
 import { state } from './state.js'; 
 
 // --- SCREEN MODULES IMPORTS (Use * as alias to prevent import/export conflicts) ---
-// FIX: Using * as Alias for all screen modules to prevent import/export conflicts
+// FIX: Using * as Alias for all screen modules
 import * as collectionModule from './screens/collection.js'; 
 import * as upgradeModule from './screens/upgrade.js';       
 import * as historyModule from './screens/history.js';       
@@ -17,6 +18,8 @@ import * as libraryModule from './screens/library.js';
 import * as settingsModule from './screens/settings.js';     
 import * as albumsModule from './screens/albums.js';         
 import * as wheelModule from './screens/wheel.js';           
+import * as exchangeModule from './screens/exchange.js';       
+import * as activityModule from './screens/activity.js';     
 
 // Modules that were correct initially (KEPT AS IS):
 import { renderProfile } from './screens/profile.js';
@@ -38,6 +41,8 @@ export const renderLibrary = libraryModule.renderLibrary;
 export const renderSettings = settingsModule.renderSettings;
 export const renderAlbums = albumsModule.renderAlbums;
 export const renderWheel = wheelModule.renderWheel;
+export const renderActivity = activityModule.renderActivity; 
+export const renderExchange = exchangeModule.renderExchange; 
 
 
 // Make closeModal globally available for all onclick attributes in dynamically generated HTML
@@ -114,6 +119,12 @@ export function navigateTo(targetId) {
             break;
         case 'wheel-screen':
             wheelModule.renderWheel(); 
+            break;
+        case 'exchange-screen': 
+            exchangeModule.renderExchange();
+            break;
+        case 'activity-screen': 
+            activityModule.renderActivity();
             break;
     }
 }
