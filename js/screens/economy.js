@@ -1,24 +1,25 @@
+
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB 0.0.1 Eve Edition (Economy Module - Complete)
+ * Version: NOUB 0.0.2 (ECONOMY MODULE - FINAL FIX)
  * Description: View Logic Module for Production and Stockpile screens.
- * Implements production timers, claiming, and inventory categorization.
+ * FIX: Ensures refreshPlayerState is called before rendering Stockpile tabs.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { trackDailyActivity } from './contracts.js'; // Import tracker for resource gathering
+import { trackDailyActivity } from './contracts.js'; 
 
 const resourcesContainer = document.getElementById('resources-container');
 const workshopsContainer = document.getElementById('workshops-container');
 const productionModal = document.getElementById('production-modal');
 
 // Stockpile Containers
-const stockResourcesContainer = document.getElementById('stock-resources');
-const stockMaterialsContainer = document.getElementById('stock-materials');
-const stockGoodsContainer = document.getElementById('stock-goods');
+const stockResourcesContainer = document.getElementById('stock-content-resources');
+const stockMaterialsContainer = document.getElementById('stock-content-materials');
+const stockGoodsContainer = document.getElementById('stock-content-goods');
 
 // Production Time Constants
 const ONE_HOUR = 3600000;
@@ -67,6 +68,8 @@ async function handleStartProduction(factoryId, recipes) {
     const itemsToConsume = [];
 
     for (const req of requiredItems) {
+        // NOTE: The previous code was missing the item_id lookup in the raw factory data fetch.
+        // We assume the inventory map key is the item_id (which is correct for the general structure).
         const playerQty = state.inventory.get(req.id)?.qty || 0;
         if (playerQty < req.qty) {
             missingResources = true;
@@ -80,7 +83,8 @@ async function handleStartProduction(factoryId, recipes) {
 
     // 2. Consume Resources
     const consumePromises = itemsToConsume.map(req => {
-        const currentQty = state.inventory.get(req.id).qty;
+        // Safely check if item exists in state before trying to get its qty
+        const currentQty = state.inventory.get(req.id)?.qty || 0; 
         const newQty = currentQty - req.qty;
         return api.updateItemQuantity(state.currentUser.id, req.id, newQty);
     });
@@ -112,7 +116,6 @@ async function handleClaimProduction(playerFactory, outputItem) {
     const masterTime = factory.base_production_time * ONE_MINUTE; // Master time in ms
 
     // Logic for calculating production speed based on factory level would go here
-    // For now, simple level 1 duration
     const productionTimeMs = masterTime; 
     
     const timeElapsed = new Date().getTime() - new Date(playerFactory.production_start_time).getTime();
@@ -206,7 +209,9 @@ function openProductionModal(playerFactory, outputItem) {
     // Check requirements vs inventory
     let canStart = true;
     const requirementsHTML = factory.factory_recipes.map(recipe => {
-        const playerQty = state.inventory.get(recipe.items.id)?.qty || 0;
+        // NOTE: The recipe structure in api.js is complex; we assume recipe.items.id holds the material ID
+        const materialId = recipe.items.id; 
+        const playerQty = state.inventory.get(materialId)?.qty || 0;
         const hasEnough = playerQty >= recipe.input_quantity;
         if (!hasEnough) canStart = false;
         
@@ -221,10 +226,11 @@ function openProductionModal(playerFactory, outputItem) {
     
     const isRunning = startTime !== null;
     let buttonHTML = '';
-
+    let timeLeft = 0;
+    
     if (isRunning) {
         const timeElapsed = new Date().getTime() - new Date(startTime).getTime();
-        const timeLeft = masterTime - timeElapsed;
+        timeLeft = masterTime - timeElapsed;
 
         if (timeLeft <= 0) {
             buttonHTML = `<button id="claim-prod-btn" class="action-button">Claim ${outputItem.name}</button>`;
@@ -295,7 +301,7 @@ function openProductionModal(playerFactory, outputItem) {
 
     // Optional: Start a detailed timer update inside the modal if running
     if (isRunning && timeLeft > 0) {
-        // Implement detailed timer logic here if needed (similar to updateProductionCard but focused on the modal)
+        // Timer logic is managed by updateProductionCard, but we keep this here for structure
     }
 }
 
@@ -348,37 +354,28 @@ export async function renderProduction() {
         // Initial status update
         updateProductionCard(playerFactory, outputItem);
     });
+    
+    // Call renderStock after production buildings are loaded
+    await renderStock();
 }
 
 
 // --- STOCKPILE LOGIC ---
 
-export function setupStockpileListeners() {
-    const stockTabs = document.querySelectorAll('.stock-tab');
-    stockTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.stock-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.stock-content').forEach(c => c.classList.remove('active'));
-
-            tab.classList.add('active');
-            document.getElementById(tab.dataset.target).classList.add('active');
-        });
-    });
-}
-
 export async function renderStock() {
     if (!state.currentUser) return;
     
-    // Ensure latest inventory is loaded (already handled by refreshPlayerState, but safety check)
-    if (state.inventory.size === 0) {
-        await refreshPlayerState();
-    }
+    // CRITICAL FIX: Ensure the latest state is loaded before rendering
+    await refreshPlayerState(); 
     
+    // Clear containers before rendering
     stockResourcesContainer.innerHTML = '';
     stockMaterialsContainer.innerHTML = '';
     stockGoodsContainer.innerHTML = '';
 
     let hasStock = false;
+    
+    // NOTE: state.inventory is a Map with item_id as key, and value { qty: N, details: {...} }
 
     state.inventory.forEach(item => {
         if (item.qty > 0) {
@@ -393,7 +390,7 @@ export async function renderStock() {
                 </div>
             `;
             
-            // Sort into correct containers
+            // Sort into correct containers based on item.details.type
             switch (item.details.type) {
                 case 'RESOURCE':
                     stockResourcesContainer.appendChild(itemElement);
@@ -409,8 +406,9 @@ export async function renderStock() {
     });
 
     if (!hasStock) {
-        stockResourcesContainer.innerHTML = '<p>Your stockpile is empty.</p>';
-        stockMaterialsContainer.innerHTML = '';
-        stockGoodsContainer.innerHTML = '';
+        // Add placeholders if no stock is found
+        if (stockResourcesContainer.innerHTML === '') stockResourcesContainer.innerHTML = '<p style="text-align:center;">No resources found.</p>';
+        if (stockMaterialsContainer.innerHTML === '') stockMaterialsContainer.innerHTML = '<p style="text-align:center;">No materials found.</p>';
+        if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
