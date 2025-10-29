@@ -1,8 +1,8 @@
-
 /*
  * Filename: style.css
- * Version: NOUB 0.0.2 - TWA & RTL FINAL FIXES
+ * Version: NOUB 0.0.4 - FINAL VISUAL POLISH
  * Description: Main stylesheet for the "Noub" game. Optimized for Mobile/Telegram Web App.
+ * Includes TWA button fixes, RTL support, and screen backgrounds.
 */
 
 
@@ -47,14 +47,36 @@ body {
 
 .hidden { display: none !important; }
 
-.screen { animation: fadeIn 0.3s ease-in-out; }
+.screen { 
+    animation: fadeIn 0.3s ease-in-out; 
+    /* Base background style for all screens */
+    background-color: var(--background-dark);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed; /* Fix background image on scroll */
+    min-height: calc(100vh - 170px); /* Ensure screen fills space */
+}
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+
+
+/* --- SCREEN BACKGROUNDS (Visual Backgrounds) --- */
+/* NOTE: You must provide these images in an 'images/bgs/' folder */
+#home-screen {
+    background-image: url('images/bgs/home_bg.jpg'); 
+}
+#kv-game-screen {
+    background-image: url('images/bgs/kvgame_bg.jpg'); 
+    background-size: 150%; /* Zoom in slightly for effect */
+}
+#production-screen {
+    background-image: url('images/bgs/economy_bg.jpg');
+}
+#collection-screen, #albums-screen, #card-upgrade-screen {
+     background-image: url('images/bgs/cards_bg.jpg');
+     background-size: cover;
 }
 
 
@@ -63,7 +85,7 @@ header, .bottom-nav {
     position: fixed;
     left: 0;
     right: 0;
-    background-color: rgba(28, 28, 30, 0.85); /* Slightly transparent background */
+    background-color: rgba(28, 28, 30, 0.95); /* Slightly less transparency */
     backdrop-filter: blur(10px);
     z-index: 100;
 }
@@ -333,7 +355,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Cards & Grids --- */
+/* --- Cards & Grids (Card Hub Base) --- */
 .card-grid, .buildings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -700,6 +722,71 @@ input:focus, textarea:focus {
 #chat-input-field {
     flex-grow: 1;
 }
+
+/* --- SWAP/EXCHANGE UI (DEX Style) --- */
+.swap-box { 
+    background: var(--surface-dark); 
+    padding: 15px; 
+    border-radius: 12px; 
+    border: 1px solid #3a3a3c; 
+    margin-bottom: 10px; 
+}
+.swap-header { 
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 0.9em; 
+    color: var(--text-secondary); 
+    margin-bottom: 10px; 
+}
+.swap-input-row { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+.swap-input-row input { 
+    flex-grow: 1; 
+    font-size: 1.2em; 
+    padding: 5px; 
+    border: none; 
+    background: transparent; 
+    color: var(--text-primary); 
+    margin: 0; 
+}
+.swap-input-row select { 
+    padding: 5px; 
+    border-radius: 8px; 
+    background: var(--input-bg); 
+    color: var(--text-primary); 
+}
+.swap-percent-row { 
+    display: flex; 
+    gap: 8px; 
+    margin-top: 10px; 
+}
+.swap-percent-row button { 
+    padding: 5px 10px; 
+    font-size: 0.8em; 
+}
+.swap-icon-container { 
+    text-align: center; 
+    margin: -10px 0; 
+    z-index: 10; 
+    position: relative; 
+}
+#swap-icon-btn { 
+    background: var(--primary-accent); 
+    border: 4px solid var(--background-dark); 
+    border-radius: 50%; 
+    width: 40px; 
+    height: 40px; 
+    margin: 0; 
+    padding: 0; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+#swap-icon-btn:active { transform: rotate(180deg); }
+#continue-swap-btn:disabled { opacity: 0.5; }
 
 
 /* --- Shop Tabs Styles --- */
