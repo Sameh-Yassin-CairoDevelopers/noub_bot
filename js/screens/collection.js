@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB 0.0.2 (CARD BURNING - FINAL PRODUCTION CODE)
+ * Version: NOUB 0.0.4 (CARD HUB - COLLECTION VIEW)
  * Description: View Logic Module for My Collection screen. Displays card stack, details,
- * and handles Card Burning functionality to earn Prestige. This file is 100% complete.
+ * and handles Card Burning functionality to earn Prestige.
 */
 
 import { state } from '../state.js';
@@ -42,6 +42,9 @@ async function handleBurnCard(instanceId, cardName, currentLevel) {
     // 2. Grant Prestige reward
     const newPrestige = (state.playerProfile.prestige || 0) + BURN_REWARD_PRESTIGE;
     await api.updatePlayerProfile(state.currentUser.id, { prestige: newPrestige });
+    
+    // 3. Log the activity
+    await api.logActivity(state.currentUser.id, 'BURN', `Burned 1x ${cardName} for ${BURN_REWARD_PRESTIGE} Prestige.`);
 
     showToast(`Burn successful! +${BURN_REWARD_PRESTIGE} Prestige (🐞) received.`, 'success');
     await refreshPlayerState();
@@ -126,10 +129,15 @@ export async function renderCollection() {
              });
         }
         
+        // CRITICAL: This onclick should transition to the Upgrade/Detail Screen
         cardElement.onclick = () => {
-             showToast(`Card: ${card.name}, Level: ${data.level}, Power: ${data.instances[0].power_score}. Instances: ${data.count}`, 'info');
+             // Use navigateTo to show the Upgrade screen, focusing on this card's details
+             showToast(`Navigating to details for ${card.name}...`, 'info');
+             // NOTE: A full implementation would pass the card ID to the Upgrade module
+             window.navigateTo('card-upgrade-screen'); 
         };
         
         collectionContainer.appendChild(cardElement);
     }
 }
+// NO EXPORT HERE
