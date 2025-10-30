@@ -1,8 +1,8 @@
 /*
  * Filename: js/main.js
- * Version: NOUB 0.0.2 (CRITICAL SAFE ENTRY POINT - FINAL ORCHESTRATION)
+ * Version: NOUB 0.0.4 (CRITICAL SAFE ENTRY POINT - FINAL ORCHESTRATION)
  * Description: Main entry point. Loads all modules and starts authentication.
- * Ensures all new/updated module paths are correct for a stable build.
+ * Includes TWA SDK Initialization.
 */
 
 // --- CORE MODULES (in /js/ directory - imported with './') ---
@@ -25,15 +25,27 @@ import './screens/collection.js';
 import './screens/economy.js'; 
 import './screens/shop.js';
 import './screens/profile.js';
-import './screens/history.js';    // NEW MODULE
-import './screens/library.js';    // NEW MODULE
-import './screens/settings.js';   // NEW MODULE
-import './screens/albums.js';     // NEW MODULE
-import './screens/wheel.js';      // NEW MODULE
+
+// --- NEW/UPDATED MODULES (NOUB 0.0.3/0.0.4) ---
+import './screens/history.js';    
+import './screens/library.js';    
+import './screens/settings.js';   
+import './screens/albums.js';     
+import './screens/wheel.js';      
+import './screens/exchange.js'; 
+import './screens/activity.js'; 
 
 
 document.addEventListener('DOMContentLoaded', () => {
     
+    // 0. CRITICAL: Initialize Telegram Web App SDK
+    if (window.Telegram && window.Telegram.WebApp) {
+         window.Telegram.WebApp.ready();
+         // Set colors to match the dark theme
+         window.Telegram.WebApp.setHeaderColor('#121212'); 
+         window.Telegram.WebApp.setBackgroundColor('#121212');
+    }
+
     // 1. Setup all event listeners (for navigation, forms, etc.)
     setupEventListeners();
     setupAuthEventListeners();
