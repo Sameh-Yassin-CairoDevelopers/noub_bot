@@ -1,318 +1,317 @@
+
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>NOUB 0.0.5 - Pharaoh's Legacy</title>
-code
-Code
-<link rel="stylesheet" href="style.css?v=0.0.5">
-<link rel="icon" href="favicon.ico" type="image/x-icon">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Telegram Web App SDK -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- TON Connect Library -->
-<script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NOUB 0.0.4 - Pharaoh's Legacy</title>
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- TON Connect Library -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
-code
-Code
-<!-- Authentication Overlay - Initially Visible -->
-<div id="auth-overlay">
-    <div class="auth-form" id="login-form">
-        <h2>Login to "Noub"</h2>
-        <div class="auth-error" id="login-error"></div>
-        <input type="email" id="login-email" placeholder="Email" required>
-        <input type="password" id="login-password" placeholder="Password" required>
-        <button id="login-button">Login</button>
-        <div class="switch-form" onclick="showRegisterForm()">No account? Sign up now</div>
+
+    <!-- Authentication Overlay - Initially Visible -->
+    <div id="auth-overlay">
+        <div class="auth-form" id="login-form">
+            <h2>Login to "Noub"</h2>
+            <div class="auth-error" id="login-error"></div>
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button id="login-button">Login</button>
+            <div class="switch-form" onclick="showRegisterForm()">No account? Sign up now</div>
+        </div>
+        <div class="auth-form hidden" id="register-form">
+            <h2>Create New Account</h2>
+            <div class="auth-error" id="register-error"></div>
+            <input type="text" id="register-username" placeholder="Username" required>
+            <input type="email" id="register-email" placeholder="Email" required>
+            <input type="password" id="register-password" placeholder="Password" required>
+            <button id="register-button">Sign Up</button>
+            <div class="switch-form" onclick="showLoginForm()">Already have an account? Login</div>
+        </div>
     </div>
-    <div class="auth-form hidden" id="register-form">
-        <h2>Create New Account</h2>
-        <div class="auth-error" id="register-error"></div>
-        <input type="text" id="register-username" placeholder="Username" required>
-        <input type="email" id="register-email" placeholder="Email" required>
-        <input type="password" id="register-password" placeholder="Password" required>
-        <button id="register-button">Sign Up</button>
-        <div class="switch-form" onclick="showLoginForm()">Already have an account? Login</div>
-    </div>
-</div>
 
-<!-- Main App Container - Initially Hidden -->
-<div id="app-container" class="hidden">
-    
-    <header>
-        <div class="balance-bar">
-            <!-- Ankh (العنخ) -->
-            <div class="currency-display"><span class="icon">☥</span> <span id="ankh-display">0</span></div>
-            <!-- Prestige (الخنفساء/Scarabs) -->
-            <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
-            <!-- Blessing (الخنجر/Daggers) -->
-            <div class="currency-display"><span class="icon">🗡️</span> <span id="blessing-display">0</span></div>
-            <!-- TON Wallet Connect Button Container -->
-            <div id="connectButton" class="ton-connect-btn"></div> 
-        </div>
-    </header>
-
-    <main id="content-container">
+    <!-- Main App Container - Initially Hidden -->
+    <div id="app-container" class="hidden">
         
-        <!-- Home Dashboard Screen (Home) -->
-        <div id="home-screen" class="screen active">
-            <div class="home-action-icons">
-                <!-- KV Game -->
-                <a class="action-icon-link" data-target="kv-game-screen">
-                    <div class="icon-box">🗝️</div>
-                    <span>KV Game</span>
-                </a>
-                <!-- Slot Machine -->
-                <a class="action-icon-link" data-target="slot-game-screen">
-                    <div class="icon-box">🎰</div>
-                    <span>Slot Game</span>
-                </a>
-                <!-- Wheel of Fortune (NEW SCREEN) -->
-                <a class="action-icon-link" data-target="wheel-screen">
-                    <div class="icon-box">🎡</div>
-                    <span>Wheel</span>
-                </a>
-                <!-- Upgrade -->
-                <a class="action-icon-link" data-target="card-upgrade-screen">
-                    <div class="icon-box">✨</div>
-                    <span>Upgrade</span>
-                </a>
-                <!-- Shop (Modal) -->
-                <a class="action-icon-link" id="home-shop-btn">
-                    <div class="icon-box">💰</div>
-                    <span>Shop</span>
-                </a>
-                <!-- Contracts Removed from Home Screen -->
+        <header>
+            <div class="balance-bar">
+                <!-- Ankh (العنخ) -->
+                <div class="currency-display"><span class="icon">☥</span> <span id="ankh-display">0</span></div>
+                <!-- Prestige (الخنفساء/Scarabs) -->
+                <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
+                <!-- Blessing (الخنجر/Daggers) -->
+                <div class="currency-display"><span class="icon">🗡️</span> <span id="blessing-display">0</span></div>
+                <!-- TON Wallet Connect Button Container -->
+                <div id="connectButton" class="ton-connect-btn"></div> 
             </div>
+        </header>
 
-            <div class="daily-task-summary">
-                <h3>Current Daily Task:</h3>
-                <div id="daily-quests-container"></div>
-            </div>
-        </div>
-
-        <!-- My Collection Screen -->
-        <div id="collection-screen" class="screen hidden"><h2>My Collection</h2><div class="card-grid" id="collection-container"></div></div>
-        
-        <!-- Economy Hub Screen -->
-        <div id="production-screen" class="screen hidden">
-            <h2>Economy Hub</h2>
+        <main id="content-container">
             
-             <div class="stock-tabs-container">
-                <button class="stock-tab-btn active" data-stock-tab="production">Production</button>
-                <button class="stock-tab-btn" data-stock-tab="resources">Resources</button>
-                <button class="stock-tab-btn" data-stock-tab="materials">Materials</button>
-                <button class="stock-tab-btn" data-stock-tab="goods">Goods</button>
-            </div>
-            
-            <!-- Production Content -->
-            <div id="stock-content-production" class="stock-content-tab active">
-                 <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
-                 <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
-            </div>
-
-            <!-- Stockpile Content -->
-            <div id="stock-content-resources" class="stock-content-tab"><div id="stock-resources"></div></div>
-            <div id="stock-content-materials" class="stock-content-tab"><div id="stock-materials"></div></div>
-            <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods"></div></div>
-        </div>
-
-        <!-- Contracts Screen -->
-        <div id="contracts-screen" class="screen hidden">
-            <h2>Royal Decrees</h2>
-            <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
-            <div class="contracts-section"><div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div><div id="available-contracts-container" class="contracts-list"></div></div>
-        </div>
-
-        <!-- Card Upgrade Screen -->
-        <div id="card-upgrade-screen" class="screen hidden">
-            <h2>Card & Factory Upgrades</h2>
-            <div class="upgrade-select-area"><h3>Select Card to Upgrade:</h3><div id="upgrade-card-selection-container" class="card-grid"></div></div>
-            <div id="upgrade-detail-area" class="upgrade-detail-area hidden"></div>
-        </div>
-
-        <!-- Slot Machine Game Screen -->
-        <div id="slot-game-screen" class="screen hidden">
-            <h2>Tomb of Treasures (Slot)</h2>
-             <div id="slot-machine-container" class="game-container">
-                <div id="slot-result-message"></div> 
-                <div class="balance-info">Spins Available: <span id="spin-ticket-display">0</span> 🗡️</div>
-                <div class="reels-container">
-                    <div class="reel" id="reel-1"></div>
-                    <div class="reel" id="reel-2"></div>
-                    <div class="reel" id="reel-3"></div>
-                    <div class="reel" id="reel-4"></div>
-                    <div class="reel" id="reel-5"></div> 
+            <!-- Home Dashboard Screen (Home) -->
+            <div id="home-screen" class="screen active">
+                <div class="home-action-icons">
+                    <!-- KV Game -->
+                    <a class="action-icon-link" data-target="kv-game-screen">
+                        <div class="icon-box">🗝️</div>
+                        <span>KV Game</span>
+                    </a>
+                    <!-- Slot Machine -->
+                    <a class="action-icon-link" data-target="slot-game-screen">
+                        <div class="icon-box">🎰</div>
+                        <span>Slot Game</span>
+                    </a>
+                    <!-- Wheel of Fortune (NEW SCREEN) -->
+                    <a class="action-icon-link" data-target="wheel-screen">
+                        <div class="icon-box">🎡</div>
+                        <span>Wheel</span>
+                    </a>
+                    <!-- Upgrade -->
+                    <a class="action-icon-link" data-target="card-upgrade-screen">
+                        <div class="icon-box">✨</div>
+                        <span>Upgrade</span>
+                    </a>
+                    <!-- Shop (Modal) -->
+                    <a class="action-icon-link" id="home-shop-btn">
+                        <div class="icon-box">💰</div>
+                        <span>Shop</span>
+                    </a>
+                    <!-- Contracts Removed from Home Screen -->
                 </div>
-                <button id="spin-button" class="action-button small">SPIN (1 TICKET)</button>
-            </div>
-        </div>
-        
-        <!-- Wheel of Fortune Screen (NEW SCREEN) -->
-        <div id="wheel-screen" class="screen hidden">
-            <!-- Content injected by wheel.js -->
-        </div>
 
-        <!-- KV Game (Valley of the Kings) Screen -->
-        <div id="kv-game-screen" class="screen hidden">
-            <h2>Valley of the Kings - Crack the Code</h2>
-            <div id="kv-game-content" class="game-container">
-                <!-- KV Game structure: includes necessary IDs for kvgame.js fix -->
-                <div id="kv-game-intro-content">
-                     <div id="kv-progress-info" class="game-status-message hidden">
-                        <div id="kv-timer-display">Time Left: 0s</div>
-                        <div id="kv-attempts-display">Attempts Left: 0</div>
-                     </div>
-                     <h2 style="margin-top: 0; padding-top: 0;"><span id="kv-level-name-display">KV Gate Name</span></h2>
-                     <button id="kv-start-btn" class="action-button small" style="width: 200px;">Load Game</button>
+                <div class="daily-task-summary">
+                    <h3>Current Daily Task:</h3>
+                    <div id="daily-quests-container"></div>
+                </div>
+            </div>
+
+            <!-- My Collection Screen -->
+            <div id="collection-screen" class="screen hidden"><h2>My Collection</h2><div class="card-grid" id="collection-container"></div></div>
+            
+            <!-- Economy Hub Screen -->
+            <div id="production-screen" class="screen hidden">
+                <h2>Economy Hub</h2>
+                
+                 <div class="stock-tabs-container">
+                    <button class="stock-tab-btn active" data-stock-tab="production">Production</button>
+                    <button class="stock-tab-btn" data-stock-tab="resources">Resources</button>
+                    <button class="stock-tab-btn" data-stock-tab="materials">Materials</button>
+                    <button class="stock-tab-btn" data-stock-tab="goods">Goods</button>
                 </div>
                 
-                <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
-                    <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
-                        <input type="number" id="kv-guess-input" style="width: 150px; font-size: 1.2em; text-align: center;" placeholder="Enter code...">
+                <!-- Production Content -->
+                <div id="stock-content-production" class="stock-content-tab active">
+                     <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
+                     <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
+                </div>
+
+                <!-- Stockpile Content -->
+                <div id="stock-content-resources" class="stock-content-tab"><div id="stock-resources"></div></div>
+                <div id="stock-content-materials" class="stock-content-tab"><div id="stock-materials"></div></div>
+                <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods"></div></div>
+            </div>
+
+            <!-- Contracts Screen -->
+            <div id="contracts-screen" class="screen hidden">
+                <h2>Royal Decrees</h2>
+                <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
+                <div class="contracts-section"><div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div><div id="available-contracts-container" class="contracts-list"></div></div>
+            </div>
+
+            <!-- Card Upgrade Screen -->
+            <div id="card-upgrade-screen" class="screen hidden">
+                <h2>Card & Factory Upgrades</h2>
+                <div class="upgrade-select-area"><h3>Select Card to Upgrade:</h3><div id="upgrade-card-selection-container" class="card-grid"></div></div>
+                <div id="upgrade-detail-area" class="upgrade-detail-area hidden"></div>
+            </div>
+
+            <!-- Slot Machine Game Screen -->
+            <div id="slot-game-screen" class="screen hidden">
+                <h2>Tomb of Treasures (Slot)</h2>
+                 <div id="slot-machine-container" class="game-container">
+                    <div id="slot-result-message"></div> 
+                    <div class="balance-info">Spins Available: <span id="spin-ticket-display">0</span> 🗡️</div>
+                    <div class="reels-container">
+                        <div class="reel" id="reel-1"></div>
+                        <div class="reel" id="reel-2"></div>
+                        <div class="reel" id="reel-3"></div>
+                        <div class="reel" id="reel-4"></div>
+                        <div class="reel" id="reel-5"></div> 
+                    </div>
+                    <button id="spin-button" class="action-button small">SPIN (1 TICKET)</button>
+                </div>
+            </div>
+            
+            <!-- Wheel of Fortune Screen (NEW SCREEN) -->
+            <div id="wheel-screen" class="screen hidden">
+                <!-- Content injected by wheel.js -->
+            </div>
+
+            <!-- KV Game (Valley of the Kings) Screen -->
+            <div id="kv-game-screen" class="screen hidden">
+                <h2>Valley of the Kings - Crack the Code</h2>
+                <div id="kv-game-content" class="game-container">
+                    <!-- KV Game structure: includes necessary IDs for kvgame.js fix -->
+                    <div id="kv-game-intro-content">
+                         <div id="kv-progress-info" class="game-status-message hidden">
+                            <div id="kv-timer-display">Time Left: 0s</div>
+                            <div id="kv-attempts-display">Attempts Left: 0</div>
+                         </div>
+                         <h2 style="margin-top: 0; padding-top: 0;"><span id="kv-level-name-display">KV Gate Name</span></h2>
+                         <button id="kv-start-btn" class="action-button small" style="width: 200px;">Load Game</button>
                     </div>
                     
-                    <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 5px;">
-                         <!-- Dynamic hint content here -->
-                    </ul>
-                    
-                    <div class="kv-controls-grid">
-                        <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
-                        <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
+                    <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
+                        <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+                            <input type="number" id="kv-guess-input" style="width: 150px; font-size: 1.2em; text-align: center;" placeholder="Enter code...">
+                        </div>
+                        
+                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 5px;">
+                             <!-- Dynamic hint content here -->
+                        </ul>
+                        
+                        <div class="kv-controls-grid">
+                            <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
+                            <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Albums Catalog Screen (NEW SCREEN) -->
-        <div id="albums-screen" class="screen hidden">
-            <!-- Content injected by albums.js -->
-        </div>
+            <!-- Albums Catalog Screen (NEW SCREEN) -->
+            <div id="albums-screen" class="screen hidden">
+                <!-- Content injected by albums.js -->
+            </div>
 
-        <!-- Profile Screen Content -->
-        <div id="profile-screen" class="screen hidden">
-             <div class="profile-container">
-                <div class="profile-header">
-                    <img src="images/user_avatar.png" alt="Avatar" class="avatar" id="player-avatar-img">
-                    <h2 id="player-name">Player</h2>
+            <!-- Profile Screen Content -->
+            <div id="profile-screen" class="screen hidden">
+                 <div class="profile-container">
+                    <div class="profile-header">
+                        <img src="images/user_avatar.png" alt="Avatar" class="avatar" id="player-avatar-img">
+                        <h2 id="player-name">Player</h2>
+                    </div>
+                    <div class="profile-power">
+                        <p class="label">Power Score</p>
+                        <div id="player-power-score" class="power-score">0</div>
+                    </div>
+                    <div class="profile-stats-grid">
+                        <div class="stat-box"><div id="stat-total-cards" class="value">0</div><div class="label">Total Cards</div></div>
+                        <div class="stat-box"><div id="stat-contracts" class="value">0</div><div class="label">Completed Contracts</div></div>
+                    </div>
+                    <button id="logout-btn" class="action-button danger">Logout</button>
                 </div>
-                <div class="profile-power">
-                    <p class="label">Power Score</p>
-                    <div id="player-power-score" class="power-score">0</div>
+            </div>
+            
+            <!-- History Screen (NEW SCREEN) -->
+            <div id="history-screen" class="screen hidden">
+                <!-- Content injected by history.js -->
+            </div>
+            
+            <!-- Library Screen (NEW SCREEN) -->
+            <div id="library-screen" class="screen hidden">
+                <!-- Content injected by library.js -->
+            </div>
+            
+            <!-- Settings Screen (NEW SCREEN) -->
+            <div id="settings-screen" class="screen hidden">
+                <!-- Content injected by settings.js -->
+            </div>
+            
+            <!-- Activity Log Screen (NEW SCREEN) -->
+            <div id="activity-screen" class="screen hidden">
+                 <!-- Content injected by activity.js -->
+            </div>
+            
+            <!-- Exchange Hub Screen (NEW SCREEN) -->
+            <div id="exchange-screen" class="screen hidden">
+                <!-- Content injected by exchange.js -->
+            </div>
+            
+            <!-- Chat Screen (Eve/UCP) -->
+            <div id="chat-screen" class="screen hidden">
+                <h2>Chat with Eve</h2>
+                <div id="chat-messages"></div>
+                <div id="chat-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="chat-input-field" placeholder="Chat with Eve..." style="flex-grow: 1;">
+                    <button id="chat-send-button" class="action-button small">Send</button>
                 </div>
-                <div class="profile-stats-grid">
-                    <div class="stat-box"><div id="stat-total-cards" class="value">0</div><div class="label">Total Cards</div></div>
-                    <div class="stat-box"><div id="stat-contracts" class="value">0</div><div class="label">Completed Contracts</div></div>
+            </div>
+        </main>
+        
+        <!-- Modals -->
+        <div id="shop-modal" class="modal-overlay hidden">
+             <!-- Shop Tabs Structure -->
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
+                <h2>Shop</h2>
+                
+                <div class="shop-tabs-container">
+                    <button class="shop-tab-btn active" data-shop-tab="cards">Card Packs</button>
+                    <button class="shop-tab-btn" data-shop-tab="game_items">Game Items</button>
+                    <button class="shop-tab-btn" data-shop-tab="ton_exchange">TON Exchange</button>
                 </div>
-                <button id="logout-btn" class="action-button danger">Logout</button>
+
+                <div id="shop-content-cards" class="shop-content-tab active"><div id="shop-items-cards-container"></div></div>
+                <div id="shop-content-game_items" class="shop-content-tab"><div id="shop-items-game_items-container"></div></div>
+                <div id="shop-content-ton_exchange" class="shop-content-tab"><div id="shop-items-ton_exchange-container"></div></div>
             </div>
         </div>
-        
-        <!-- History Screen (NEW SCREEN) -->
-        <div id="history-screen" class="screen hidden">
-            <!-- Content injected by history.js -->
-        </div>
-        
-        <!-- Library Screen (NEW SCREEN) -->
-        <div id="library-screen" class="screen hidden">
-            <!-- Content injected by library.js -->
-        </div>
-        
-        <!-- Settings Screen (NEW SCREEN) -->
-        <div id="settings-screen" class="screen hidden">
-            <!-- Content injected by settings.js -->
-        </div>
-        
-        <!-- Activity Log Screen (NEW SCREEN) -->
-        <div id="activity-screen" class="screen hidden">
-             <!-- Content injected by activity.js -->
-        </div>
-        
-        <!-- Exchange Hub Screen (NEW SCREEN) -->
-        <div id="exchange-screen" class="screen hidden">
-            <!-- Content injected by exchange.js -->
-        </div>
-        
-        <!-- Chat Screen (Eve/UCP) -->
-        <div id="chat-screen" class="screen hidden">
-            <h2>Chat with Eve</h2>
-            <div id="chat-messages"></div>
-            <div id="chat-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                <input type="text" id="chat-input-field" placeholder="Chat with Eve..." style="flex-grow: 1;">
-                <button id="chat-send-button" class="action-button small">Send</button>
+        <div id="toast-container"></div>
+        <div id="production-modal" class="modal-overlay hidden"></div>
+        <div id="contract-detail-modal" class="modal-overlay hidden"></div>
+        <div id="more-modal" class="modal-overlay hidden">
+            <div class="modal-content more-menu">
+                <a class="more-menu-item" data-target="exchange-screen"><div class="icon">🔄</div><span>Currency Exchange</span></a>
+                <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
+                <a class="more-menu-item" data-target="wheel-screen"><div class="icon">🎡</div><span>Wheel of Fortune</span></a>
+                <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
+                <a class="more-menu-item" data-target="library-screen"><div class="icon">📚</div><span>Tomb Encyclopedia</span></a>
+                <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
+                <a class="more-menu-item" data-target="profile-screen"><div class="icon">👤</div><span>Profile</span></a>
+                <a class="more-menu-item" data-target="chat-screen"><div class="icon">💬</div><span>Chat with Eve</span></a>
+                <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
             </div>
         </div>
-    </main>
+    </div>
+
+    <!-- Refined Bottom Navigation Bar (5 Icons) -->
+    <nav class="bottom-nav">
+        <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
+        <a class="nav-item" data-target="production-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
+        <a class="nav-item" data-target="collection-screen" title="My Cards"><div class="icon">🏛️</div><span>My Cards</span></a>
+        <a class="nav-item" data-target="albums-screen" title="Albums"><div class="icon">📖</div><span>Albums</span></a>
+        <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
+        <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
+    </nav>
     
-    <!-- Modals -->
-    <div id="shop-modal" class="modal-overlay hidden">
-         <!-- Shop Tabs Structure -->
-        <div class="modal-content">
-            <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
-            <h2>Shop</h2>
-            
-            <div class="shop-tabs-container">
-                <button class="shop-tab-btn active" data-shop-tab="cards">Card Packs</button>
-                <button class="shop-tab-btn" data-shop-tab="game_items">Game Items</button>
-                <button class="shop-tab-btn" data-shop-tab="ton_exchange">TON Exchange</button>
-            </div>
-
-            <div id="shop-content-cards" class="shop-content-tab active"><div id="shop-items-cards-container"></div></div>
-            <div id="shop-content-game_items" class="shop-content-tab"><div id="shop-items-game_items-container"></div></div>
-            <div id="shop-content-ton_exchange" class="shop-content-tab"><div id="shop-items-ton_exchange-container"></div></div>
-        </div>
-    </div>
-    <div id="toast-container"></div>
-    <div id="production-modal" class="modal-overlay hidden"></div>
-    <div id="contract-detail-modal" class="modal-overlay hidden"></div>
-    <div id="more-modal" class="modal-overlay hidden">
-        <div class="modal-content more-menu">
-            <a class="more-menu-item" data-target="exchange-screen"><div class="icon">🔄</div><span>Currency Exchange</span></a>
-            <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
-            <a class="more-menu-item" data-target="wheel-screen"><div class="icon">🎡</div><span>Wheel of Fortune</span></a>
-            <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
-            <a class="more-menu-item" data-target="library-screen"><div class="icon">📚</div><span>Tomb Encyclopedia</span></a>
-            <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
-            <a class="more-menu-item" data-target="profile-screen"><div class="icon">👤</div><span>Profile</span></a>
-            <a class="more-menu-item" data-target="chat-screen"><div class="icon">💬</div><span>Chat with Eve</span></a>
-            <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
-        </div>
-    </div>
-</div>
-
-<!-- Refined Bottom Navigation Bar (5 Icons) -->
-<nav class="bottom-nav">
-    <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
-    <a class="nav-item" data-target="production-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
-    <a class="nav-item" data-target="collection-screen" title="My Cards"><div class="icon">🏛️</div><span>My Cards</span></a>
-    <a class="nav-item" data-target="albums-screen" title="Albums"><div class="icon">📖</div><span>Albums</span></a>
-    <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
-    <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
-</nav>
-
-<script type="module" src="js/main.js?v=202510281800"></script> 
-
-<!-- CRITICAL FIX: TON Connect immediate initialization -->
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        if (window.TON_CONNECT_UI) {
-            // NOTE: Use your actual manifest URL here if hosted separately
-            const manifestUrl = 'https://raw.githubusercontent.com/sameh-yassin-cairodevelopers/noub_bot/main/tonconnect-manifest.json';
-            
-            // Initialize the UI manager immediately to ensure the button is rendered into #connectButton
-            window.TonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
-                manifestUrl: manifestUrl,
-                buttonRootId: 'connectButton' 
-            });
-        }
-    });
-</script>
+    <script type="module" src="js/main.js?v=202510281800"></script> 
+    
+    <!-- CRITICAL FIX: TON Connect immediate initialization -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.TON_CONNECT_UI) {
+                // NOTE: Use your actual manifest URL here if hosted separately
+                const manifestUrl = 'https://raw.githubusercontent.com/sameh-yassin-cairodevelopers/noub_bot/main/tonconnect-manifest.json';
+                
+                // Initialize the UI manager immediately to ensure the button is rendered into #connectButton
+                window.TonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: manifestUrl,
+                    buttonRootId: 'connectButton' 
+                });
+            }
+        });
+    </script>
 </body>
 </html>
