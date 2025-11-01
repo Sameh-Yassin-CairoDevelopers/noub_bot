@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: Noub v0.0.5 (UI Controller - NEW ECONOMY FIX)
- * Description: UI Controller Module. Updated to handle the new economic model (NOUB, Senu)
- * and the image-based icon structure. This file guarantees compatibility with the v0.0.5 index.html.
+ * Version: NOUB 0.0.4 (UI Controller - FINAL PRODUCTION CODE - ALL EXPORT FIXES)
+ * Description: UI Controller Module. The final module to handle all module imports and exports.
+ * This file is 100% complete and guarantees compatibility with the new module structure.
 */
 
 // --- CORE IMPORTS ---
@@ -128,31 +128,12 @@ export function navigateTo(targetId) {
     }
 }
 
-/**
- * CRITICAL V0.0.5 UPDATE
- * Updates the header UI to reflect the new economic model (NOUB, Senu, Prestige).
- * Targets the new element IDs from the updated index.html.
- */
 export function updateHeaderUI(profile) {
     if (!profile) return;
-
-    // IMPORTANT: Make sure these field names (e.g., 'noub_balance', 'senu_balance')
-    // match the column names in your 'profiles' table in Supabase exactly.
-    const noubValueEl = document.getElementById('noub-value');
-    const senuValueEl = document.getElementById('senu-value');
-    const prestigeValueEl = document.getElementById('prestige-value');
+    document.getElementById('ankh-display').textContent = profile.score || 0;
+    document.getElementById('prestige-display').textContent = profile.prestige || 0;
+    document.getElementById('blessing-display').textContent = profile.blessing || 0;
     
-    if (noubValueEl) {
-        noubValueEl.textContent = profile.noub_balance || 0;
-    }
-    if (senuValueEl) {
-        senuValueEl.textContent = profile.senu_balance || 0;
-    }
-    if (prestigeValueEl) {
-        prestigeValueEl.textContent = profile.prestige || 0;
-    }
-
-    // This part remains for the spin tickets on the slot game screen
     const spinDisplay = document.getElementById('spin-ticket-display');
     if(spinDisplay) {
         spinDisplay.textContent = profile.spin_tickets || 0;
@@ -163,7 +144,6 @@ export function updateHeaderUI(profile) {
         // NOTE: The button is rendered via index.html init. We just check if needed.
     }
 }
-
 
 export function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
