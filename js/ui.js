@@ -1,12 +1,13 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.4 (UI Controller - FINAL PRODUCTION CODE - ALL EXPORT FIXES)
+ * Version: NOUB 0.0.6 (UI Controller - NOUB & ANKH Rework + Sizing)
  * Description: UI Controller Module. The final module to handle all module imports and exports.
- * This file is 100% complete and guarantees compatibility with the new module structure.
+ * Updated: Header UI for new currencies and applied global sizing adjustments.
 */
 
 // --- CORE IMPORTS ---
 import { state } from './state.js'; 
+import { ASSET_PATHS } from './config.js'; // Import asset paths for currency icons
 
 // --- SCREEN MODULES IMPORTS (Use * as alias to prevent import/export conflicts) ---
 // FIX: Using * as Alias for all screen modules
@@ -130,10 +131,31 @@ export function navigateTo(targetId) {
 
 export function updateHeaderUI(profile) {
     if (!profile) return;
-    document.getElementById('ankh-display').textContent = profile.score || 0;
-    document.getElementById('prestige-display').textContent = profile.prestige || 0;
-    document.getElementById('blessing-display').textContent = profile.blessing || 0;
+    // Update NOUB (was Ankh ☥) - now using a custom image
+    const noubDisplay = document.getElementById('noub-display');
+    if(noubDisplay) {
+        noubDisplay.textContent = profile.noub_score || 0;
+        // Optionally update the icon if it's dynamic
+        // const noubIcon = document.getElementById('noub-icon');
+        // if(noubIcon) noubIcon.src = ASSET_PATHS.NOUB_ICON;
+    }
+
+    // Update Prestige (🐞)
+    const prestigeDisplay = document.getElementById('prestige-display');
+    if(prestigeDisplay) {
+        prestigeDisplay.textContent = profile.prestige || 0;
+    }
     
+    // Update Ankh Premium (was Blessing 🗡️) - now using Ankh Key of Life ☥
+    const ankhPremiumDisplay = document.getElementById('ankh-premium-display');
+    if(ankhPremiumDisplay) {
+        ankhPremiumDisplay.textContent = profile.ankh_premium || 0;
+        // Optionally update the icon if it's dynamic
+        // const ankhPremiumIcon = document.getElementById('ankh-premium-icon');
+        // if(ankhPremiumIcon) ankhPremiumIcon.src = ASSET_PATHS.ANKH_PREMIUM_ICON;
+    }
+    
+    // Update Spin Tickets (🎟️)
     const spinDisplay = document.getElementById('spin-ticket-display');
     if(spinDisplay) {
         spinDisplay.textContent = profile.spin_tickets || 0;
