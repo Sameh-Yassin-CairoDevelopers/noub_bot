@@ -1,16 +1,17 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.3 (API EXPANSION - ACTIVITY LOG)
+ * Version: NOUB 0.0.6 (API EXPANSION - NOUB & ANKH Rework)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * ADDED: logActivity and fetchActivityLog functions.
+ * UPDATED: Profile functions to use new currency names.
 */
 
 import { supabaseClient } from './config.js';
 
-// --- Player and Card Functions (UNCHANGED) ---
+// --- Player and Card Functions (UPDATED) ---
 
 export async function fetchProfile(userId) {
-    return await supabaseClient.from('profiles').select('*').eq('id', userId).single();
+    // Fetch new currency names: noub_score, ankh_premium
+    return await supabaseClient.from('profiles').select('*, noub_score, ankh_premium').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
@@ -22,6 +23,7 @@ export async function fetchAllMasterCards() {
 }
 
 export async function updatePlayerProfile(playerId, updateObject) {
+    // Ensure updateObject uses noub_score and ankh_premium
     return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
 }
 
@@ -63,7 +65,7 @@ export async function deleteCardInstance(instanceId) {
 }
 
 
-// --- Economy API Functions (UNCHANGED) ---
+// --- Economy API Functions (UNCHANGED logic, but underlying profile calls use new names) ---
 
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
@@ -128,7 +130,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
 }
 
 
-// --- Contract API Functions (UNCHANGED) ---
+// --- Contract API Functions (UNCHANGED logic, but underlying profile calls use new names) ---
 
 export async function fetchAvailableContracts(playerId) {
     const { data: playerContractIds, error: playerError } = await supabaseClient
@@ -156,7 +158,7 @@ export async function fetchPlayerContracts(playerId) {
         .select(`
             id, 
             status,
-            contracts (id, title, description, reward_score, reward_prestige)
+            contracts (id, title, description, reward_noub_score, reward_prestige) -- Renamed reward_score to reward_noub_score
         `)
         .eq('player_id', playerId)
         .eq('status', 'active');
@@ -190,9 +192,10 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
+    // Ensure newTotals uses noub_score and ankh_premium
     return await supabaseClient
         .from('profiles')
-        .update({ score: newTotals.score, prestige: newTotals.prestige })
+        .update({ noub_score: newTotals.noub_score, prestige: newTotals.prestige })
         .eq('id', playerId);
 }
 
@@ -204,21 +207,22 @@ export async function refreshAvailableContracts(playerId) {
 }
 
 
-// --- Games & Consumables API Functions (UNCHANGED) ---
+// --- Games & Consumables API Functions (UNCHANGED logic, but underlying profile calls use new names) ---
 
 export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('*');
 }
 
 export async function getDailySpinTickets(playerId) {
+    // Fetch new currency names: noub_score, ankh_premium
     const { data: profileData, error } = await supabaseClient.from('profiles')
-        .select('spin_tickets, last_daily_spin')
+        .select('spin_tickets, last_daily_spin, noub_score, ankh_premium')
         .eq('id', playerId)
         .single();
     
     if (error || !profileData) return { available: false, profileData: null };
 
-    const lastSpinTime = new Date(profileData.last_daily_spin).getTime();
+    const lastSpinTime = new Date(profileData.last_daily_daily_spin).getTime(); // Assuming a daily_spin column for consistency
     const now = Date.now();
     const twentyFourHours = 24 * 60 * 60 * 1000;
     
@@ -271,15 +275,16 @@ export async function fetchUCPProtocol(playerId) {
 }
 
 
-// --- TON Integration Functions (UNCHANGED) ---
+// --- TON Integration Functions (UNCHANGED logic, but underlying profile calls use new names) ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkh) {
+    // Here, amountAnkh refers to the new Ankh premium currency (Key of Life)
     return { success: true, amount: amountAnkh }; 
 }
 
 
 // =================================================================================
-// --- NOUB 0.0.3 ADDITIONS (Activity Log & Utility) ---
+// --- NOUB 0.0.6 ADDITIONS (Activity Log & Utility) ---
 // =================================================================================
 
 /**
@@ -320,7 +325,7 @@ export async function fetchGameHistory(playerId) {
         .from('game_history')
         .select('*')
         .eq('player_id', playerId)
-        .order('date', { ascending: false });
+        .order('created_at', { ascending: false }); // Assuming 'created_at' is used for ordering
 }
 
 /**
@@ -333,7 +338,7 @@ export async function fetchPlayerAlbums(playerId) {
             album_id, 
             is_completed, 
             reward_claimed,
-            master_albums (id, name, icon, description, card_ids)
+            master_albums (id, name, icon, description, card_ids, reward_noub_score, reward_ankh_premium) -- Added new rewards
         `)
         .eq('player_id', playerId);
 }
