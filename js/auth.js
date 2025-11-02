@@ -1,6 +1,6 @@
 /*
  * Filename: js/auth.js
- * Version: NOUB 0.0.3 (STARTER PACK & FACTORY SEEDING - COMPLETE)
+ * Version: NOUB 0.0.6 (STARTER PACK & FACTORY SEEDING - NOUB & ANKH Rework)
  * Description: Authentication Module. Ensures login works and implements
  * starter pack distribution and factory seeding for new players.
 */
@@ -16,9 +16,10 @@ const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
 // --- STARTER PACK & FACTORY SEEDING CONSTANTS ---
-const STARTER_ANKH = 2000;
-const STARTER_PRESTIGE = 10;
-const STARTER_TICKET = 5;
+const STARTER_NOUB_SCORE = 2000;
+const STARTER_PRESTIGE = 10; // Scarabs (🐞)
+const STARTER_SPIN_TICKETS = 5;
+const STARTER_ANKH_PREMIUM = 0; // New players start with 0 Ankh (☥) - to be acquired via TON or special achievements
 // NOTE: These IDs must correspond to the IDs in your 'factories' table
 const INITIAL_FACTORY_IDS = [1, 2, 3, 4, 5, 6]; 
 
@@ -45,14 +46,15 @@ window.showLoginForm = showLoginForm;
  * Called immediately after profile creation.
  */
 async function seedNewPlayer(userId) {
-    // 1. Grant Starter Currencies (Ankh, Prestige, Tickets)
+    // 1. Grant Starter Currencies (NOUB, Prestige, Spin Tickets, Ankh Premium)
     const profileUpdate = {
-        score: STARTER_ANKH,
+        noub_score: STARTER_NOUB_SCORE,
         prestige: STARTER_PRESTIGE,
-        spin_tickets: STARTER_TICKET,
+        spin_tickets: STARTER_SPIN_TICKETS,
+        ankh_premium: STARTER_ANKH_PREMIUM, // New Ankh Premium currency
         // Ensure other non-null profile fields are set (if required by your table schema)
         last_daily_spin: new Date().toISOString(), // Initialize spin tracking
-        blessing: 0 // Start with 0 Blessing
+        // blessing: 0 // Removed, as 'blessing' is now 'ankh_premium'
     };
     
     // NOTE: This uses update on the newly created profile row.
@@ -78,7 +80,7 @@ async function seedNewPlayer(userId) {
     await Promise.all(factoryPromises);
     
     // 3. Log the starter pack action
-    await api.logActivity(userId, 'STARTER_PACK', `Received Starter Pack: ${STARTER_ANKH} Ankh, ${STARTER_PRESTIGE} Prestige, ${STARTER_TICKET} Tickets.`);
+    await api.logActivity(userId, 'STARTER_PACK', `Received Starter Pack: ${STARTER_NOUB_SCORE} NOUB, ${STARTER_PRESTIGE} Prestige, ${STARTER_SPIN_TICKETS} Spin Tickets.`);
     
     return true;
 }
@@ -180,7 +182,7 @@ async function signUp(email, password, username) {
 export async function logout() {
     await supabaseClient.auth.signOut();
     state.currentUser = null;
-    state.playerProfile = {};
+    state.playerProfile = {}; // Reset profile
     state.inventory.clear();
     state.consumables.clear();
     state.ucp.clear();
