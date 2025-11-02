@@ -1,8 +1,9 @@
 /*
  * Filename: style.css
- * Version: NOUB 0.0.4 - FINAL VISUAL POLISH
+ * Version: NOUB 0.0.6 - FINAL VISUAL POLISH & SIZING ADJUSTMENT
  * Description: Main stylesheet for the "Noub" game. Optimized for Mobile/Telegram Web App.
  * Includes TWA button fixes, RTL support, and screen backgrounds.
+ * UPDATED: Reduced vertical spacing/heights by approximately 30%.
 */
 
 
@@ -15,7 +16,9 @@
     --primary-accent: #D4AF37; /* Gold/Bronze */
     --text-primary: #ffffff;
     --text-secondary: #aaaaaa;
-    --ankh-color: #29b6f6; /* Cyan Blue */
+    --noub-color: #f39c12; /* Golden/Orange for NOUB */
+    --prestige-color: #7f8c8d; /* Grey for Prestige Scarabs */
+    --ankh-premium-color: #29b6f6; /* Cyan Blue for Ankh Premium */
     --success-color: #34c759;
     --danger-color: #ff453a;
     --ton-color: #0088cc;
@@ -41,8 +44,9 @@ body {
     background-color: var(--background-dark);
     color: var(--text-primary);
     margin: 0;
-    padding: 75px 15px 95px 15px; /* Adjust padding for fixed header/nav */
+    padding: 50px 10px 65px 10px; /* Reduced from 75px 15px 95px 15px */
     min-height: 100vh;
+    font-size: 0.95em; /* Slightly smaller base font */
 }
 
 .hidden { display: none !important; }
@@ -54,10 +58,10 @@ body {
     background-size: cover;
     background-position: center;
     background-attachment: fixed; /* Fix background image on scroll */
-    min-height: calc(100vh - 170px); /* Ensure screen fills space */
+    min-height: calc(100vh - 115px); /* Reduced from 170px */
 }
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(7px); } /* Reduced from 10px */
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -92,7 +96,7 @@ header, .bottom-nav {
 
 header {
     top: 0;
-    padding: 10px 15px;
+    padding: 7px 10px; /* Reduced from 10px 15px */
     border-bottom: 1px solid #3a3a3c;
 }
 
@@ -100,36 +104,43 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    gap: 10px; 
+    gap: 7px; /* Reduced from 10px */
 }
 
 .currency-display {
     display: flex;
     align-items: center;
     font-weight: bold;
-    font-size: 1em; 
+    font-size: 0.9em; /* Reduced from 1em */
     background: var(--input-bg);
-    padding: 5px 10px;
-    border-radius: 8px;
+    padding: 3px 7px; /* Reduced from 5px 10px */
+    border-radius: 6px; /* Reduced from 8px */
 }
 
 .currency-display .icon {
-    font-size: 18px;
-    margin-right: 5px;
+    font-size: 15px; /* Reduced from 18px */
+    margin-right: 3px; /* Reduced from 5px */
     color: var(--primary-accent); 
+}
+
+.currency-display .currency-img { /* For NOUB and Ankh Premium images */
+    width: 18px; /* Standardize icon size */
+    height: 18px;
+    margin-right: 3px;
+    vertical-align: middle;
 }
 
 .ton-connect-btn {
     flex-shrink: 0;
-    width: 32px; 
-    height: 32px;
+    width: 28px; /* Reduced from 32px */
+    height: 28px; /* Reduced from 32px */
 }
 
 .bottom-nav {
     bottom: 0;
     display: flex;
     justify-content: space-around;
-    padding: 10px 0 20px 0; 
+    padding: 7px 0 14px 0; /* Reduced from 10px 0 20px 0 */
     border-top: 1px solid #3a3a3c;
     overflow-x: auto;
 }
@@ -140,12 +151,12 @@ header {
     align-items: center;
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 11px;
+    font-size: 10px; /* Reduced from 11px */
     cursor: pointer;
     user-select: none;
     flex-grow: 1; 
     flex-shrink: 0;
-    padding: 0 10px;
+    padding: 0 7px; /* Reduced from 0 10px */
 }
 
 .nav-item.active {
@@ -153,16 +164,16 @@ header {
 }
 
 .nav-item .icon {
-    font-size: 24px;
-    margin-bottom: 4px;
+    font-size: 20px; /* Reduced from 24px */
+    margin-bottom: 3px; /* Reduced from 4px */
 }
 
 /* --- General Content, Buttons, Inputs (TWA/Mobile optimized) --- */
 .screen h2 {
     color: var(--primary-accent);
-    margin-bottom: 25px;
+    margin-bottom: 18px; /* Reduced from 25px */
     border-bottom: 1px solid #3a3a3c;
-    padding-bottom: 10px;
+    padding-bottom: 7px; /* Reduced from 10px */
 }
 .error-message {
     color: var(--danger-color);
@@ -171,24 +182,24 @@ header {
 .action-button {
     /* Critical TWA/Mobile Adjustment */
     width: 95%; 
-    max-width: 300px; /* New constraint for TWA size */
-    margin-top: 15px;
+    max-width: 250px; /* Reduced from 300px */
+    margin-top: 10px; /* Reduced from 15px */
     margin-left: auto;
     margin-right: auto;
     display: block; /* To center the button */
     
-    padding: 12px; /* Reduced padding */
+    padding: 8px; /* Reduced from 12px */
     border: none;
-    border-radius: 8px; 
+    border-radius: 6px; /* Reduced from 8px */
     font-weight: bold;
     font-family: inherit;
-    font-size: 1em; /* Adjusted font size */
+    font-size: 0.9em; /* Reduced from 1em */
     cursor: pointer;
     color: #121212;
     background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
     text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 0 3px 0 #9e7f2c; 
+    letter-spacing: 0.7px; /* Reduced from 1px */
+    box-shadow: 0 2px 0 #9e7f2c; /* Reduced from 0 3px 0 */
 }
 
 .action-button:disabled {
@@ -197,7 +208,7 @@ header {
     box-shadow: none;
 }
 .action-button:active:not(:disabled) {
-    transform: translateY(2px);
+    transform: translateY(1px); /* Reduced from 2px */
     box-shadow: none;
 }
 .action-button.danger {
@@ -205,8 +216,8 @@ header {
     color: white;
 }
 .action-button.small {
-    padding: 8px 12px;
-    font-size: 0.9em;
+    padding: 5px 8px; /* Reduced from 8px 12px */
+    font-size: 0.8em; /* Reduced from 0.9em */
     width: auto;
     max-width: none;
     display: inline-block;
@@ -214,22 +225,22 @@ header {
 .text-button {
     background: none;
     border: none;
-    color: var(--ankh-color);
+    color: var(--ankh-premium-color); /* Changed from ankh-color */
     cursor: pointer;
-    font-size: 0.9em;
-    padding: 5px;
+    font-size: 0.8em; /* Reduced from 0.9em */
+    padding: 3px; /* Reduced from 5px */
 }
 
 /* Inputs and Textareas */
 input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea {
     width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
+    padding: 8px; /* Reduced from 12px */
+    margin-bottom: 10px; /* Reduced from 15px */
     background: var(--input-bg);
     border: 1px solid #3a3a3c;
-    border-radius: 8px;
+    border-radius: 6px; /* Reduced from 8px */
     color: var(--text-primary);
-    font-size: 1em;
+    font-size: 0.9em; /* Reduced from 1em */
     box-sizing: border-box;
 }
 input:focus, textarea:focus {
@@ -256,15 +267,15 @@ input:focus, textarea:focus {
     left: 0;
     right: 0;
     background-color: var(--surface-dark);
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    padding: 20px;
+    border-top-left-radius: 14px; /* Reduced from 20px */
+    border-top-right-radius: 14px; /* Reduced from 20px */
+    padding: 14px; /* Reduced from 20px */
     width: 100%;
     max-width: none; 
-    max-height: 90vh;
+    max-height: 80vh; /* Reduced from 90vh */
     overflow-y: auto;
-    border-top: 3px solid var(--primary-accent);
-    box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+    border-top: 2px solid var(--primary-accent); /* Reduced from 3px */
+    box-shadow: 0 -3px 10px rgba(0,0,0,0.5); /* Reduced from 0 -5px 15px */
     animation: slideUp 0.3s ease-out; 
 }
 @keyframes slideUp {
@@ -274,9 +285,9 @@ input:focus, textarea:focus {
 
 .modal-close-btn {
     position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 1.8em;
+    top: 7px; /* Reduced from 10px */
+    right: 10px; /* Reduced from 15px */
+    font-size: 1.5em; /* Reduced from 1.8em */
     cursor: pointer;
     background: none;
     border: none;
@@ -291,9 +302,9 @@ input:focus, textarea:focus {
 .home-action-icons {
     display: flex;
     justify-content: space-around;
-    gap: 15px;
-    margin-bottom: 40px;
-    margin-top: 15px;
+    gap: 10px; /* Reduced from 15px */
+    margin-bottom: 28px; /* Reduced from 40px */
+    margin-top: 10px; /* Reduced from 15px */
     flex-wrap: wrap; 
 }
 .action-icon-link {
@@ -302,22 +313,22 @@ input:focus, textarea:focus {
     align-items: center;
     text-decoration: none;
     color: var(--text-primary);
-    font-size: 0.9em;
+    font-size: 0.8em; /* Reduced from 0.9em */
     font-weight: bold;
-    min-width: 80px;
+    min-width: 60px; /* Reduced from 80px */
 }
 .icon-box {
-    width: 60px;
-    height: 60px;
+    width: 45px; /* Reduced from 60px */
+    height: 45px; /* Reduced from 60px */
     background: var(--surface-dark);
-    border-radius: 12px;
+    border-radius: 8px; /* Reduced from 12px */
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
-    margin-bottom: 8px;
-    border: 2px solid var(--primary-accent);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    font-size: 20px; /* Reduced from 28px */
+    margin-bottom: 5px; /* Reduced from 8px */
+    border: 1px solid var(--primary-accent); /* Reduced from 2px */
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3); /* Reduced from 0 4px 8px */
     transition: transform 0.2s;
 }
 .daily-task-summary {
@@ -325,24 +336,24 @@ input:focus, textarea:focus {
 }
 .daily-task-summary h3 {
     color: var(--primary-accent);
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduced from 15px */
     border-bottom: 1px solid #3a3a3c;
-    padding-bottom: 10px;
+    padding-bottom: 7px; /* Reduced from 10px */
 }
 .daily-quest-card {
     background-color: var(--surface-dark);
-    padding: 15px;
-    border-radius: 12px;
+    padding: 10px; /* Reduced from 15px */
+    border-radius: 8px; /* Reduced from 12px */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 7px; /* Reduced from 10px */
 }
 .daily-quest-card .progress-bar {
-    width: 100px;
-    height: 6px;
+    width: 70px; /* Reduced from 100px */
+    height: 4px; /* Reduced from 6px */
     background: #444;
-    border-radius: 3px;
+    border-radius: 2px; /* Reduced from 3px */
     overflow: hidden;
 }
 .daily-quest-card .progress-bar-inner {
@@ -358,16 +369,16 @@ input:focus, textarea:focus {
 /* --- Cards & Grids (Card Hub Base) --- */
 .card-grid, .buildings-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Reduced minmax from 100px */
+    gap: 8px; /* Reduced from 12px */
 }
 
 .card-stack, .building-card {
     background-color: var(--surface-dark);
-    border-radius: 12px;
-    padding: 8px;
+    border-radius: 8px; /* Reduced from 12px */
+    padding: 5px; /* Reduced from 8px */
     position: relative;
-    border: 2px solid #3a3a3c;
+    border: 1px solid #3a3a3c; /* Reduced from 2px */
     cursor: pointer;
     text-align: center;
     transition: transform 0.2s, border-color 0.2s;
@@ -381,25 +392,25 @@ input:focus, textarea:focus {
 .card-stack .card-image, .building-card img {
     width: 100%;
     aspect-ratio: 1 / 1;
-    border-radius: 8px;
+    border-radius: 6px; /* Reduced from 8px */
     object-fit: cover;
-    margin-bottom: 8px;
+    margin-bottom: 5px; /* Reduced from 8px */
 }
 
 .card-stack h4, .building-card h4 {
-    margin: 5px 0;
-    font-size: 14px;
+    margin: 3px 0; /* Reduced from 5px */
+    font-size: 12px; /* Reduced from 14px */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .card-stack .card-details {
-    font-size: 0.8em;
+    font-size: 0.7em; /* Reduced from 0.8em */
     color: var(--text-secondary);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 4px;
+    margin-top: 3px; /* Reduced from 4px */
 }
 .card-stack .card-level {
     font-weight: bold;
@@ -408,90 +419,90 @@ input:focus, textarea:focus {
 .burn-btn {
     background-color: var(--danger-color);
     color: white;
-    padding: 5px;
-    margin-top: 5px;
-    font-size: 0.8em;
+    padding: 3px; /* Reduced from 5px */
+    margin-top: 3px; /* Reduced from 5px */
+    font-size: 0.7em; /* Reduced from 0.8em */
     width: 100%;
-    border-radius: 5px;
+    border-radius: 3px; /* Reduced from 5px */
 }
 
 
 /* --- Economy Hub (Production/Stockpile) --- */
 .production-section {
-    margin-bottom: 40px;
+    margin-bottom: 28px; /* Reduced from 40px */
 }
 .building-card .level {
-    font-size: 0.8em;
+    font-size: 0.7em; /* Reduced from 0.8em */
     color: var(--primary-accent);
     font-weight: bold;
 }
 .building-card .status {
-    font-size: 0.8em;
+    font-size: 0.7em; /* Reduced from 0.8em */
     color: var(--success-color);
-    margin-top: 4px;
-    min-height: 1.2em;
+    margin-top: 3px; /* Reduced from 4px */
+    min-height: 1em; /* Reduced from 1.2em */
 }
 .stock-tabs-container {
     display: flex;
     justify-content: space-around;
     border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduced from 15px */
 }
 .stock-tab-btn {
-    padding: 10px 15px;
+    padding: 7px 10px; /* Reduced from 10px 15px */
     border: none;
     background: none;
     color: var(--text-secondary);
-    font-size: 0.9em;
+    font-size: 0.8em; /* Reduced from 0.9em */
     font-weight: bold;
     cursor: pointer;
 }
 .stock-tab-btn.active {
     color: var(--primary-accent);
-    border-bottom: 2px solid var(--primary-accent);
+    border-bottom: 1px solid var(--primary-accent); /* Reduced from 2px */
 }
 .stock-content-tab { display: none; }
-.stock-content-tab.active { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; }
+.stock-content-tab.active { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); /* Reduced minmax from 120px */ gap: 10px; /* Reduced from 15px */ }
 
 .stock-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     background: var(--surface-dark);
-    padding: 10px;
-    border-radius: 8px;
+    padding: 7px; /* Reduced from 10px */
+    border-radius: 6px; /* Reduced from 8px */
     text-align: center;
     border: 1px solid #3a3a3c;
 }
 .stock-item img {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 5px;
+    width: 45px; /* Reduced from 60px */
+    height: 45px; /* Reduced from 60px */
+    margin-bottom: 3px; /* Reduced from 5px */
 }
-.stock-item .details h4 { margin: 0 0 5px 0; font-size: 1em;}
-.stock-item .quantity { font-size: 1.1em; font-weight: bold; color: var(--ankh-color); }
+.stock-item .details h4 { margin: 0 0 3px 0; font-size: 0.9em; /* Reduced from 1em */}
+.stock-item .quantity { font-size: 0.9em; font-weight: bold; color: var(--ankh-premium-color); /* Changed from ankh-color */ }
 
 /* Production Modal */
 .prod-modal-header { text-align: center; }
-.prod-modal-header img { width: 80px; height: 80px; }
-.prod-modal-header h3 { color: var(--primary-accent); margin: 10px 0 5px 0; }
+.prod-modal-header img { width: 60px; height: 60px; /* Reduced from 80px */ }
+.prod-modal-header h3 { color: var(--primary-accent); margin: 7px 0 3px 0; /* Reduced from 10px 0 5px 0 */ }
 
-.prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 15px; border-radius: 10px; }
+.prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 10px; /* Reduced from 15px */ border-radius: 7px; /* Reduced from 10px */ }
 .prod-item { text-align: center; }
-.prod-item img { width: 50px; height: 50px; }
-.prod-item p { margin: 5px 0 0 0; }
-.prod-item .label { font-size: 0.8em; color: var(--text-secondary); }
-.arrow { font-size: 2em; color: var(--primary-accent); }
+.prod-item img { width: 35px; height: 35px; /* Reduced from 50px */ }
+.prod-item p { margin: 3px 0 0 0; /* Reduced from 5px */ }
+.prod-item .label { font-size: 0.7em; /* Reduced from 0.8em */ color: var(--text-secondary); }
+.arrow { font-size: 1.5em; /* Reduced from 2em */ color: var(--primary-accent); }
 
-.prod-timer { text-align: center; margin-top: 20px; }
-.prod-timer .time-left { font-size: 1.8em; font-weight: bold; letter-spacing: 2px; }
-.progress-bar { background-color: #444; border-radius: 5px; height: 10px; overflow: hidden; margin-top: 10px; }
+.prod-timer { text-align: center; margin-top: 14px; /* Reduced from 20px */ }
+.prod-timer .time-left { font-size: 1.3em; /* Reduced from 1.8em */ font-weight: bold; letter-spacing: 1px; /* Reduced from 2px */ }
+.progress-bar { background-color: #444; border-radius: 3px; /* Reduced from 5px */ height: 7px; /* Reduced from 10px */ overflow: hidden; margin-top: 7px; /* Reduced from 10px */ }
 .progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
 
 
 /* --- Contracts Screen --- */
 .contracts-section {
-    margin-bottom: 40px;
+    margin-bottom: 28px; /* Reduced from 40px */
 }
 .contracts-header {
     display: flex;
@@ -501,19 +512,19 @@ input:focus, textarea:focus {
 .contracts-list {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 15px;
+    gap: 10px; /* Reduced from 15px */
 }
 .contract-card {
     background-color: var(--surface-dark);
-    border-radius: 12px;
-    padding: 15px;
-    border-left: 4px solid var(--primary-accent);
+    border-radius: 8px; /* Reduced from 12px */
+    padding: 10px; /* Reduced from 15px */
+    border-left: 3px solid var(--primary-accent); /* Reduced from 4px */
     cursor: pointer;
 }
 .contract-rewards {
     display: flex;
-    gap: 20px;
-    font-size: 0.9em;
+    gap: 14px; /* Reduced from 20px */
+    font-size: 0.8em; /* Reduced from 0.9em */
     color: var(--text-secondary);
 }
 .contract-rewards span {
@@ -525,18 +536,18 @@ input:focus, textarea:focus {
     align-items: center;
     justify-content: space-between;
     background-color: #121212;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 8px;
+    padding: 7px; /* Reduced from 10px */
+    border-radius: 6px; /* Reduced from 8px */
+    margin-bottom: 5px; /* Reduced from 8px */
 }
 .req-item-name {
     display: flex;
     align-items: center;
 }
 .req-item-name img {
-    width: 30px;
-    height: 30px;
-    margin-right: 10px;
+    width: 20px; /* Reduced from 30px */
+    height: 20px; /* Reduced from 30px */
+    margin-right: 7px; /* Reduced from 10px */
 }
 .req-item-progress.met {
     color: var(--success-color);
@@ -545,43 +556,43 @@ input:focus, textarea:focus {
 
 /* --- Upgrade Screen --- */
 .upgrade-select-area {
-    margin-bottom: 40px;
+    margin-bottom: 28px; /* Reduced from 40px */
 }
 .upgrade-detail-area {
     background-color: var(--surface-dark);
-    padding: 20px;
-    border-radius: 12px;
-    margin-top: 20px;
+    padding: 14px; /* Reduced from 20px */
+    border-radius: 8px; /* Reduced from 12px */
+    margin-top: 14px; /* Reduced from 20px */
     text-align: center;
     border: 1px solid var(--primary-accent);
 }
 .upgrade-card-target {
-    width: 150px;
-    margin: 0 auto 20px auto;
+    width: 110px; /* Reduced from 150px */
+    margin: 0 auto 14px auto; /* Reduced from 0 auto 20px auto */
 }
 .upgrade-cost-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 10px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); /* Reduced minmax from 100px */
+    gap: 7px; /* Reduced from 10px */
+    margin-bottom: 14px; /* Reduced from 20px */
 }
 .cost-item {
     background-color: #1a1a1a;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 0.9em;
+    padding: 7px; /* Reduced from 10px */
+    border-radius: 6px; /* Reduced from 8px */
+    font-size: 0.8em; /* Reduced from 0.9em */
     color: var(--text-secondary);
     text-align: center;
 }
 .cost-item img {
-    width: 30px;
-    height: 30px;
-    margin-bottom: 5px;
+    width: 20px; /* Reduced from 30px */
+    height: 20px; /* Reduced from 30px */
+    margin-bottom: 3px; /* Reduced from 5px */
 }
 .cost-item .value {
     font-weight: bold;
     display: block;
-    margin-top: 5px;
+    margin-top: 3px; /* Reduced from 5px */
     color: var(--text-primary);
 }
 
@@ -589,28 +600,28 @@ input:focus, textarea:focus {
 /* --- Games Screen (Slots / KV) --- */
 .game-container {
     background-color: var(--surface-dark);
-    padding: 20px;
-    border-radius: 12px;
+    padding: 14px; /* Reduced from 20px */
+    border-radius: 8px; /* Reduced from 12px */
     text-align: center;
 }
 .balance-info {
     font-weight: bold;
-    color: var(--ankh-color);
-    margin-bottom: 15px;
+    color: var(--ankh-premium-color); /* Changed from ankh-color */
+    margin-bottom: 10px; /* Reduced from 15px */
 }
 /* Slots */
 .reels-container {
     display: flex;
     justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 7px; /* Reduced from 10px */
+    margin-bottom: 14px; /* Reduced from 20px */
 }
 .reel {
-    width: 60px;
-    height: 90px;
+    width: 45px; /* Reduced from 60px */
+    height: 65px; /* Reduced from 90px */
     overflow: hidden;
-    border: 2px solid var(--primary-accent);
-    border-radius: 8px;
+    border: 1px solid var(--primary-accent); /* Reduced from 2px */
+    border-radius: 6px; /* Reduced from 8px */
     background-color: #000;
 }
 .reel-inner {
@@ -619,15 +630,15 @@ input:focus, textarea:focus {
 }
 .reel-item {
     width: 100%;
-    height: 90px;
-    line-height: 90px;
-    font-size: 30px;
+    height: 65px; /* Reduced from 90px */
+    line-height: 65px; /* Reduced from 90px */
+    font-size: 20px; /* Reduced from 30px */
     color: var(--primary-accent);
 }
 .game-status-message {
-    font-size: 1.1em;
+    font-size: 0.9em; /* Reduced from 1.1em */
     font-weight: bold;
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduced from 15px */
     color: var(--success-color);
 }
 .game-status-message.lose {
@@ -643,10 +654,10 @@ input:focus, textarea:focus {
 .kv-hint-item {
     background-color: #1a1a1a;
     color: var(--text-secondary);
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.9em;
-    margin-bottom: 8px;
+    padding: 5px 8px; /* Reduced from 8px 12px */
+    border-radius: 4px; /* Reduced from 6px */
+    font-size: 0.8em; /* Reduced from 0.9em */
+    margin-bottom: 5px; /* Reduced from 8px */
     text-align: left;
 }
 .kv-hint-item span {
@@ -656,68 +667,69 @@ input:focus, textarea:focus {
 .kv-controls-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 15px;
+    gap: 7px; /* Reduced from 10px */
+    margin-top: 10px; /* Reduced from 15px */
 }
 #kv-guess-input {
     width: 100%;
-    padding: 12px;
-    font-size: 1.2em;
+    padding: 8px; /* Reduced from 12px */
+    font-size: 0.9em; /* Reduced from 1.2em */
     text-align: center;
     background: var(--background-dark);
     border: 1px solid var(--primary-accent);
     color: var(--text-primary);
-    border-radius: 8px;
+    border-radius: 6px; /* Reduced from 8px */
 }
 #kv-timer-display {
-    font-size: 1.8em;
+    font-size: 1.3em; /* Reduced from 1.8em */
     font-weight: bold;
     color: var(--primary-accent);
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduced from 15px */
 }
 #kv-use-item-button-container {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 15px;
+    gap: 7px; /* Reduced from 10px */
+    margin-top: 10px; /* Reduced from 15px */
 }
 
 
 /* --- Chat Screen Styles --- */
 #chat-messages {
     background-color: var(--surface-dark);
-    border-radius: 12px;
-    height: 400px; 
+    border-radius: 8px; /* Reduced from 12px */
+    height: 280px; /* Reduced from 400px */
     overflow-y: auto;
-    padding: 15px;
-    margin-bottom: 15px;
+    padding: 10px; /* Reduced from 15px */
+    margin-bottom: 10px; /* Reduced from 15px */
     display: flex;
     flex-direction: column;
 }
 .eve-bubble, .user-bubble {
-    padding: 10px 15px;
-    border-radius: 15px;
-    margin-bottom: 10px;
+    padding: 7px 10px; /* Reduced from 10px 15px */
+    border-radius: 10px; /* Reduced from 15px */
+    margin-bottom: 7px; /* Reduced from 10px */
     max-width: 80%;
-    line-height: 1.4;
+    line-height: 1.3; /* Reduced from 1.4 */
     word-wrap: break-word;
 }
 .eve-bubble {
     background-color: var(--chat-eve-color);
     color: #333;
     align-self: flex-start;
-    border-bottom-left-radius: 4px;
+    border-bottom-left-radius: 3px; /* Reduced from 4px */
 }
 .user-bubble {
     background-color: var(--chat-user-color);
     color: #155724;
     align-self: flex-end;
-    border-bottom-right-radius: 4px;
+    border-bottom-right-radius: 3px; /* Reduced from 4px */
 }
 #chat-input-area {
     display: flex;
-    gap: 10px;
+    gap: 7px; /* Reduced from 10px */
+    margin-top: 7px; /* Reduced from 10px */
 }
 #chat-input-field {
     flex-grow: 1;
@@ -726,59 +738,59 @@ input:focus, textarea:focus {
 /* --- SWAP/EXCHANGE UI (DEX Style) --- */
 .swap-box { 
     background: var(--surface-dark); 
-    padding: 15px; 
-    border-radius: 12px; 
+    padding: 10px; /* Reduced from 15px */
+    border-radius: 8px; /* Reduced from 12px */
     border: 1px solid #3a3a3c; 
-    margin-bottom: 10px; 
+    margin-bottom: 7px; /* Reduced from 10px */
 }
 .swap-header { 
     display: flex; 
     justify-content: space-between; 
-    font-size: 0.9em; 
+    font-size: 0.8em; /* Reduced from 0.9em */
     color: var(--text-secondary); 
-    margin-bottom: 10px; 
+    margin-bottom: 7px; /* Reduced from 10px */
 }
 .swap-input-row { 
     display: flex; 
     align-items: center; 
-    gap: 10px; 
+    gap: 7px; /* Reduced from 10px */
 }
 .swap-input-row input { 
     flex-grow: 1; 
-    font-size: 1.2em; 
-    padding: 5px; 
+    font-size: 0.9em; /* Reduced from 1.2em */
+    padding: 3px; /* Reduced from 5px */
     border: none; 
     background: transparent; 
     color: var(--text-primary); 
     margin: 0; 
 }
 .swap-input-row select { 
-    padding: 5px; 
-    border-radius: 8px; 
+    padding: 3px; /* Reduced from 5px */
+    border-radius: 6px; /* Reduced from 8px */
     background: var(--input-bg); 
     color: var(--text-primary); 
 }
 .swap-percent-row { 
     display: flex; 
-    gap: 8px; 
-    margin-top: 10px; 
+    gap: 5px; /* Reduced from 8px */
+    margin-top: 7px; /* Reduced from 10px */
 }
 .swap-percent-row button { 
-    padding: 5px 10px; 
-    font-size: 0.8em; 
+    padding: 3px 7px; /* Reduced from 5px 10px */
+    font-size: 0.7em; /* Reduced from 0.8em */
 }
 .swap-icon-container { 
     text-align: center; 
-    margin: -10px 0; 
+    margin: -7px 0; /* Reduced from -10px */
     z-index: 10; 
     position: relative; 
 }
 #swap-icon-btn { 
     background: var(--primary-accent); 
-    border: 4px solid var(--background-dark); 
+    border: 3px solid var(--background-dark); /* Reduced from 4px */
     border-radius: 50%; 
-    width: 40px; 
-    height: 40px; 
+    width: 28px; /* Reduced from 40px */
+    height: 28px; /* Reduced from 40px */
     margin: 0; 
     padding: 0; 
     display: flex; 
@@ -794,20 +806,20 @@ input:focus, textarea:focus {
     display: flex;
     justify-content: space-around;
     border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduced from 15px */
 }
 .shop-tab-btn {
-    padding: 10px 15px;
+    padding: 7px 10px; /* Reduced from 10px 15px */
     border: none;
     background: none;
     color: var(--text-secondary);
-    font-size: 0.9em;
+    font-size: 0.8em; /* Reduced from 0.9em */
     font-weight: bold;
     cursor: pointer;
 }
 .shop-tab-btn.active {
     color: var(--primary-accent);
-    border-bottom: 2px solid var(--primary-accent);
+    border-bottom: 1px solid var(--primary-accent); /* Reduced from 2px */
 }
 .shop-content-tab {
     display: none;
@@ -819,21 +831,21 @@ input:focus, textarea:focus {
     display: flex;
     align-items: center;
     background: #2a2a2e;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 15px;
+    padding: 10px; /* Reduced from 15px */
+    border-radius: 8px; /* Reduced from 12px */
+    margin-bottom: 10px; /* Reduced from 15px */
 }
-.shop-item .icon { font-size: 40px; margin-right: 20px; }
+.shop-item .icon { font-size: 28px; /* Reduced from 40px */ margin-right: 14px; /* Reduced from 20px */ }
 .shop-item .details { flex-grow: 1; }
-.shop-item h4 { margin: 0 0 5px 0; }
-.shop-item p { margin: 0; color: var(--text-secondary); font-size: 0.9em; }
+.shop-item h4 { margin: 0 0 3px 0; }
+.shop-item p { margin: 0; color: var(--text-secondary); font-size: 0.8em; /* Reduced from 0.9em */ }
 
 .buy-btn {
     background: var(--primary-accent);
     color: #121212;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 7px 14px; /* Reduced from 10px 20px */
+    border-radius: 6px; /* Reduced from 8px */
     font-weight: bold;
     cursor: pointer;
 }
@@ -844,52 +856,52 @@ input:focus, textarea:focus {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
+    gap: 10px; /* Reduced from 15px */
 }
 .profile-header .avatar {
-    width: 80px;
-    height: 80px;
+    width: 55px; /* Reduced from 80px */
+    height: 55px; /* Reduced from 80px */
     border-radius: 50%;
-    border: 3px solid var(--primary-accent);
+    border: 2px solid var(--primary-accent); /* Reduced from 3px */
 }
 .profile-power {
     background: var(--surface-dark);
-    padding: 15px;
-    border-radius: 12px;
+    padding: 10px; /* Reduced from 15px */
+    border-radius: 8px; /* Reduced from 12px */
     text-align: center;
     width: 100%;
 }
 .profile-power .label {
-    font-size: 0.9em;
+    font-size: 0.8em; /* Reduced from 0.9em */
     color: var(--text-secondary);
-    margin: 0 0 5px 0;
+    margin: 0 0 3px 0; /* Reduced from 0 0 5px 0 */
 }
 .profile-power .power-score {
-    font-size: 1.8em;
+    font-size: 1.3em; /* Reduced from 1.8em */
     font-weight: bold;
-    color: var(--ankh-color);
+    color: var(--ankh-premium-color); /* Changed from ankh-color */
     margin: 0;
 }
 .profile-stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: 10px; /* Reduced from 15px */
     width: 100%;
 }
 .stat-box {
     background: var(--surface-dark);
-    padding: 15px;
-    border-radius: 12px;
+    padding: 10px; /* Reduced from 15px */
+    border-radius: 8px; /* Reduced from 12px */
     text-align: center;
 }
 .stat-box .value {
-    font-size: 1.5em;
+    font-size: 1.1em; /* Reduced from 1.5em */
     font-weight: bold;
 }
 .stat-box .label {
-    font-size: 0.8em;
+    font-size: 0.7em; /* Reduced from 0.8em */
     color: var(--text-secondary);
-    margin-top: 5px;
+    margin-top: 3px; /* Reduced from 5px */
 }
 
 
@@ -897,7 +909,7 @@ input:focus, textarea:focus {
 .more-menu .more-menu-item {
     display: flex;
     align-items: center;
-    padding: 15px;
+    padding: 10px; /* Reduced from 15px */
     border-bottom: 1px solid #3a3a3c;
     cursor: pointer;
     text-decoration: none;
@@ -910,12 +922,12 @@ input:focus, textarea:focus {
     background-color: rgba(255, 255, 255, 0.05);
 }
 .more-menu .more-menu-item .icon {
-    font-size: 24px;
-    margin-right: 20px;
+    font-size: 18px; /* Reduced from 24px */
+    margin-right: 14px; /* Reduced from 20px */
     color: var(--primary-accent);
 }
 .more-menu .more-menu-item span {
-    font-size: 1.1em;
+    font-size: 0.9em; /* Reduced from 1.1em */
     font-weight: bold;
 }
 
@@ -923,7 +935,7 @@ input:focus, textarea:focus {
 /* --- Toast Notifications --- */
 #toast-container {
     position: fixed;
-    bottom: 100px;
+    bottom: 70px; /* Reduced from 100px */
     left: 50%;
     transform: translateX(-50%);
     z-index: 2000;
@@ -931,16 +943,16 @@ input:focus, textarea:focus {
 .toast {
     background-color: var(--surface-dark);
     color: var(--text-primary);
-    padding: 12px 20px;
-    border-radius: 25px;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    font-size: 0.9em;
-    border-left: 5px solid;
+    padding: 8px 14px; /* Reduced from 12px 20px */
+    border-radius: 18px; /* Reduced from 25px */
+    margin-bottom: 7px; /* Reduced from 10px */
+    box-shadow: 0 3px 10px rgba(0,0,0,0.5); /* Reduced from 0 4px 15px */
+    font-size: 0.8em; /* Reduced from 0.9em */
+    border-left: 3px solid; /* Reduced from 5px */
 }
 .toast.success { border-color: var(--success-color); }
 .toast.error { border-color: var(--danger-color); }
-.toast.info { border-color: var(--ankh-color); }
+.toast.info { border-color: var(--ankh-premium-color); /* Changed from ankh-color */ }
 
 
 /* =================================================================================
@@ -954,7 +966,11 @@ input:focus, textarea:focus {
 /* General Overrides */
 [dir="rtl"] .currency-display .icon {
     margin-right: 0;
-    margin-left: 5px;
+    margin-left: 3px; /* Reduced from 5px */
+}
+[dir="rtl"] .currency-display .currency-img { /* For NOUB and Ankh Premium images */
+    margin-right: 0;
+    margin-left: 3px;
 }
 [dir="rtl"] .nav-item {
     text-align: center;
@@ -973,14 +989,14 @@ input:focus, textarea:focus {
 
 [dir="rtl"] .user-bubble {
     align-self: flex-start; 
-    border-bottom-left-radius: 15px; 
-    border-bottom-right-radius: 4px; 
+    border-bottom-left-radius: 10px; /* Reduced from 15px */
+    border-bottom-right-radius: 3px; /* Reduced from 4px */
 }
 
 [dir="rtl"] .eve-bubble {
     align-self: flex-end; 
-    border-bottom-right-radius: 15px; 
-    border-bottom-left-radius: 4px; 
+    border-bottom-right-radius: 10px; /* Reduced from 15px */
+    border-bottom-left-radius: 3px; /* Reduced from 4px */
 }
 
 [dir="rtl"] #chat-input-area {
@@ -988,7 +1004,7 @@ input:focus, textarea:focus {
 }
 [dir="rtl"] #chat-input-field {
     margin-right: 0;
-    margin-left: 10px;
+    margin-left: 7px; /* Reduced from 10px */
     text-align: right;
 }
 
@@ -1011,7 +1027,7 @@ input:focus, textarea:focus {
 }
 [dir="rtl"] .contract-card {
     border-left: none;
-    border-right: 4px solid var(--primary-accent);
+    border-right: 3px solid var(--primary-accent); /* Reduced from 4px */
 }
 
 [dir="rtl"] .req-item {
@@ -1023,7 +1039,7 @@ input:focus, textarea:focus {
 }
 [dir="rtl"] .req-item-name img {
     margin-right: 0;
-    margin-left: 10px;
+    margin-left: 7px; /* Reduced from 10px */
 }
 
 /* Game Overrides */
@@ -1045,7 +1061,7 @@ input:focus, textarea:focus {
 /* More Modal Overrides */
 [dir="rtl"] .more-menu .more-menu-item .icon {
     margin-right: 0;
-    margin-left: 20px;
+    margin-left: 14px; /* Reduced from 20px */
 }
 
 /* Profile Overrides */
