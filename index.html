@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NOUB 0.0.4 - Pharaoh's Legacy</title>
+    <title>NOUB 0.0.6 - Pharaoh's Legacy</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -47,12 +46,12 @@
         
         <header>
             <div class="balance-bar">
-                <!-- Ankh (العنخ) -->
-                <div class="currency-display"><span class="icon">☥</span> <span id="ankh-display">0</span></div>
-                <!-- Prestige (الخنفساء/Scarabs) -->
+                <!-- NOUB (الميدالية الذهبية) -->
+                <div class="currency-display"><img src="images/noub_gold_coin.png" alt="NOUB" class="icon currency-img" id="noub-icon"> <span id="noub-display">0</span></div>
+                <!-- Prestige (الجعران / Scarabs) -->
                 <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
-                <!-- Blessing (الخنجر/Daggers) -->
-                <div class="currency-display"><span class="icon">🗡️</span> <span id="blessing-display">0</span></div>
+                <!-- Ankh (مفتاح الحياة) -->
+                <div class="currency-display"><img src="images/ankh_premium_key_of_life.png" alt="Ankh Premium" class="icon currency-img" id="ankh-premium-icon"> <span id="ankh-premium-display">0</span></div>
                 <!-- TON Wallet Connect Button Container -->
                 <div id="connectButton" class="ton-connect-btn"></div> 
             </div>
@@ -296,7 +295,7 @@
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
     </nav>
     
-    <script type="module" src="js/main.js?v=202510281800"></script> 
+    <script type="module" src="js/main.js?v=202511021914"></script> 
     
     <!-- CRITICAL FIX: TON Connect immediate initialization -->
     <script>
