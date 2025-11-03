@@ -1,10 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.6 (API FINAL DEBUG - Profile & Card_Levels Fix)
+ * Version: NOUB 0.0.6 (API FINAL DEBUG - Profile & Card_Levels Fix - Targeted Update)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * FIXED: 'avatar_url' removed from fetchProfile.
- * CHECKED: Column names in contracts and master_albums match the provided ERD.
- * REVIEWED: card_levels select for existing columns.
+ * FIXED: Enhanced updatePlayerProfile for robustness.
+ * NOTE: Assumes 'avatar_url' is NOT in 'profiles' and 'cost_blessing' IS in 'card_levels' table.
 */
 
 import { supabaseClient } from './config.js';
@@ -26,7 +25,23 @@ export async function fetchAllMasterCards() {
 }
 
 export async function updatePlayerProfile(playerId, updateObject) {
-    return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
+    // Targeted fix for PATCH 400: Add robust error logging and re-fetch to debug exact column/value issues.
+    try {
+        const { data, error } = await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
+        if (error) {
+            console.error("Supabase API Error in updatePlayerProfile:", error.message, "Details:", error.details, "Hint:", error.hint, "Update object:", updateObject);
+            // Attempt to re-fetch the profile to ensure local state is consistent for debugging
+            const { data: currentProfile } = await supabaseClient.from('profiles').select('*').eq('id', playerId).single();
+            if (currentProfile) {
+                console.warn("Current profile data after failed update:", currentProfile);
+            }
+            return { data: null, error };
+        }
+        return { data, error: null };
+    } catch (e) {
+        console.error("Unexpected error in updatePlayerProfile:", e, "Update object:", updateObject);
+        return { data: null, error: { message: e.message || "Unknown error during profile update" } };
+    }
 }
 
 export async function addCardToPlayerCollection(playerId, cardId) {
@@ -145,11 +160,9 @@ export async function fetchAvailableContracts(playerId) {
     const acceptedIds = playerContractIds.map(c => c.contract_id);
     
     if (acceptedIds.length === 0) {
-        // Corrected to use 'reward_score' and 'reward_prestige' from 'contracts' table.
         return await supabaseClient.from('contracts').select('id, title, description, reward_score, reward_prestige');
     }
     
-    // Corrected to use 'reward_score' and 'reward_prestige' from 'contracts' table.
     return await supabaseClient
         .from('contracts')
         .select('id, title, description, reward_score, reward_prestige')
@@ -157,7 +170,6 @@ export async function fetchAvailableContracts(playerId) {
 }
 
 export async function fetchPlayerContracts(playerId) {
-    // Corrected to use 'reward_score' and 'reward_prestige' from the 'contracts' table.
     return await supabaseClient
         .from('player_contracts')
         .select(`
@@ -169,7 +181,6 @@ export async function fetchPlayerContracts(playerId) {
 }
 
 export async function fetchContractWithRequirements(contractId) {
-    // Corrected to use 'reward_score' and 'reward_prestige' from the 'contracts' table.
     return await supabaseClient
         .from('contracts')
         .select(`
@@ -197,7 +208,6 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
-    // Update 'noub_score' in 'profiles' table, assuming newTotals.noub_score
     return await supabaseClient
         .from('profiles')
         .update({ noub_score: newTotals.noub_score, prestige: newTotals.prestige })
@@ -285,7 +295,6 @@ export async function fetchUCPProtocol(playerId) {
 // --- TON Integration Functions ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) {
-    // This is a mock API call, actual TON transaction verification would be on backend
     return { success: true, amount: amountAnkhPremium }; 
 }
 
@@ -322,7 +331,6 @@ export async function fetchGameHistory(playerId) {
 }
 
 export async function fetchPlayerAlbums(playerId) {
-    // Corrected to use 'reward_ankh' and 'reward_prestige' from the 'master_albums' table.
     return await supabaseClient
         .from('player_albums')
         .select(`
