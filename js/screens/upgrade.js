@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/upgrade.js
- * Version: NOUB 0.0.2 (UPGRADE MODULE - FINAL PRODUCTION CODE)
+ * Version: NOUB 0.0.6 (UPGRADE MODULE - FINAL FIX)
  * Description: View Logic Module for the Card Upgrade screen.
- * Handles both Card Leveling (using resources and Prestige) and Factory Upgrades. This file is 100% complete.
+ * FIXED: card_levels 400 Bad Request by assuming cost_ankh_premium column.
 */
 
 import { state } from '../state.js';
@@ -28,7 +28,7 @@ async function executeFactoryUpgrade(playerFactory) {
     showToast('Processing factory upgrade...', 'info');
     
     // Check costs against player state
-    const playerAnkh = state.playerProfile.score || 0;
+    const playerNoub = state.playerProfile.noub_score || 0;
     
     // Find the item ID for the required material
     const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => item.details.name === FACTORY_UPGRADE_ITEM_NAME);
@@ -36,17 +36,17 @@ async function executeFactoryUpgrade(playerFactory) {
     const playerMaterialQty = requiredMaterialEntry?.qty || 0;
 
 
-    if (!materialId || playerAnkh < FACTORY_UPGRADE_COST || playerMaterialQty < FACTORY_UPGRADE_QTY) {
+    if (!materialId || playerNoub < FACTORY_UPGRADE_COST || playerMaterialQty < FACTORY_UPGRADE_QTY) {
         showToast('Error: Missing resources for upgrade.', 'error');
         return;
     }
 
     // 1. Consume Currencies and Materials
-    const newAnkh = playerAnkh - FACTORY_UPGRADE_COST;
+    const newNoub = playerNoub - FACTORY_UPGRADE_COST;
     const newMaterialQty = playerMaterialQty - FACTORY_UPGRADE_QTY;
     
     // Update profile
-    const profileUpdate = { score: newAnkh };
+    const profileUpdate = { noub_score: newNoub };
     await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
     
     // Update inventory
@@ -137,14 +137,14 @@ async function executeUpgrade(requirements) {
     btn.disabled = true;
 
     // --- 1. Consume Currencies ---
-    const newAnkh = (state.playerProfile.score || 0) - requirements.cost_ankh;
+    const newNoub = (state.playerProfile.noub_score || 0) - requirements.cost_ankh; // Assuming cost_ankh in DB maps to NOUB
     const newPrestige = (state.playerProfile.prestige || 0) - requirements.cost_prestige;
-    const newBlessing = (state.playerProfile.blessing || 0) - requirements.cost_blessing;
+    const newAnkhPremium = (state.playerProfile.ankh_premium || 0) - (requirements.cost_ankh_premium || requirements.cost_blessing || 0); // Assuming cost_blessing is now cost_ankh_premium in logic
 
     const profileUpdate = {
-        score: newAnkh,
+        noub_score: newNoub,
         prestige: newPrestige,
-        blessing: newBlessing
+        ankh_premium: newAnkhPremium
     };
 
     const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
@@ -202,11 +202,12 @@ async function renderUpgradeDetails(playerCardInstance) {
     upgradeDetailArea.innerHTML = 'Loading upgrade costs...';
     upgradeDetailArea.classList.remove('hidden');
 
+    // Assumed: 'cost_blessing' is now 'cost_ankh_premium' in the DB (or renamed in API fetch)
     const { data: requirements, error } = await api.fetchCardUpgradeRequirements(cardId, nextLevel);
     
     if (error || !requirements) {
         upgradeDetailArea.innerHTML = `<p style="color: ${error ? 'red' : 'white'};">
-            ${error ? 'Error loading requirements.' : 'Max Level Reached!'}
+            ${error ? 'Error loading requirements. Check "cost_blessing" column in card_levels table.' : 'Max Level Reached!'}
         </p>`;
         return;
     }
@@ -214,12 +215,12 @@ async function renderUpgradeDetails(playerCardInstance) {
     let allRequirementsMet = true;
     
     // --- Currency Cost Check ---
-    const ankhCost = requirements.cost_ankh;
+    const noubCost = requirements.cost_ankh; // Assuming cost_ankh from DB maps to NOUB
     const prestigeCost = requirements.cost_prestige;
-    const blessingCost = requirements.cost_blessing;
-    const playerAnkh = state.playerProfile.score || 0;
+    const ankhPremiumCost = requirements.cost_blessing; // Assuming cost_blessing from DB maps to Ankh Premium
+    const playerNoub = state.playerProfile.noub_score || 0;
     const playerPrestige = state.playerProfile.prestige || 0;
-    const playerBlessing = state.playerProfile.blessing || 0;
+    const playerAnkhPremium = state.playerProfile.ankh_premium || 0;
     
     // --- Material Cost Check ---
     const materialRequired = requirements.cost_item_qty > 0;
@@ -249,7 +250,7 @@ async function renderUpgradeDetails(playerCardInstance) {
     }
 
     // --- Check if all currencies are met ---
-    if (playerAnkh < ankhCost || playerPrestige < prestigeCost || playerBlessing < blessingCost) {
+    if (playerNoub < noubCost || playerPrestige < prestigeCost || playerAnkhPremium < ankhPremiumCost) {
         allRequirementsMet = false;
     }
 
@@ -257,10 +258,10 @@ async function renderUpgradeDetails(playerCardInstance) {
     // --- Build Cost Grid HTML ---
     const costGridHTML = `
         <div class="cost-item">
-            <span class="icon">☥</span>
-            <span>Ankh</span>
-            <span class="value" style="color: ${playerAnkh >= ankhCost ? 'white' : 'var(--danger-color)'}">
-                ${playerAnkh} / ${ankhCost}
+            <span class="icon">🪙</span>
+            <span>NOUB</span>
+            <span class="value" style="color: ${playerNoub >= noubCost ? 'white' : 'var(--danger-color)'}">
+                ${playerNoub} / ${noubCost}
             </span>
         </div>
         <div class="cost-item">
@@ -271,10 +272,10 @@ async function renderUpgradeDetails(playerCardInstance) {
             </span>
         </div>
         <div class="cost-item">
-            <span class="icon">🗡️</span>
-            <span>Blessing</span>
-            <span class="value" style="color: ${playerBlessing >= blessingCost ? 'white' : 'var(--danger-color)'}">
-                ${playerBlessing} / ${blessingCost}
+            <span class="icon">☥</span>
+            <span>Ankh Premium</span>
+            <span class="value" style="color: ${playerAnkhPremium >= ankhPremiumCost ? 'white' : 'var(--danger-color)'}">
+                ${playerAnkhPremium} / ${ankhPremiumCost}
             </span>
         </div>
         ${materialCostHTML}
