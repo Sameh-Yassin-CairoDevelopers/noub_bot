@@ -11,14 +11,14 @@ import { ASSET_PATHS } from './config.js';
 
 // --- SCREEN MODULES IMPORTS ---
 import * as collectionModule from './screens/collection.js'; 
-import * * as upgradeModule from './screens/upgrade.js';       
-import * * as historyModule from './screens/history.js';       
-import * * as libraryModule from './screens/library.js';       
-import * * as settingsModule from './screens/settings.js';     
-import * * as albumsModule from './screens/albums.js';         
-import * * as wheelModule from './screens/wheel.js';           
-import * * as exchangeModule from './screens/exchange.js';       
-import * * as activityModule from './screens/activity.js';     
+import * as upgradeModule from './screens/upgrade.js';       
+import * as historyModule from './screens/history.js';       
+import * as libraryModule from './screens/library.js';       
+import * as settingsModule from './screens/settings.js';     
+import * as albumsModule from './screens/albums.js';         
+import * as wheelModule from './screens/wheel.js';           
+import * as exchangeModule from './screens/exchange.js';       
+import * as activityModule from './screens/activity.js';     
 
 // Modules that were correct initially (KEPT AS IS):
 import { renderProfile } from './screens/profile.js';
