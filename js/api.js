@@ -1,9 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.6 (API EXPANSION - NOUB & ANKH Rework - FINAL FIX)
+ * Version: NOUB 0.0.6 (API FINAL DEBUG - CRITICAL SQL SELECT FIX)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * UPDATED: Profile functions to use new currency names.
- * FIXED: Removed comments from SELECT statements causing 400 Bad Request errors.
+ * FIXED: Ensured all SELECT statements are absolutely clean and match DB schema for rewards.
+ * CONFIRMED: Column names in contracts and master_albums match the provided ERD.
 */
 
 import { supabaseClient } from './config.js';
@@ -11,15 +11,16 @@ import { supabaseClient } from './config.js';
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    return await supabaseClient.from('profiles').select('*, noub_score, ankh_premium, prestige, spin_tickets').eq('id', userId).single();
+    // Ensure these columns exist in the 'profiles' table
+    return await supabaseClient.from('profiles').select('id, created_at, username, avatar_url, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
-    return await supabaseClient.from('player_cards').select('instance_id, level, card_id, power_score, cards(*)').eq('player_id', playerId);
+    return await supabaseClient.from('player_cards').select('instance_id, level, card_id, power_score, cards(id, name, rarity_level, image_url, power_score, description, lore)').eq('player_id', playerId);
 }
 
 export async function fetchAllMasterCards() {
-    return await supabaseClient.from('cards').select('id');
+    return await supabaseClient.from('cards').select('id, name');
 }
 
 export async function updatePlayerProfile(playerId, updateObject) {
@@ -41,8 +42,8 @@ export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
         .from('card_levels')
         .select(`
-            *,
-            items (name, image_url)
+            id, card_id, upgrade_level, cost_ankh, cost_prestige, cost_blessing, cost_item_id, cost_item_qty, power_increase,
+            items (id, name, image_url)
         `)
         .eq('card_id', cardId)
         .eq('upgrade_level', nextLevel)
@@ -70,20 +71,13 @@ export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
         .from('player_factories')
         .select(`
-            id,
-            level,
-            production_start_time,
+            id, level, production_start_time,
             factories!inner (
-                id,
-                name, 
-                type, 
-                base_production_time, 
-                image_url, 
-                output_item_id, 
-                items!factories_output_item_id_fkey (id, name, image_url),
+                id, name, output_item_id, base_production_time, type, image_url, 
+                items!factories_output_item_id_fkey (id, name, type, image_url, base_value),
                 factory_recipes (
                     input_quantity,
-                    items (id, name, image_url)
+                    items (id, name, type, image_url, base_value)
                 )
             )
         `)
@@ -100,7 +94,7 @@ export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
 export async function fetchPlayerInventory(playerId) {
     return await supabaseClient
         .from('player_inventory')
-        .select(`quantity, item_id, items (id, name, type, image_url)`)
+        .select(`quantity, item_id, items (id, name, type, image_url, base_value)`)
         .eq('player_id', playerId);
 }
 
@@ -137,38 +131,41 @@ export async function fetchAvailableContracts(playerId) {
         .select('contract_id')
         .eq('player_id', playerId);
 
-    if (playerError) return { data: [], error: playerError };
+    if (playerError) {
+        console.error("Error fetching player contract IDs:", playerError);
+        return { data: [], error: playerError };
+    }
 
     const acceptedIds = playerContractIds.map(c => c.contract_id);
     
     if (acceptedIds.length === 0) {
-        return await supabaseClient.from('contracts').select('*');
+        return await supabaseClient.from('contracts').select('id, title, description, reward_score, reward_prestige');
     }
     
     return await supabaseClient
         .from('contracts')
-        .select('*')
+        .select('id, title, description, reward_score, reward_prestige')
         .not('id', 'in', `(${acceptedIds.join(',')})`);
 }
 
 export async function fetchPlayerContracts(playerId) {
-    // FIXED: Ensure no comments or invalid syntax in select statement
+    // Corrected to use 'reward_score' and 'reward_prestige' from the 'contracts' table
     return await supabaseClient
         .from('player_contracts')
         .select(`
-            id, 
-            status,
-            contracts (id, title, description, reward_noub_score, reward_prestige)
+            id, status, accepted_at,
+            contracts (id, title, description, reward_score, reward_prestige) 
         `)
         .eq('player_id', playerId)
         .eq('status', 'active');
 }
 
 export async function fetchContractWithRequirements(contractId) {
+    // Corrected to use 'reward_score' and 'reward_prestige' from the 'contracts' table
     return await supabaseClient
         .from('contracts')
         .select(`
-            *,
+            id, title, description, reward_score, reward_prestige,
             contract_requirements (
                 quantity,
                 items (id, name, image_url)
@@ -192,6 +189,7 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
+    // Update 'noub_score' in 'profiles' table, assuming newTotals.noub_score
     return await supabaseClient
         .from('profiles')
         .update({ noub_score: newTotals.noub_score, prestige: newTotals.prestige })
@@ -209,7 +207,7 @@ export async function refreshAvailableContracts(playerId) {
 // --- Games & Consumables API Functions ---
 
 export async function fetchSlotRewards() {
-    return await supabaseClient.from('slot_rewards').select('*');
+    return await supabaseClient.from('slot_rewards').select('id, prize_name, prize_type, value, weight');
 }
 
 export async function getDailySpinTickets(playerId) {
@@ -218,9 +216,12 @@ export async function getDailySpinTickets(playerId) {
         .eq('id', playerId)
         .single();
     
-    if (error || !profileData) return { available: false, profileData: null };
+    if (error || !profileData) {
+        console.error("Error fetching daily spin tickets profile data:", error);
+        return { available: false, profileData: null };
+    }
 
-    const lastSpinTime = new Date(profileData.last_daily_spin).getTime(); // Ensure 'last_daily_spin' exists and is correct in DB
+    const lastSpinTime = new Date(profileData.last_daily_spin).getTime();
     const now = Date.now();
     const twentyFourHours = 24 * 60 * 60 * 1000;
     
@@ -232,7 +233,7 @@ export async function getDailySpinTickets(playerId) {
 export async function fetchKVGameConsumables(playerId) {
     return await supabaseClient
         .from('game_consumables')
-        .select('*')
+        .select('item_key, quantity')
         .eq('player_id', playerId);
 }
 
@@ -245,7 +246,7 @@ export async function updateConsumableQuantity(playerId, itemKey, newQuantity) {
 export async function fetchKVProgress(playerId) {
     return await supabaseClient
         .from('kv_game_progress')
-        .select('*')
+        .select('current_kv_level, last_game_result, unlocked_levels_json')
         .eq('player_id', playerId)
         .single();
 }
@@ -268,7 +269,7 @@ export async function saveUCPSection(playerId, sectionKey, sectionData) {
 export async function fetchUCPProtocol(playerId) {
     return await supabaseClient
         .from('player_protocol_data')
-        .select('*')
+        .select('section_key, section_data')
         .eq('player_id', playerId);
 }
 
@@ -276,6 +277,7 @@ export async function fetchUCPProtocol(playerId) {
 // --- TON Integration Functions ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) {
+    // This is a mock API call, actual TON transaction verification would be on backend
     return { success: true, amount: amountAnkhPremium }; 
 }
 
@@ -295,7 +297,7 @@ export async function logActivity(playerId, activityType, description) {
 export async function fetchActivityLog(playerId) {
     return await supabaseClient
         .from('activity_log')
-        .select('*')
+        .select('id, player_id, activity_type, description, created_at')
         .eq('player_id', playerId)
         .order('created_at', { ascending: false })
         .limit(50); 
@@ -306,20 +308,18 @@ export async function fetchActivityLog(playerId) {
 export async function fetchGameHistory(playerId) {
     return await supabaseClient
         .from('game_history')
-        .select('*')
+        .select('id, player_id, game_type, level_kv, result_status, time_taken, code, created_at')
         .eq('player_id', playerId)
         .order('created_at', { ascending: false }); 
 }
 
 export async function fetchPlayerAlbums(playerId) {
-    // FIXED: Ensure no comments or invalid syntax in select statement
+    // Corrected to use 'reward_ankh' and 'reward_prestige' from the 'master_albums' table
     return await supabaseClient
         .from('player_albums')
         .select(`
-            album_id, 
-            is_completed, 
-            reward_claimed,
-            master_albums (id, name, icon, description, card_ids, reward_noub_score, reward_ankh_premium)
+            album_id, is_completed, reward_claimed,
+            master_albums (id, name, icon, description, card_ids, reward_ankh, reward_prestige)
         `)
         .eq('player_id', playerId);
 }
