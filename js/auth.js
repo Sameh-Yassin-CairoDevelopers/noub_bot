@@ -1,8 +1,9 @@
 /*
  * Filename: js/auth.js
- * Version: NOUB 0.0.6 (STARTER PACK & FACTORY SEEDING - NOUB & ANKH Rework)
+ * Version: NOUB 0.0.6 (STARTER PACK & FACTORY SEEDING - NOUB & ANKH Rework - FINAL FIX)
  * Description: Authentication Module. Ensures login works and implements
  * starter pack distribution and factory seeding for new players.
+ * FIXED: Removed avatar_url assumptions for profile creation/refresh as it's not in DB schema.
 */
 
 import { supabaseClient } from './config.js';
@@ -53,6 +54,7 @@ async function seedNewPlayer(userId) {
         spin_tickets: STARTER_SPIN_TICKETS,
         ankh_premium: STARTER_ANKH_PREMIUM,
         last_daily_spin: new Date().toISOString(), // Initialize spin tracking
+        // avatar_url: 'images/user_avatar.png' // Removed: Assuming avatar_url is not in profiles table
     };
     
     const { error: profileError } = await api.updatePlayerProfile(userId, profileUpdate);
@@ -85,6 +87,8 @@ async function seedNewPlayer(userId) {
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
+    // Fetch all critical data simultaneously for maximum speed
+    // fetchProfile no longer requests avatar_url
     const [profileResult, inventoryResult, consumablesResult, ucpResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
