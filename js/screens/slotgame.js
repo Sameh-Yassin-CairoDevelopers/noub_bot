@@ -1,9 +1,9 @@
-
 /*
  * Filename: js/screens/slotgame.js
- * Version: NOUB 0.0.1 Eve Edition (V34.0 - 5-REEL VIDEO POKER LOGIC - Complete)
+ * Version: NOUB 0.0.6 (SLOT GAME - FINAL FIX)
  * Description: Implements all logic for the Slot Machine game (Tomb of Treasures) 
  * using 5 reels and video poker win conditions.
+ * FIXED: Restored original symbols and ensured proper display.
 */
 
 import { state } from '../state.js';
@@ -18,8 +18,9 @@ const reelsContainer = document.querySelectorAll('.reel');
 const slotGameContainer = document.getElementById('slot-machine-container');
 
 // NOTE: Now 5 reels required by CSS. We need 5 symbols for 5-reel logic.
+// Restored original symbols from 'noub original game.html'
 const SYMBOLS = ['☥', '𓂀', '𓋹', '🐍', '🐞', '👑', '💎', '🏺']; // 8 symbols
-const REEL_ITEM_HEIGHT = 90; 
+const REEL_ITEM_HEIGHT = 45; // Adjusted height to match style.css for 30% reduction
 const REEL_COUNT = 5; 
 let isSpinning = false;
 
@@ -30,8 +31,11 @@ function createReelSymbols(reelEl) {
     const inner = document.createElement('div');
     inner.className = 'reel-inner';
     
-    for (let i = 0; i < 10; i++) {
-        SYMBOLS.forEach(symbol => {
+    // Loop multiple times to create enough symbols for smooth scrolling
+    for (let i = 0; i < 10; i++) { // Increase loop count for longer, smoother spin effect
+        // Shuffle symbols for each cycle to make it feel more random
+        const shuffledSymbols = [...SYMBOLS].sort(() => Math.random() - 0.5);
+        shuffledSymbols.forEach(symbol => {
             const item = document.createElement('div');
             item.className = 'reel-item';
             item.textContent = symbol;
@@ -43,11 +47,20 @@ function createReelSymbols(reelEl) {
 }
 
 function spinReel(reelEl, finalIndex) {
-    // ... (Spin animation logic remains the same) ...
     const reelInner = reelEl.querySelector('.reel-inner');
     const symbolCountPerCycle = SYMBOLS.length;
-    const finalSymbolPosition = (symbolCountPerCycle - 1 - finalIndex); 
-    const targetOffset = (7 * symbolCountPerCycle + finalSymbolPosition) * REEL_ITEM_HEIGHT;
+    
+    // Calculate target position: multiple full cycles + final symbol
+    // Ensure it lands precisely on the symbol.
+    // We want it to land on the `finalIndex` symbol of the LAST cycle (or a specific cycle).
+    // Let's aim for the 7th cycle's finalIndex symbol for a good long spin.
+    const targetOffset = (7 * symbolCountPerCycle + finalIndex) * REEL_ITEM_HEIGHT;
+
+    reelInner.style.transition = 'none'; // Reset transition instantly
+    reelInner.style.transform = `translateY(0)`; // Start from top
+    
+    // Force reflow to apply instant reset before starting new transition
+    void reelInner.offsetWidth; 
 
     reelInner.style.transition = 'transform 3s cubic-bezier(0.2, 0.9, 0.5, 1)';
     reelInner.style.transform = `translateY(-${targetOffset}px)`;
@@ -59,30 +72,18 @@ function spinReel(reelEl, finalIndex) {
 // --- Video Poker Winning Logic ---
 
 function checkWinCondition(results) {
-    // Use a frequency map for the 5 symbols
     const freq = {};
     results.forEach(s => freq[s] = (freq[s] || 0) + 1);
 
     const counts = Object.values(freq);
     const uniqueSymbols = counts.length;
     
-    // Check for 5-of-a-kind (5x)
     if (counts.includes(5)) return { type: 'FiveX', multiplier: 50 };
-    
-    // Check for 4-of-a-kind (4x)
     if (counts.includes(4)) return { type: 'FourX', multiplier: 10 };
-    
-    // Check for Full House (3x and 2x)
     if (counts.includes(3) && counts.includes(2)) return { type: 'FullHouse', multiplier: 5 };
-    
-    // Check for 3-of-a-kind (3x)
     if (counts.includes(3)) return { type: 'ThreeX', multiplier: 3 };
-    
-    // Check for Two Pair (2x, 2x)
     if (uniqueSymbols === 3 && counts.filter(c => c === 2).length === 2) return { type: 'TwoPair', multiplier: 2 };
-    
-    // Check for One Pair (2x) (Min win condition)
-    if (counts.includes(2)) return { type: 'OnePair', multiplier: 1.5 }; // Small payout
+    if (counts.includes(2)) return { type: 'OnePair', multiplier: 1.5 };
     
     return { type: 'Loss', multiplier: 0 };
 }
@@ -92,19 +93,24 @@ async function determinePrize(results) {
     const win = checkWinCondition(results);
     const basePayout = 50; 
     
-    // Find the master reward data (using Ankh type for consistency)
-    const { data: rewards } = await api.fetchSlotRewards();
-    const ankhRewardData = rewards.find(r => r.prize_type === 'ANKH' && r.prize_name.includes('Minor')) || { value: 50 };
+    const { data: rewards, error: rewardsError } = await api.fetchSlotRewards();
+    if (rewardsError) {
+        console.error("Error fetching slot rewards:", rewardsError);
+        displaySlotResultMessage("Error fetching rewards.", 'error');
+        return;
+    }
+
+    const noubRewardData = rewards.find(r => r.prize_type === 'NOUB' && r.prize_name.includes('Minor')) || { value: 50 }; // Assuming reward_type NOUB
 
     if (win.multiplier > 0) {
         const rewardAmount = Math.floor(basePayout * win.multiplier);
         
-        // 1. Grant reward
-        const newScore = (state.playerProfile.score || 0) + rewardAmount;
-        await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
+        // 1. Grant reward in NOUB
+        const newNoubScore = (state.playerProfile.noub_score || 0) + rewardAmount;
+        await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
         
         // 2. Display message
-        const message = `${win.type} Payout! +${rewardAmount} ☥`;
+        const message = `${win.type} Payout! +${rewardAmount} NOUB`;
         displaySlotResultMessage(message, win.type.includes('Loss') ? 'lose' : 'win');
     } else {
         displaySlotResultMessage("No Match. Try Again!", 'lose');
@@ -116,7 +122,6 @@ async function determinePrize(results) {
 function displaySlotResultMessage(message, type) {
     let resultEl = document.getElementById('slot-result-message');
     if (!resultEl) {
-        // Create the element if it doesn't exist (assuming index.html was modified to include it)
         resultEl = document.createElement('div');
         resultEl.id = 'slot-result-message';
         slotGameContainer.prepend(resultEl);
@@ -129,7 +134,7 @@ function displaySlotResultMessage(message, type) {
 async function runSlotMachine() {
     if (isSpinning) return;
     if ((state.playerProfile.spin_tickets || 0) < 1) {
-        displaySlotResultMessage('Not enough Spin Tickets (🗡️)!', 'error');
+        displaySlotResultMessage('Not enough Spin Tickets (🎟️)!', 'error');
         return;
     }
     
@@ -139,8 +144,7 @@ async function runSlotMachine() {
     // 1. Consume ticket
     const newTickets = state.playerProfile.spin_tickets - 1;
     await api.updatePlayerProfile(state.currentUser.id, { spin_tickets: newTickets });
-    state.playerProfile.spin_tickets = newTickets;
-    updateHeaderUI(state.playerProfile);
+    updateHeaderUI(state.playerProfile); // Update header immediately for tickets
 
     // 2. Track daily quest completion
     trackDailyActivity('games', 1);
@@ -161,7 +165,7 @@ async function runSlotMachine() {
     
     // 4. Wait for animation to finish
     setTimeout(async () => {
-        // Reset transitions
+        // Reset transitions to prepare for next spin
         reelElements.forEach(el => {
             el.querySelector('.reel-inner').style.transition = 'none';
         });
@@ -171,8 +175,8 @@ async function runSlotMachine() {
         
         spinButton.disabled = false;
         isSpinning = false;
-        await refreshSlotGameScreen();
-    }, 3500);
+        await refreshSlotGameScreen(); // Full refresh
+    }, 3500); // Animation duration is 3s, give it a bit more
 }
 
 async function checkDailyTicket() {
@@ -211,18 +215,15 @@ async function refreshSlotGameScreen() {
 export async function renderSlotGame() {
     if (!state.currentUser) return;
     
-    // 1. Check and grant daily tickets on screen load
     await checkDailyTicket();
-    
-    // 2. Refresh the entire player state to capture new tickets/currencies
     await refreshPlayerState();
     
-    // 3. Initialize Slot Machine visuals (if it's the first time)
-    if (reelsContainer.length === REEL_COUNT && !reelsContainer[0].querySelector('.reel-inner')) {
+    // Initialize Slot Machine visuals (if it's the first time)
+    if (reelsContainer.length === REEL_COUNT && (!reelsContainer[0].querySelector('.reel-inner') || reelsContainer[0].querySelector('.reel-inner').children.length === 0)) {
         reelsContainer.forEach(createReelSymbols);
     }
     
-    // 4. Set event listener and initial status
+    // Set event listener and initial status
     if (spinButton) {
         spinButton.onclick = runSlotMachine;
         spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < 1);
@@ -234,6 +235,6 @@ export async function renderSlotGame() {
         resultEl = document.createElement('div');
         resultEl.id = 'slot-result-message';
         slotGameContainer.prepend(resultEl);
-        displaySlotResultMessage("Ready to Spin!", 'info');
     }
+    displaySlotResultMessage("Ready to Spin!", 'info');
 }
