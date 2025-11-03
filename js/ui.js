@@ -7,19 +7,18 @@
 
 // --- CORE IMPORTS ---
 import { state } from './state.js'; 
-import { ASSET_PATHS } from './config.js'; // Import asset paths for currency icons
+import { ASSET_PATHS } from './config.js';
 
-// --- SCREEN MODULES IMPORTS (Use * as alias to prevent import/export conflicts) ---
-// FIX: Using * as Alias for all screen modules
+// --- SCREEN MODULES IMPORTS ---
 import * as collectionModule from './screens/collection.js'; 
-import * as upgradeModule from './screens/upgrade.js';       
-import * as historyModule from './screens/history.js';       
-import * as libraryModule from './screens/library.js';       
-import * as settingsModule from './screens/settings.js';     
-import * as albumsModule from './screens/albums.js';         
-import * as wheelModule from './screens/wheel.js';           
-import * as exchangeModule from './screens/exchange.js';       
-import * as activityModule from './screens/activity.js';     
+import * * as upgradeModule from './screens/upgrade.js';       
+import * * as historyModule from './screens/history.js';       
+import * * as libraryModule from './screens/library.js';       
+import * * as settingsModule from './screens/settings.js';     
+import * * as albumsModule from './screens/albums.js';         
+import * * as wheelModule from './screens/wheel.js';           
+import * * as exchangeModule from './screens/exchange.js';       
+import * * as activityModule from './screens/activity.js';     
 
 // Modules that were correct initially (KEPT AS IS):
 import { renderProfile } from './screens/profile.js';
@@ -32,8 +31,7 @@ import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js'; 
 
 
-// --- EXPORTS (RE-EXPORTING all corrected functions) ---
-// NOTE: These exports are what makes the function available outside of this file (e.g. to main.js)
+// --- EXPORTS ---
 export const renderCollection = collectionModule.renderCollection;
 export const renderUpgrade = upgradeModule.renderUpgrade;
 export const renderHistory = historyModule.renderHistory;
@@ -45,7 +43,6 @@ export const renderActivity = activityModule.renderActivity;
 export const renderExchange = exchangeModule.renderExchange; 
 
 
-// Make closeModal globally available for all onclick attributes in dynamically generated HTML
 window.closeModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -131,39 +128,29 @@ export function navigateTo(targetId) {
 
 export function updateHeaderUI(profile) {
     if (!profile) return;
-    // Update NOUB (was Ankh ☥) - now using a custom image
+    
     const noubDisplay = document.getElementById('noub-display');
     if(noubDisplay) {
         noubDisplay.textContent = profile.noub_score || 0;
-        // Optionally update the icon if it's dynamic
-        // const noubIcon = document.getElementById('noub-icon');
-        // if(noubIcon) noubIcon.src = ASSET_PATHS.NOUB_ICON;
     }
 
-    // Update Prestige (🐞)
     const prestigeDisplay = document.getElementById('prestige-display');
     if(prestigeDisplay) {
         prestigeDisplay.textContent = profile.prestige || 0;
     }
     
-    // Update Ankh Premium (was Blessing 🗡️) - now using Ankh Key of Life ☥
     const ankhPremiumDisplay = document.getElementById('ankh-premium-display');
     if(ankhPremiumDisplay) {
         ankhPremiumDisplay.textContent = profile.ankh_premium || 0;
-        // Optionally update the icon if it's dynamic
-        // const ankhPremiumIcon = document.getElementById('ankh-premium-icon');
-        // if(ankhPremiumIcon) ankhPremiumIcon.src = ASSET_PATHS.ANKH_PREMIUM_ICON;
     }
     
-    // Update Spin Tickets (🎟️)
     const spinDisplay = document.getElementById('spin-ticket-display');
     if(spinDisplay) {
         spinDisplay.textContent = profile.spin_tickets || 0;
     }
     
-    // TON Connect UI update (ensures button status is current)
     if (window.TonConnectUI) {
-        // NOTE: The button is rendered via index.html init. We just check if needed.
+        // Handled by TON Connect UI library directly via buttonRootId
     }
 }
 
