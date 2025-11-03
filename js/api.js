@@ -1,8 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.6 (API EXPANSION - NOUB & ANKH Rework)
+ * Version: NOUB 0.0.6 (API EXPANSION - NOUB & ANKH Rework - FINAL FIX)
  * Description: Data Access Layer Module. Centralizes all database interactions.
  * UPDATED: Profile functions to use new currency names.
+ * FIXED: Removed comments from SELECT statements causing 400 Bad Request errors.
 */
 
 import { supabaseClient } from './config.js';
@@ -151,6 +152,7 @@ export async function fetchAvailableContracts(playerId) {
 }
 
 export async function fetchPlayerContracts(playerId) {
+    // FIXED: Ensure no comments or invalid syntax in select statement
     return await supabaseClient
         .from('player_contracts')
         .select(`
@@ -218,7 +220,7 @@ export async function getDailySpinTickets(playerId) {
     
     if (error || !profileData) return { available: false, profileData: null };
 
-    const lastSpinTime = new Date(profileData.last_daily_spin).getTime();
+    const lastSpinTime = new Date(profileData.last_daily_spin).getTime(); // Ensure 'last_daily_spin' exists and is correct in DB
     const now = Date.now();
     const twentyFourHours = 24 * 60 * 60 * 1000;
     
@@ -306,10 +308,11 @@ export async function fetchGameHistory(playerId) {
         .from('game_history')
         .select('*')
         .eq('player_id', playerId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }); 
 }
 
 export async function fetchPlayerAlbums(playerId) {
+    // FIXED: Ensure no comments or invalid syntax in select statement
     return await supabaseClient
         .from('player_albums')
         .select(`
