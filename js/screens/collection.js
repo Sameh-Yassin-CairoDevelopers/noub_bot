@@ -1,13 +1,14 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB 0.0.4 (CARD HUB - COLLECTION VIEW)
+ * Version: NOUB 0.0.6 (COLLECTION VIEW - FINAL FIX)
  * Description: View Logic Module for My Collection screen. Displays card stack, details,
  * and handles Card Burning functionality to earn Prestige.
+ * FIXED: window.navigateTo not defined.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast } from '../ui.js';
+import { showToast, navigateTo } from '../ui.js'; // Ensure navigateTo is imported
 import { refreshPlayerState } from '../auth.js';
 
 const collectionContainer = document.getElementById('collection-container');
@@ -106,7 +107,7 @@ export async function renderCollection() {
         const instanceToBurnId = data.instances[0].instance_id; 
         
         const burnButtonHTML = canBurn ? 
-            `<button class="action-button small danger burn-btn" style="padding: 5px; margin-top: 5px; font-size: 0.8em; width: 100%;" 
+            `<button class="action-button small danger burn-btn" style="padding: 3px; margin-top: 3px; font-size: 0.7em; width: 100%;" 
                 data-instance-id="${instanceToBurnId}" data-card-name="${card.name}" data-card-level="${data.level}">
                 BURN (1 🐞)
              </button>` : '';
@@ -129,15 +130,11 @@ export async function renderCollection() {
              });
         }
         
-        // CRITICAL: This onclick should transition to the Upgrade/Detail Screen
         cardElement.onclick = () => {
-             // Use navigateTo to show the Upgrade screen, focusing on this card's details
              showToast(`Navigating to details for ${card.name}...`, 'info');
-             // NOTE: A full implementation would pass the card ID to the Upgrade module
-             window.navigateTo('card-upgrade-screen'); 
+             navigateTo('card-upgrade-screen'); // Ensure navigateTo is called correctly
         };
         
         collectionContainer.appendChild(cardElement);
     }
 }
-// NO EXPORT HERE
