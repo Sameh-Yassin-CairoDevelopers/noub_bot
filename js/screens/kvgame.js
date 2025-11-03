@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.6 (KV GAME LOGIC - NOUB & ANKH Rework - FINAL FIX)
+ * Version: NOUB 0.0.6 (KV GAME LOGIC - NOUB & ANKH Rework - Targeted Update)
  * Description: Implements the full 62-level Valley of the Kings (Crack the Code) logic.
- * FIXED: JSON parse error for unlocked_levels_json and PATCH 400 for kv_game_progress.
+ * FIXED: JSON parse error for unlocked_levels_json and PATCH 400 for kv_game_progress initialization.
 */
 
 import { state } from '../state.js';
@@ -41,15 +41,15 @@ const kvGatesData = [
     { kv: 22, name: "Amenhotep III" }, { kv: 23, name: "Ay" }, { kv: 24, name: "Unknown" }, 
     { kv: 25, name: "Unknown" }, { kv: 26, name: "Unknown" }, { kv: 27, name: "Unknown" }, { kv: 28, name: "Unknown" },
     { kv: 29, name: "Unknown" }, { kv: 30, name: "Unknown" }, { kv: 31, name: "Unknown" }, { kv: 32, name: "Tia'a" },
-    { kv: 33, name: "Unknown" }, { kv: 34, name: "Thutmose III" }, { kv: 35, name: "Amenhotep II" }, { kv: 36, name: "Maiherpri" },
-    { kv: 37, name: "Unknown" }, { kv: 38, name: "Thutmose I" }, { kv: 39, name: "Unknown" }, { kv: 40, name: "Unknown" },
-    { kv: 41, name: "Unknown" }, { kv: 42, name: "Hatshepsut-Meryet-Ra" }, { kv: 43, name: "Thutmose IV" }, { kv: 44, name: "Unknown" },
-    { kv: 45, name: "Userhet" }, { kv: 46, name: "Yuya & Thuya" }, { kv: 47, name: "Siptah" }, 
-    { kv: 48, name: "Amenemope" }, { kv: 49, name: "Unknown" }, { kv: 50, name: "Unknown" }, { kv: 51, name: "Unknown" },
-    { kv: 52, name: "Unknown" },
-    { kv: 53, name: "Unknown" }, { kv: 54, name: "Tutankhamun cache?" }, { kv: 55, name: "Amarna Cache (Akhenaten?)" }, { kv: 56, name: "Gold Tomb?" },
-    { kv: 57, name: "Horemheb" }, { kv: 58, name: "Unknown (Chariot Tomb?)" }, { kv: 59, name: "Unknown" }, { kv: 60, name: "Sitre" },
-    { kv: 61, name: "Unknown" }, { kv: 62, name: "Tutankhamun" }
+    { kv: 33, name: "Unknown" }, { kv: 34: "Thutmose III" }, { kv: 35: "Amenhotep II" }, { kv: 36: "Maiherpri" },
+    { kv: 37: "Unknown" }, { kv: 38: "Thutmose I" }, { kv: 39: "Unknown" }, { kv: 40: "Unknown" },
+    { kv: 41: "Unknown" }, { kv: 42: "Hatshepsut-Meryet-Ra" }, { kv: 43: "Thutmose IV" }, { kv: 44: "Unknown" },
+    { kv: 45: "Userhet" }, { kv: 46: "Yuya & Thuya" }, { kv: 47: "Siptah" }, 
+    { kv: 48: "Amenemope" }, { kv: 49: "Unknown" }, { kv: 50: "Unknown" }, { kv: 51: "Unknown" },
+    { kv: 52: "Unknown" },
+    { kv: 53: "Unknown" }, { kv: 54: "Tutankhamun cache?" }, { kv: 55: "Amarna Cache (Akhenaten?)" }, { kv: 56: "Gold Tomb?" },
+    { kv: 57: "Horemheb" }, { kv: 58: "Unknown (Chariot Tomb?)" }, { kv: 59: "Unknown" }, { kv: 60: "Sitre" },
+    { kv: 61: "Unknown" }, { kv: 62: "Tutankhamun" }
 ];
 
 
@@ -108,38 +108,38 @@ async function updateKVProgress(isWin) {
     // Attempt to fetch existing progress
     let { data: progress } = await api.fetchKVProgress(state.currentUser.id);
 
-    // If no progress found, initialize it
+    // If no progress found, initialize it (FIX for PATCH 400 and JSON.parse)
     if (!progress) {
         progress = {
             player_id: state.currentUser.id,
             current_kv_level: 1, // Start at level 1
             last_game_result: null,
-            unlocked_levels_json: '[]' // Initialize as empty JSON array
+            unlocked_levels_json: '[]' // Initialize as empty JSON array string
         };
-        // Use upsert to insert the initial row
+        // Use upsert to insert the initial row for new players
         await api.updateKVProgress(state.currentUser.id, progress);
         // Re-fetch to ensure 'progress' object is up-to-date after initial upsert
         ({ data: progress } = await api.fetchKVProgress(state.currentUser.id));
         if (!progress) {
-            console.error("Failed to initialize or fetch KV progress after upsert.");
+            console.error("Failed to initialize or fetch KV progress after initial upsert.");
             showToast("Error initializing game progress.", 'error');
             return;
         }
     }
 
-    // Safely parse JSON or default to empty array
+    // Safely parse JSON or default to empty array (FIX for JSON.parse error)
     let unlockedLevels = [];
     try {
         unlockedLevels = JSON.parse(progress.unlocked_levels_json || '[]');
     } catch (e) {
         console.error("Error parsing unlocked_levels_json:", e, "Raw data:", progress.unlocked_levels_json);
-        // Reset to empty array if parsing fails
+        // Reset to empty array if parsing fails to avoid further errors
         unlockedLevels = [];
     }
     
     const currentLevel = kvGameState.levelIndex + 1;
     let updateObject = {
-        player_id: state.currentUser.id,
+        player_id: state.currentUser.id, // Ensure player_id is always present for upsert
         current_kv_level: progress.current_kv_level,
         last_game_result: isWin ? 'Win' : 'Loss',
         unlocked_levels_json: JSON.stringify(unlockedLevels) // Ensure it's stringified JSON
