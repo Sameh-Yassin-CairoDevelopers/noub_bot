@@ -1,24 +1,24 @@
 /*
  * Filename: js/screens/albums.js
- * Version: NOUB 0.0.4 (ALBUMS MODULE - FINAL PRODUCTION CODE)
+ * Version: NOUB 0.0.6 (ALBUMS MODULE - NOUB & ANKH Rework)
  * Description: View Logic Module for the Album Catalog screen.
  * Implements the Album Detail Modal to show owned/unowned cards (like the Burble Boinker example).
- * FIX: Uses window.closeModal to resolve import error.
+ * UPDATED: Currency usage for NOUB and Ankh Premium.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { supabaseClient } from '../config.js'; // Import Supabase client for generic card fetch
+import { supabaseClient } from '../config.js';
 
 const albumsContainer = document.getElementById('albums-screen');
 
 // --- MASTER ALBUM CONFIGURATION (Used as reference) ---
 const MASTER_ALBUMS = [
-    { id: 1, name: "The Sacred Ennead", icon: "☀️", description: "Collect the nine foundational deities of creation.", card_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9], reward_ankh: 2500, reward_prestige: 50 },
-    { id: 2, name: "Pharaonic Rulers", icon: "👑", description: "Collect the nine greatest Pharaohs and Queens of Egypt.", card_ids: [10, 11, 12, 13, 14, 15, 16, 17, 18], reward_ankh: 4000, reward_prestige: 100 },
-    { id: 3, name: "Mythological Creatures", icon: "🐉", description: "Collect the nine powerful and ancient mythical beings.", card_ids: [19, 20, 21, 22, 23, 24, 25, 26, 27], reward_ankh: 1500, reward_prestige: 30 }
+    { id: 1, name: "The Sacred Ennead", icon: "☀️", description: "Collect the nine foundational deities of creation.", card_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9], reward_noub_score: 2500, reward_prestige: 50, reward_ankh_premium: 0 },
+    { id: 2, name: "Pharaonic Rulers", icon: "👑", description: "Collect the nine greatest Pharaohs and Queens of Egypt.", card_ids: [10, 11, 12, 13, 14, 15, 16, 17, 18], reward_noub_score: 4000, reward_prestige: 100, reward_ankh_premium: 0 },
+    { id: 3, name: "Mythological Creatures", icon: "🐉", description: "Collect the nine powerful and ancient mythical beings.", card_ids: [19, 20, 21, 22, 23, 24, 25, 26, 27], reward_noub_score: 1500, reward_prestige: 30, reward_ankh_premium: 0 }
 ];
 
 
@@ -35,8 +35,12 @@ export async function renderAlbums() {
     const playerCardIds = new Set(playerCards.map(pc => pc.card_id));
     
     const { data: playerAlbumsStatus, error: statusError } = await api.fetchPlayerAlbums(state.currentUser.id);
+    // CRITICAL FIX: Handle case where playerAlbumsStatus.data is null or undefined
     const statusMap = new Map();
-    playerAlbumsStatus.forEach(pa => statusMap.set(pa.album_id, pa));
+    if (playerAlbumsStatus && playerAlbumsStatus.data) {
+        playerAlbumsStatus.data.forEach(pa => statusMap.set(pa.album_id, pa));
+    }
+
 
     // 2. Render List View
     albumsContainer.innerHTML = '<h2>Album Catalog</h2><div id="albums-list-container"></div>';
@@ -62,21 +66,22 @@ export async function renderAlbums() {
         const progressPercent = (uniqueCollectedCount / totalRequired) * 100;
         
         let buttonHTML = '';
-        if (isCompleted && !statusMap.get(album.id)?.reward_claimed) {
-            buttonHTML = `<button class="claim-btn ready" onclick="window.handleClaimAlbumReward(${album.id}, ${album.reward_ankh}, ${album.reward_prestige})">Claim</button>`;
+        const albumStatus = statusMap.get(album.id);
+        if (isCompleted && (!albumStatus || !albumStatus.reward_claimed)) {
+            buttonHTML = `<button class="claim-btn ready" onclick="window.handleClaimAlbumReward(${album.id}, ${album.reward_noub_score}, ${album.reward_prestige}, ${album.reward_ankh_premium})">Claim</button>`;
         } else {
             buttonHTML = `<button class="claim-btn claimed" disabled>${isCompleted ? 'Claimed' : 'Progress'}</button>`;
         }
 
         return `
-            <li class="album-list-item ${isCompleted ? 'completed' : ''}" onclick="window.openAlbumDetail(${album.id}, '${album.name}')" style="cursor: pointer; border-left: 5px solid ${isCompleted ? 'var(--success-color)' : 'var(--primary-accent)'}; margin-bottom: 10px; padding: 15px; background: var(--surface-dark); border-radius: 12px;">
-                <div class="icon" style="font-size: 30px; margin-right: 15px;">${album.icon}</div>
+            <li class="album-list-item ${isCompleted ? 'completed' : ''}" onclick="window.openAlbumDetail(${album.id}, '${album.name}')" style="cursor: pointer; border-left: 3px solid ${isCompleted ? 'var(--success-color)' : 'var(--primary-accent)'}; margin-bottom: 7px; padding: 10px; background: var(--surface-dark); border-radius: 8px;">
+                <div class="icon" style="font-size: 20px; margin-right: 10px;">${album.icon}</div>
                 <div class="details" style="flex-grow: 1;">
-                    <h4 style="margin: 0 0 5px 0;">${album.name}</h4>
+                    <h4 style="margin: 0 0 3px 0;">${album.name}</h4>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${progressPercent}%; background-color: ${isCompleted ? 'var(--success-color)' : 'var(--primary-accent)'}; height: 8px; border-radius: 4px;"></div>
+                        <div class="progress-fill" style="width: ${progressPercent}%; background-color: ${isCompleted ? 'var(--success-color)' : 'var(--primary-accent)'}; height: 5px; border-radius: 3px;"></div>
                     </div>
-                    <div class="count" style="font-size: 0.8em; margin-top: 5px;">${uniqueCollectedCount}/${totalRequired} Cards Collected</div>
+                    <div class="count" style="font-size: 0.7em; margin-top: 3px;">${uniqueCollectedCount}/${totalRequired} Cards Collected</div>
                 </div>
                 ${buttonHTML}
             </li>
@@ -128,33 +133,33 @@ window.openAlbumDetail = async function(albumId, albumName) {
             <div class="album-slot-card ${isOwned ? 'owned' : 'unowned'}" 
                  data-card-id="${cardId}" 
                  onclick="${isOwned ? `window.showCardDetailModal(${cardId}, '${displayCard.instance_id}')` : `showToast('Find this card to unlock details!', 'info')`}" 
-                 style="cursor: pointer; text-align: center; background: var(--surface-dark); padding: 5px; border-radius: 8px; border: 2px solid ${isOwned ? 'var(--success-color)' : '#444'};">
+                 style="cursor: pointer; text-align: center; background: var(--surface-dark); padding: 3px; border-radius: 6px; border: 1px solid ${isOwned ? 'var(--success-color)' : '#444'};">
                 <img src="${isOwned ? displayImage : 'images/default_card.png'}" 
                      alt="${cardName}" 
-                     style="width: 100%; aspect-ratio: 1/1; border-radius: 6px; opacity: ${isOwned ? 1 : 0.4};">
-                <h4 style="font-size: 0.8em; margin: 5px 0;">${cardName}</h4>
-                <div style="font-size: 0.9em; font-weight: bold; color: ${isOwned ? 'var(--primary-accent)' : 'var(--danger-color)'};">
+                     style="width: 100%; aspect-ratio: 1/1; border-radius: 4px; opacity: ${isOwned ? 1 : 0.4};">
+                <h4 style="font-size: 0.7em; margin: 3px 0;">${cardName}</h4>
+                <div style="font-size: 0.8em; font-weight: bold; color: ${isOwned ? 'var(--primary-accent)' : 'var(--danger-color)'};">
                     ${isOwned ? `x${ownedInstances.length}` : 'MISSING'}
                 </div>
-                ${isOwned ? `<div style="position: absolute; top: 0; right: 0; background: var(--success-color); color: white; padding: 2px 5px; border-radius: 0 6px 0 6px; font-size: 0.7em;">LVL ${displayCard?.level || 1}</div>` : ''}
+                ${isOwned ? `<div style="position: absolute; top: 0; right: 0; background: var(--success-color); color: white; padding: 1px 3px; border-radius: 0 4px 0 4px; font-size: 0.6em;">LVL ${displayCard?.level || 1}</div>` : ''}
             </div>
         `;
     }).join('');
 
     // 3. Inject Modal Content
     modalContent.innerHTML = `
-        <div style="padding: 15px; background: var(--background-dark); border-radius: 20px 20px 0 0;">
-            <button class="action-button small" style="position: absolute; top: 15px; left: 15px; background: #555; color: white; padding: 5px 10px;" onclick="window.closeModal('album-detail-modal-container')">← Back</button>
+        <div style="padding: 10px; background: var(--background-dark); border-radius: 14px 14px 0 0;">
+            <button class="action-button small" style="position: absolute; top: 10px; left: 10px; background: #555; color: white; padding: 3px 7px;" onclick="window.closeModal('album-detail-modal-container')">← Back</button>
             <h2 style="text-align: center; margin-top: 0; color: var(--primary-accent);">${albumName}</h2>
-            <div style="text-align: center; margin-bottom: 10px;">
-                <span style="font-size: 1.1em; font-weight: bold; color: var(--success-color);">
+            <div style="text-align: center; margin-bottom: 7px;">
+                <span style="font-size: 0.9em; font-weight: bold; color: var(--success-color);">
                     SET ${albumId}/${MASTER_ALBUMS.length}
                 </span>
             </div>
         </div>
         
-        <div style="padding: 15px;">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+        <div style="padding: 10px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px;">
                 ${cardSlotsHTML}
             </div>
         </div>
@@ -170,30 +175,33 @@ window.showCardDetailModal = function(cardId, instanceId) {
     if (instanceId === 'null') {
          showToast(`You do not own this card yet. Find ${cardId}!`, 'info');
     } else {
-        // CRITICAL: Navigate to the UPGRADE screen and render the specific card instance
          showToast(`Opening details for Card ID ${cardId} (Instance: ${instanceId}). This will trigger upgrade.js.`, 'success');
          navigateTo('card-upgrade-screen'); 
     }
 }
 
 
-window.handleClaimAlbumReward = async function(albumId, ankhReward, prestigeReward) {
+window.handleClaimAlbumReward = async function(albumId, noubReward, prestigeReward, ankhPremiumReward) { // Updated rewards
     if (!state.currentUser) return;
     
     showToast('Processing album reward...', 'info');
 
-    const newScore = (state.playerProfile.score || 0) + ankhReward;
+    const newNoubScore = (state.playerProfile.noub_score || 0) + noubReward; // Use noub_score
     const newPrestige = (state.playerProfile.prestige || 0) + prestigeReward;
+    const newAnkhPremium = (state.playerProfile.ankh_premium || 0) + ankhPremiumReward; // Use ankh_premium
 
-    const { error } = await api.updatePlayerProfile(state.currentUser.id, { score: newScore, prestige: newPrestige });
+    const { error } = await api.updatePlayerProfile(state.currentUser.id, { 
+        noub_score: newNoubScore, 
+        prestige: newPrestige, 
+        ankh_premium: newAnkhPremium // Update ankh_premium
+    });
     
     if (!error) {
-        await api.logActivity(state.currentUser.id, 'ALBUM_CLAIM', `Claimed Album ${albumId} for ${ankhReward} Ankh.`);
+        await api.logActivity(state.currentUser.id, 'ALBUM_CLAIM', `Claimed Album ${albumId} for ${noubReward} NOUB, ${ankhPremiumReward} Ankh Premium.`);
         await refreshPlayerState();
-        showToast(`Album Reward Claimed! +${ankhReward} ☥, +${prestigeReward} 🐞`, 'success');
+        showToast(`Album Reward Claimed! +${noubReward} 🪙, +${prestigeReward} 🐞, +${ankhPremiumReward} ☥`, 'success'); // Updated symbols
         renderAlbums(); 
     } else {
         showToast('Error claiming reward!', 'error');
     }
 }
-// NO EXPORT HERE
