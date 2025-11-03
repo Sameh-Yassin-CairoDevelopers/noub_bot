@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.2 (KV GAME LOGIC - FINAL CODE)
+ * Version: NOUB 0.0.6 (KV GAME LOGIC - NOUB & ANKH Rework)
  * Description: Implements the full 62-level Valley of the Kings (Crack the Code) logic.
  * Merged core game engine from 'noub original game.html' with Supabase integration.
+ * UPDATED: Currency usage for NOUB and Ankh Premium.
 */
 
 import { state } from '../state.js';
@@ -12,12 +13,12 @@ import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
 
 // --- KV Game Constants & State ---
-const LEVEL_COST = 100;
+const LEVEL_COST = 100; // Cost is in NOUB (gold coin)
 const WIN_REWARD_BASE = 500;
 const HINT_SCROLL_ITEM_KEY = 'hint_scroll'; 
-const HINT_SCROLL_COST_BLESSING = 5; 
+const HINT_SCROLL_COST_ANKH_PREMIUM = 5; // Ankh Premium (Key of Life)
 const TIME_AMULET_ITEM_KEY = 'time_amulet_45s'; 
-const TIME_AMULET_COST_BLESSING = 10; 
+const TIME_AMULET_COST_ANKH_PREMIUM = 10; // Ankh Premium (Key of Life)
 
 let kvGameState = {
     active: false,
@@ -138,6 +139,14 @@ function timerTick() {
     if (kvGameState.timeLeft <= 0) {
         endCurrentKVGame('lose_time');
     }
+    // Visual cue for low time
+    if (kvGameState.timeLeft <= 10 && kvGameState.timeLeft > 0) {
+        timerDisplayEl.style.color = 'orange';
+    } else if (kvGameState.timeLeft <= 5 && kvGameState.timeLeft > 0) {
+        timerDisplayEl.style.color = 'red';
+    } else {
+        timerDisplayEl.style.color = 'white'; // Reset color
+    }
 }
 
 function updateHintDisplay() {
@@ -145,6 +154,7 @@ function updateHintDisplay() {
     
     hintDisplayDiv.innerHTML = '';
     const hints = calculateCodeHints(kvGameState.code);
+    const config = getLevelConfig(kvGameState.levelIndex);
     
     // Display all three free hints immediately (H1, H2, H3)
     hintDisplayDiv.innerHTML += `<li class="kv-hint-item">Hint 1 (Sum): <span>${hints.sum}</span>. (Free)</li>`;
@@ -163,10 +173,10 @@ function updateHintDisplay() {
         hintBtn.style.backgroundColor = 'var(--kv-gate-color)';
         hintBtn.textContent = (scrollCount > 0) 
             ? `Use Hint Scroll (${scrollCount})` 
-            : `Buy Last Digit (${HINT_SCROLL_COST_BLESSING} 🗡️)`; 
+            : `Buy Last Digit (${HINT_SCROLL_COST_ANKH_PREMIUM} ☥)`; // Ankh Premium symbol
 
         hintBtn.disabled = !kvGameState.active;
-        hintBtn.onclick = () => handlePurchaseAndUseItem(HINT_SCROLL_ITEM_KEY, HINT_SCROLL_COST_BLESSING, 'hint');
+        hintBtn.onclick = () => handlePurchaseAndUseItem(HINT_SCROLL_ITEM_KEY, HINT_SCROLL_COST_ANKH_PREMIUM, 'hint');
         
         // Add a Time Amulet button for quick access too
         const amuletCount = state.consumables.get(TIME_AMULET_ITEM_KEY) || 0;
@@ -175,10 +185,10 @@ function updateHintDisplay() {
         timeBtn.style.backgroundColor = '#95a5a6'; 
         timeBtn.textContent = (amuletCount > 0)
             ? `Use Time Amulet (${amuletCount})`
-            : `Buy Time (+45s) (${TIME_AMULET_COST_BLESSING} 🗡️)`;
+            : `Buy Time (+45s) (${TIME_AMULET_COST_ANKH_PREMIUM} ☥)`; // Ankh Premium symbol
             
         timeBtn.disabled = !kvGameState.active;
-        timeBtn.onclick = () => handlePurchaseAndUseItem(TIME_AMULET_ITEM_KEY, TIME_AMULET_COST_BLESSING, 'time');
+        timeBtn.onclick = () => handlePurchaseAndUseItem(TIME_AMULET_ITEM_KEY, TIME_AMULET_COST_ANKH_PREMIUM, 'time');
         
         const buttonContainer = document.createElement('div');
         buttonContainer.id = 'kv-use-item-button-container';
@@ -191,7 +201,7 @@ function updateHintDisplay() {
 /**
  * Handles purchase/use of consumables (Hint Scroll, Time Amulet).
  */
-async function handlePurchaseAndUseItem(itemKey, blessingCost, itemType) {
+async function handlePurchaseAndUseItem(itemKey, ankhPremiumCost, itemType) { // ankhPremiumCost renamed
     if (!kvGameState.active) return;
     
     const consumableCount = state.consumables.get(itemKey) || 0;
@@ -206,20 +216,18 @@ async function handlePurchaseAndUseItem(itemKey, blessingCost, itemType) {
     let itemUsedSuccessfully = false;
 
     if (consumableCount > 0) {
-        // Option 1: Use existing consumable (Consume 1 from Supabase)
         await api.updateConsumableQuantity(state.currentUser.id, itemKey, consumableCount - 1);
         showToast(`${itemKey.split('_')[0]} used!`, 'success');
         itemUsedSuccessfully = true;
 
-    } else if ((state.playerProfile.blessing || 0) >= blessingCost) {
-        // Option 2: Buy directly with Blessing 
-        const newBlessing = state.playerProfile.blessing - blessingCost;
-        await api.updatePlayerProfile(state.currentUser.id, { blessing: newBlessing });
-        showToast(`${itemType} purchased with Blessing!`, 'success');
+    } else if ((state.playerProfile.ankh_premium || 0) >= ankhPremiumCost) { // Using ankh_premium
+        const newAnkhPremium = state.playerProfile.ankh_premium - ankhPremiumCost;
+        await api.updatePlayerProfile(state.currentUser.id, { ankh_premium: newAnkhPremium }); // Update ankh_premium
+        showToast(`${itemType} purchased with Ankh Premium!`, 'success');
         itemUsedSuccessfully = true;
         
     } else {
-        showToast(`Need ${blessingCost} Blessing (🗡️) or the consumable item.`, 'error');
+        showToast(`Need ${ankhPremiumCost} Ankh (☥) or the consumable item.`, 'error'); // Ankh Premium symbol
         return;
     }
     
@@ -249,9 +257,9 @@ async function endCurrentKVGame(result) {
     // 2. Grant rewards/Display messages
     if (isWin) {
         const reward = WIN_REWARD_BASE + (kvGameState.levelIndex * 50);
-        const newScore = (state.playerProfile.score || 0) + reward;
-        await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
-        showToast(`*Congratulations!* You cracked KV${gateInfo.kv}! +${reward} Ankh!`, 'success');
+        const newNoubScore = (state.playerProfile.noub_score || 0) + reward; // Reward in NOUB
+        await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore }); // Update noub_score
+        showToast(`*Congratulations!* You cracked KV${gateInfo.kv}! +${reward} NOUB!`, 'success'); // NOUB currency
     } else {
         showToast(`Expedition ended. The correct code was ${kvGameState.code}. Try again!`, 'error');
     }
@@ -283,6 +291,7 @@ function handleSubmitGuess() {
     } else {
         showToast("Incorrect code. Keep trying!", 'info');
         guessInputEl.value = '';
+        guessInputEl.focus(); // Keep focus on input
     }
 }
 
@@ -303,14 +312,15 @@ async function startNewKVGame() {
          return;
     }
 
-    if ((state.playerProfile.score || 0) < LEVEL_COST) {
-        showToast(`You need ${LEVEL_COST} Ankh (☥) to start.`, 'error');
+    // Cost is now in NOUB (gold coin)
+    if ((state.playerProfile.noub_score || 0) < LEVEL_COST) {
+        showToast(`You need ${LEVEL_COST} NOUB (🪙) to start.`, 'error'); // NOUB currency
         return;
     }
 
     // 1. Deduct cost and save
-    const newScore = (state.playerProfile.score || 0) - LEVEL_COST;
-    await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
+    const newNoubScore = (state.playerProfile.noub_score || 0) - LEVEL_COST; // Deduct from noub_score
+    await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore }); // Update noub_score
     await refreshPlayerState();
 
     // 2. Setup game state
@@ -332,6 +342,7 @@ async function startNewKVGame() {
         guessInputEl.maxLength = config.digits;
         guessInputEl.placeholder = `Enter code... (${config.digits} digits)`;
         guessInputEl.disabled = false;
+        guessInputEl.focus(); // Focus input on game start
     }
 
     // Show game elements
@@ -347,13 +358,22 @@ async function startNewKVGame() {
     // 5. Render hints and track activity
     updateHintDisplay();
     trackDailyActivity('games', 1);
+    
+    // Display initial hints (from original game logic)
+    const hints = calculateCodeHints(kvGameState.code);
+    showToast(`Hint 1 (Sum): ${hints.sum}`, 'info');
+    setTimeout(() => {
+        showToast(`Hint 2 (Product): ${hints.product}`, 'info');
+    }, 500);
+    setTimeout(() => {
+        showToast(`Hint 3 (Even/Odd): ${hints.odds} odd / ${hints.evens} even`, 'info');
+    }, 1000);
 }
 
 
 // --- MAIN SCREEN RENDER & UI SETUP ---
 
 function renderKVGameContent() {
-    // 1. Fetch DOM Elements safely (uses IDs injected in index.html)
     levelNameEl = document.getElementById('kv-level-name-display');
     timerDisplayEl = document.getElementById('kv-timer-display');
     guessInputEl = document.getElementById('kv-guess-input');
@@ -364,7 +384,6 @@ function renderKVGameContent() {
     hintDisplayDiv = document.getElementById('kv-hints-list');
     kvGameControlsEl = document.getElementById('kv-game-controls-content');
 
-    // 2. Attach Listeners
     if (newGameBtn) newGameBtn.onclick = startNewKVGame;
     if (submitGuessBtn) submitGuessBtn.onclick = handleSubmitGuess;
     if (endGameBtn) endGameBtn.onclick = () => endCurrentKVGame('manual');
@@ -373,7 +392,6 @@ function renderKVGameContent() {
     };
 
 
-    // 3. Update Initial Progress Display
     updateKVProgressInfo();
 }
 
@@ -387,10 +405,9 @@ async function updateKVProgressInfo() {
     const nextGate = kvGatesData[kvGameState.levelIndex];
 
     if (nextGate) {
-        // Hide game elements and show intro message
         kvGameControlsEl.classList.add('hidden');
         progressInfoDiv.classList.add('hidden');
-        if (hintDisplayDiv) hintDisplayDiv.classList.add('hidden'); // Safety check
+        if (hintDisplayDiv) hintDisplayDiv.classList.add('hidden');
         
         startBtn.textContent = `Start KV Gate ${nextGate.kv}`;
         startBtn.disabled = false;
@@ -404,6 +421,5 @@ async function updateKVProgressInfo() {
 
 
 export async function renderKVGame() {
-    // This is the exported function called by ui.js
     renderKVGameContent(); 
 }
