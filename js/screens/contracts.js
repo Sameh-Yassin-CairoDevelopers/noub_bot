@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: NOUB 0.0.1 Eve Edition (Daily Quests & Contracts - Complete)
+ * Version: NOUB 0.0.6 (Daily Quests & Contracts - NOUB Rework)
  * Description: View Logic Module for the contracts screen. 
  * Contains all logic for managing daily quests and royal decrees, including tracking player activity.
+ * UPDATED: Currency usage for NOUB.
 */
 
 import { state } from '../state.js';
@@ -67,10 +68,8 @@ export function trackDailyActivity(activityType, value = 1, itemName = null) {
 
     if (changed) {
         saveDailyQuests(quests);
-        // Soft refresh home screen if it's active
         const homeScreen = document.getElementById('home-screen');
         if (homeScreen && !homeScreen.classList.contains('hidden')) {
-            // CRITICAL: Dynamically import renderHome to avoid circular dependency (contracts -> home -> contracts)
             import('./home.js').then(({ renderHome }) => renderHome());
         }
     }
@@ -88,19 +87,17 @@ export async function completeDailyQuest(questId, reward) {
     const questIndex = quests.findIndex(q => q.id === questId);
 
     if (questIndex !== -1 && quests[questIndex].current >= quests[questIndex].target && !quests[questIndex].completed) {
-        // 1. Mark as completed
         quests[questIndex].completed = true;
         saveDailyQuests(quests);
 
-        // 2. Grant reward (Ankh only for Daily Quests)
-        const newScore = (state.playerProfile.score || 0) + reward;
-        const { error } = await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
+        // Grant reward (NOUB only for Daily Quests)
+        const newNoubScore = (state.playerProfile.noub_score || 0) + reward; // Use noub_score
+        const { error } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore }); // Update noub_score
 
         if (!error) {
-            await refreshPlayerState(); // Sync all currencies
+            await refreshPlayerState();
             return true;
         } else {
-            // Rollback completion status if API fails
             quests[questIndex].completed = false;
             saveDailyQuests(quests);
             return false;
@@ -130,23 +127,21 @@ async function handleAcceptContract(contractId) {
 async function handleDeliverContract(playerContract, requirements) {
     showToast('Delivering goods...');
 
-    // 1. Consume required items from inventory
     const consumePromises = requirements.map(req => {
         const currentQty = state.inventory.get(req.items.id)?.qty || 0;
         const newQty = currentQty - req.quantity;
-        state.inventory.set(req.items.id, { ...state.inventory.get(req.items.id), qty: newQty }); // Update state locally
+        state.inventory.set(req.items.id, { ...state.inventory.get(req.items.id), qty: newQty });
         return api.updateItemQuantity(state.currentUser.id, req.items.id, newQty);
     });
     await Promise.all(consumePromises);
 
-    // 2. Calculate new currency totals
     const contractDetails = playerContract.contracts;
+    // Use reward_score from contractDetails for NOUB
     const newTotals = {
-        score: (state.playerProfile.score || 0) + contractDetails.reward_score,
+        noub_score: (state.playerProfile.noub_score || 0) + contractDetails.reward_score, // Use reward_score for NOUB
         prestige: (state.playerProfile.prestige || 0) + contractDetails.reward_prestige
     };
 
-    // 3. Mark contract as complete and update profile
     const { error } = await api.completeContract(state.currentUser.id, playerContract.id, newTotals);
 
     if (error) {
@@ -206,8 +201,8 @@ async function openContractModal(contractId, playerContract = null) {
             <h4 class="contract-modal-subtitle">Rewards</h4>
             <div class="contract-modal-rewards">
                 <div class="reward-item">
-                    <span class="icon">☥</span>
-                    <div>${contract.reward_score} Ankh</div>
+                    <span class="icon">🪙</span> <!-- NOUB icon -->
+                    <div>${contract.reward_score} NOUB</div> <!-- Using reward_score for NOUB -->
                 </div>
                 <div class="reward-item">
                     <span class="icon">🐞</span>
@@ -253,7 +248,7 @@ export async function renderActiveContracts() {
         card.innerHTML = `
             <h4>${contract.title}</h4>
             <div class="contract-rewards">
-                Rewards: <span>${contract.reward_score} ☥</span> | <span>${contract.reward_prestige} 🐞</span>
+                Rewards: <span>${contract.reward_score} 🪙</span> | <span>${contract.reward_prestige} 🐞</span>
             </div>
         `;
         card.onclick = () => openContractModal(contract.id, pc);
@@ -286,7 +281,7 @@ export async function renderAvailableContracts() {
         card.innerHTML = `
             <h4>${contract.title}</h4>
             <div class="contract-rewards">
-                Rewards: <span>${contract.reward_score} ☥</span> | <span>${contract.reward_prestige} 🐞</span>
+                Rewards: <span>${contract.reward_score} 🪙</span> | <span>${contract.reward_prestige} 🐞</span>
             </div>
         `;
         card.onclick = () => openContractModal(contract.id);
