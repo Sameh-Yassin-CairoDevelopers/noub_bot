@@ -17,14 +17,14 @@ const registerForm = document.getElementById('register-form');
 
 // --- STARTER PACK & FACTORY SEEDING CONSTANTS ---
 const STARTER_NOUB_SCORE = 2000;
-const STARTER_PRESTIGE = 10; // Scarabs (🐞)
+const STARTER_PRESTIGE = 10;
 const STARTER_SPIN_TICKETS = 5;
-const STARTER_ANKH_PREMIUM = 0; // New players start with 0 Ankh (☥) - to be acquired via TON or special achievements
+const STARTER_ANKH_PREMIUM = 0;
 // NOTE: These IDs must correspond to the IDs in your 'factories' table
 const INITIAL_FACTORY_IDS = [1, 2, 3, 4, 5, 6]; 
 
 
-// CRITICAL FIX: Make these functions globally available for onclick attributes in index.html
+// Make these functions globally available for onclick attributes in index.html
 export function showRegisterForm() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
@@ -51,13 +51,10 @@ async function seedNewPlayer(userId) {
         noub_score: STARTER_NOUB_SCORE,
         prestige: STARTER_PRESTIGE,
         spin_tickets: STARTER_SPIN_TICKETS,
-        ankh_premium: STARTER_ANKH_PREMIUM, // New Ankh Premium currency
-        // Ensure other non-null profile fields are set (if required by your table schema)
+        ankh_premium: STARTER_ANKH_PREMIUM,
         last_daily_spin: new Date().toISOString(), // Initialize spin tracking
-        // blessing: 0 // Removed, as 'blessing' is now 'ankh_premium'
     };
     
-    // NOTE: This uses update on the newly created profile row.
     const { error: profileError } = await api.updatePlayerProfile(userId, profileUpdate);
     if (profileError) {
         console.error("Failed to update profile with starter pack:", profileError);
@@ -66,10 +63,6 @@ async function seedNewPlayer(userId) {
     
     // 2. Seed Initial Factories (All 6 core factories)
     const factoryPromises = INITIAL_FACTORY_IDS.map(factoryId => {
-        // NOTE: This assumes an API function exists or the DB structure allows a direct INSERT
-        // into player_factories (which should be handled by a Supabase function/trigger 
-        // OR a specific API call, which we mock here as a simplified API operation).
-        // Since api.js doesn't have an explicit 'seedFactory' function, we use a mock-up.
         return supabaseClient.from('player_factories').insert({
             player_id: userId,
             factory_id: factoryId,
@@ -86,13 +79,12 @@ async function seedNewPlayer(userId) {
 }
 
 /**
- * CRITICAL FUNCTION: Refreshes the player's entire state (profile, inventory, UCP data)
+ * Refreshes the player's entire state (profile, inventory, UCP data)
  * from the database and updates the UI header.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Fetch all critical data simultaneously for maximum speed
     const [profileResult, inventoryResult, consumablesResult, ucpResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
@@ -100,7 +92,6 @@ export async function refreshPlayerState() {
         api.fetchUCPProtocol(state.currentUser.id)
     ]);
 
-    // Update Profile State and UI
     if (!profileResult.error && profileResult.data) {
         state.playerProfile = profileResult.data;
         updateHeaderUI(state.playerProfile);
@@ -108,7 +99,6 @@ export async function refreshPlayerState() {
         console.error("Error refreshing profile data.");
     }
     
-    // Update Inventory State
     if (!inventoryResult.error && inventoryResult.data) {
         state.inventory.clear();
         inventoryResult.data.forEach(item => {
@@ -116,7 +106,6 @@ export async function refreshPlayerState() {
         });
     }
 
-    // Update Consumables State
     if (!consumablesResult.error && consumablesResult.data) {
         state.consumables.clear();
         consumablesResult.data.forEach(item => {
@@ -124,7 +113,6 @@ export async function refreshPlayerState() {
         });
     }
 
-     // Update UCP Protocol State
     if (!ucpResult.error && ucpResult.data) {
         state.ucp.clear();
         ucpResult.data.forEach(entry => {
@@ -147,7 +135,7 @@ async function initializeApp(user) {
     
     authOverlay.classList.add('hidden');
     appContainer.classList.remove('hidden');
-    navigateTo('home-screen'); // Start on the new Home Dashboard
+    navigateTo('home-screen');
 }
 
 async function login(email, password) {
@@ -166,13 +154,9 @@ async function signUp(email, password, username) {
 
     if (error) return { error };
 
-    // CRITICAL: SEED NEW PLAYER DATA AFTER SIGN UP SUCCESS
     if (data.user) {
-        // NOTE: Supabase often requires a small delay or a check to ensure the 'profiles' row is created by trigger
-        // For simplicity, we assume the trigger is fast and call the seeding function immediately.
         await seedNewPlayer(data.user.id);
         
-        // Return success message for user to check email and login
         return { message: 'Account created successfully! Please check your email for confirmation, then log in.' };
     }
     
@@ -182,7 +166,7 @@ async function signUp(email, password, username) {
 export async function logout() {
     await supabaseClient.auth.signOut();
     state.currentUser = null;
-    state.playerProfile = {}; // Reset profile
+    state.playerProfile = {};
     state.inventory.clear();
     state.consumables.clear();
     state.ucp.clear();
@@ -191,7 +175,6 @@ export async function logout() {
 }
 
 export function setupAuthEventListeners() {
-    // Applying safety checks to prevent 'Cannot read properties of null' errors
     const loginButton = document.getElementById('login-button');
     const registerButton = document.getElementById('register-button');
     const logoutButton = document.getElementById('logout-btn');
