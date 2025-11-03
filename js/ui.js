@@ -16,7 +16,7 @@ import * as historyModule from './screens/history.js';
 import * as libraryModule from './screens/library.js';       
 import * as settingsModule from './screens/settings.js';     
 import * as albumsModule from './screens/albums.js';         
-import * * as wheelModule from './screens/wheel.js';           
+import * as wheelModule from './screens/wheel.js';           
 import * as exchangeModule from './screens/exchange.js';       
 import * as activityModule from './screens/activity.js';     
 
@@ -225,3 +225,4 @@ export function setupEventListeners() {
         });
     });
 }
+
