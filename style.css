@@ -1,8 +1,7 @@
 /*
  * Filename: style.css
- * Version: NOUB 0.0.6 - FINAL VISUAL POLISH & SIZING ADJUSTMENT
+ * Version: NOUB 0.0.6 - FINAL VISUAL POLISH & SIZING ADJUSTMENT - Targeted Update
  * Description: Main stylesheet for the "Noub" game. Optimized for Mobile/Telegram Web App.
- * Includes TWA button fixes, RTL support, and screen backgrounds.
  * FIXED: Icon/emoji display issues in various UI elements, especially Slot Game reels.
 */
 
@@ -332,7 +331,6 @@ input:focus, textarea:focus {
     border: 1px solid var(--primary-accent);
     box-shadow: 0 3px 6px rgba(0,0,0,0.3);
     transition: transform 0.2s;
-    /* FIX: Ensure emoji font is used for icon boxes */
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 .daily-task-summary {
@@ -352,6 +350,7 @@ input:focus, textarea:focus {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 7px;
+    font-family: 'Cairo', sans-serif; /* Ensure Cairo font is used for general text */
 }
 .daily-quest-card .progress-bar {
     width: 70px;
@@ -386,6 +385,7 @@ input:focus, textarea:focus {
     cursor: pointer;
     text-align: center;
     transition: transform 0.2s, border-color 0.2s;
+    font-family: 'Cairo', sans-serif;
 }
 .card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
 .card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
@@ -460,6 +460,7 @@ input:focus, textarea:focus {
     font-size: 0.8em;
     font-weight: bold;
     cursor: pointer;
+    font-family: 'Cairo', sans-serif;
 }
 .stock-tab-btn.active {
     color: var(--primary-accent);
@@ -477,6 +478,7 @@ input:focus, textarea:focus {
     border-radius: 6px;
     text-align: center;
     border: 1px solid #3a3a3c;
+    font-family: 'Cairo', sans-serif;
 }
 .stock-item img {
     width: 45px;
@@ -524,6 +526,7 @@ input:focus, textarea:focus {
     padding: 10px;
     border-left: 3px solid var(--primary-accent);
     cursor: pointer;
+    font-family: 'Cairo', sans-serif;
 }
 .contract-rewards {
     display: flex;
@@ -569,6 +572,7 @@ input:focus, textarea:focus {
     margin-top: 14px;
     text-align: center;
     border: 1px solid var(--primary-accent);
+    font-family: 'Cairo', sans-serif;
 }
 .upgrade-card-target {
     width: 110px;
@@ -587,6 +591,7 @@ input:focus, textarea:focus {
     font-size: 0.8em;
     color: var(--text-secondary);
     text-align: center;
+    font-family: 'Cairo', sans-serif;
 }
 .cost-item img {
     width: 20px;
@@ -607,6 +612,7 @@ input:focus, textarea:focus {
     padding: 14px;
     border-radius: 8px;
     text-align: center;
+    font-family: 'Cairo', sans-serif;
 }
 .balance-info {
     font-weight: bold;
@@ -622,7 +628,7 @@ input:focus, textarea:focus {
 }
 .reel {
     width: 45px;
-    height: 65px;
+    height: 45px;
     overflow: hidden;
     border: 1px solid var(--primary-accent);
     border-radius: 6px;
@@ -634,11 +640,10 @@ input:focus, textarea:focus {
 }
 .reel-item {
     width: 100%;
-    height: 65px;
-    line-height: 65px;
-    font-size: 20px;
+    height: 45px;
+    line-height: 45px;
+    font-size: 24px;
     color: var(--primary-accent);
-    /* FIX: Ensure emoji font is used for reel items */
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 .game-status-message {
@@ -646,6 +651,7 @@ input:focus, textarea:focus {
     font-weight: bold;
     margin-bottom: 10px;
     color: var(--success-color);
+    font-family: 'Cairo', sans-serif;
 }
 .game-status-message.lose {
     color: var(--danger-color);
@@ -665,6 +671,7 @@ input:focus, textarea:focus {
     font-size: 0.8em;
     margin-bottom: 5px;
     text-align: left;
+    font-family: 'Cairo', sans-serif;
 }
 .kv-hint-item span {
     font-weight: bold;
@@ -691,6 +698,7 @@ input:focus, textarea:focus {
     font-weight: bold;
     color: var(--primary-accent);
     margin-bottom: 10px;
+    font-family: 'Cairo', sans-serif;
 }
 #kv-use-item-button-container {
     display: flex;
@@ -719,6 +727,7 @@ input:focus, textarea:focus {
     max-width: 80%;
     line-height: 1.3;
     word-wrap: break-word;
+    font-family: 'Cairo', sans-serif;
 }
 .eve-bubble {
     background-color: var(--chat-eve-color);
@@ -822,6 +831,7 @@ input:focus, textarea:focus {
     font-size: 0.8em;
     font-weight: bold;
     cursor: pointer;
+    font-family: 'Cairo', sans-serif;
 }
 .shop-tab-btn.active {
     color: var(--primary-accent);
@@ -840,6 +850,7 @@ input:focus, textarea:focus {
     padding: 10px;
     border-radius: 8px;
     margin-bottom: 10px;
+    font-family: 'Cairo', sans-serif;
 }
 .shop-item .icon { font-size: 28px; margin-right: 14px; }
 .shop-item .details { flex-grow: 1; }
@@ -876,6 +887,7 @@ input:focus, textarea:focus {
     border-radius: 8px;
     text-align: center;
     width: 100%;
+    font-family: 'Cairo', sans-serif;
 }
 .profile-power .label {
     font-size: 0.8em;
@@ -899,6 +911,7 @@ input:focus, textarea:focus {
     padding: 10px;
     border-radius: 8px;
     text-align: center;
+    font-family: 'Cairo', sans-serif;
 }
 .stat-box .value {
     font-size: 1.1em;
@@ -920,6 +933,7 @@ input:focus, textarea:focus {
     cursor: pointer;
     text-decoration: none;
     color: var(--text-primary);
+    font-family: 'Cairo', sans-serif;
 }
 .more-menu .more-menu-item:last-child {
     border-bottom: none;
@@ -931,7 +945,6 @@ input:focus, textarea:focus {
     font-size: 18px;
     margin-right: 14px;
     color: var(--primary-accent);
-    /* FIX: Ensure emoji font is used for more menu icons */
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 .more-menu .more-menu-item span {
@@ -957,6 +970,7 @@ input:focus, textarea:focus {
     box-shadow: 0 3px 10px rgba(0,0,0,0.5);
     font-size: 0.8em;
     border-left: 3px solid;
+    font-family: 'Cairo', sans-serif;
 }
 .toast.success { border-color: var(--success-color); }
 .toast.error { border-color: var(--danger-color); }
