@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.6 (UI Controller - NOUB & ANKH Rework + Sizing)
+ * Version: NOUB 0.0.6 (UI Controller - NOUB & ANKH Rework + Sizing - FINAL FIX)
  * Description: UI Controller Module. The final module to handle all module imports and exports.
- * Updated: Header UI for new currencies and applied global sizing adjustments.
+ * FIXED: Ensured showToast is globally accessible.
 */
 
 // --- CORE IMPORTS ---
@@ -16,7 +16,7 @@ import * as historyModule from './screens/history.js';
 import * as libraryModule from './screens/library.js';       
 import * as settingsModule from './screens/settings.js';     
 import * as albumsModule from './screens/albums.js';         
-import * as wheelModule from './screens/wheel.js';           
+import * * as wheelModule from './screens/wheel.js';           
 import * as exchangeModule from './screens/exchange.js';       
 import * as activityModule from './screens/activity.js';     
 
@@ -162,6 +162,9 @@ export function showToast(message, type = 'info') {
     toastContainer.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
+
+// CRITICAL FIX: Make showToast globally accessible for onclick attributes
+window.showToast = showToast; 
 
 function setupNavEvents() {
     document.querySelectorAll('.bottom-nav a[data-target]').forEach(item => {
