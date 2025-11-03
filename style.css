@@ -53,11 +53,10 @@ body {
 
 .screen { 
     animation: fadeIn 0.3s ease-in-out; 
-    /* Base background style for all screens */
     background-color: var(--background-dark);
     background-size: cover;
     background-position: center;
-    background-attachment: fixed; /* Fix background image on scroll */
+    background-attachment: fixed;
     min-height: calc(100vh - 115px); /* Reduced from 170px */
 }
 @keyframes fadeIn {
@@ -66,14 +65,13 @@ body {
 }
 
 
-/* --- SCREEN BACKGROUNDS (Visual Backgrounds) --- */
-/* NOTE: You must provide these images in an 'images/bgs/' folder */
+/* --- SCREEN BACKGROUNDS --- */
 #home-screen {
     background-image: url('images/bgs/home_bg.jpg'); 
 }
 #kv-game-screen {
     background-image: url('images/bgs/kvgame_bg.jpg'); 
-    background-size: 150%; /* Zoom in slightly for effect */
+    background-size: 150%;
 }
 #production-screen {
     background-image: url('images/bgs/economy_bg.jpg');
@@ -84,12 +82,12 @@ body {
 }
 
 
-/* --- Header & Bottom Navigation (Telegram App Feel) --- */
+/* --- Header & Bottom Navigation --- */
 header, .bottom-nav {
     position: fixed;
     left: 0;
     right: 0;
-    background-color: rgba(28, 28, 30, 0.95); /* Slightly less transparency */
+    background-color: rgba(28, 28, 30, 0.95);
     backdrop-filter: blur(10px);
     z-index: 100;
 }
@@ -123,8 +121,8 @@ header {
     color: var(--primary-accent); 
 }
 
-.currency-display .currency-img { /* For NOUB and Ankh Premium images */
-    width: 18px; /* Standardize icon size */
+.currency-display .currency-img {
+    width: 18px;
     height: 18px;
     margin-right: 3px;
     vertical-align: middle;
@@ -168,7 +166,8 @@ header {
     margin-bottom: 3px; /* Reduced from 4px */
 }
 
-/* --- General Content, Buttons, Inputs (TWA/Mobile optimized) --- */
+
+/* --- General Content, Buttons, Inputs --- */
 .screen h2 {
     color: var(--primary-accent);
     margin-bottom: 18px; /* Reduced from 25px */
@@ -180,13 +179,12 @@ header {
 }
 
 .action-button {
-    /* Critical TWA/Mobile Adjustment */
     width: 95%; 
     max-width: 250px; /* Reduced from 300px */
     margin-top: 10px; /* Reduced from 15px */
     margin-left: auto;
     margin-right: auto;
-    display: block; /* To center the button */
+    display: block;
     
     padding: 8px; /* Reduced from 12px */
     border: none;
@@ -199,7 +197,7 @@ header {
     background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
     text-transform: uppercase;
     letter-spacing: 0.7px; /* Reduced from 1px */
-    box-shadow: 0 2px 0 #9e7f2c; /* Reduced from 0 3px 0 */
+    box-shadow: 0 2px 0 #9e7f2c;
 }
 
 .action-button:disabled {
@@ -208,7 +206,7 @@ header {
     box-shadow: none;
 }
 .action-button:active:not(:disabled) {
-    transform: translateY(1px); /* Reduced from 2px */
+    transform: translateY(1px);
     box-shadow: none;
 }
 .action-button.danger {
@@ -225,13 +223,12 @@ header {
 .text-button {
     background: none;
     border: none;
-    color: var(--ankh-premium-color); /* Changed from ankh-color */
+    color: var(--ankh-premium-color);
     cursor: pointer;
     font-size: 0.8em; /* Reduced from 0.9em */
     padding: 3px; /* Reduced from 5px */
 }
 
-/* Inputs and Textareas */
 input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea {
     width: 100%;
     padding: 8px; /* Reduced from 12px */
@@ -248,7 +245,8 @@ input:focus, textarea:focus {
     border-color: var(--primary-accent);
 }
 
-/* --- MODAL STYLES (Bottom-Sheet Feel) --- */
+
+/* --- MODAL STYLES --- */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -295,7 +293,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- HOME SCREEN STYLES (DASHBOARD) --- */
+/* --- HOME SCREEN STYLES --- */
 #home-screen {
     text-align: center;
 }
@@ -366,7 +364,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Cards & Grids (Card Hub Base) --- */
+/* --- Cards & Grids --- */
 .card-grid, .buildings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Reduced minmax from 100px */
@@ -480,7 +478,7 @@ input:focus, textarea:focus {
     margin-bottom: 3px; /* Reduced from 5px */
 }
 .stock-item .details h4 { margin: 0 0 3px 0; font-size: 0.9em; /* Reduced from 1em */}
-.stock-item .quantity { font-size: 0.9em; font-weight: bold; color: var(--ankh-premium-color); /* Changed from ankh-color */ }
+.stock-item .quantity { font-size: 0.9em; font-weight: bold; color: var(--ankh-premium-color); }
 
 /* Production Modal */
 .prod-modal-header { text-align: center; }
@@ -606,7 +604,7 @@ input:focus, textarea:focus {
 }
 .balance-info {
     font-weight: bold;
-    color: var(--ankh-premium-color); /* Changed from ankh-color */
+    color: var(--ankh-premium-color);
     margin-bottom: 10px; /* Reduced from 15px */
 }
 /* Slots */
@@ -879,7 +877,7 @@ input:focus, textarea:focus {
 .profile-power .power-score {
     font-size: 1.3em; /* Reduced from 1.8em */
     font-weight: bold;
-    color: var(--ankh-premium-color); /* Changed from ankh-color */
+    color: var(--ankh-premium-color);
     margin: 0;
 }
 .profile-stats-grid {
@@ -952,11 +950,11 @@ input:focus, textarea:focus {
 }
 .toast.success { border-color: var(--success-color); }
 .toast.error { border-color: var(--danger-color); }
-.toast.info { border-color: var(--ankh-premium-color); /* Changed from ankh-color */ }
+.toast.info { border-color: var(--ankh-premium-color); }
 
 
 /* =================================================================================
-   --- RTL OVERRIDES (Right-to-Left Support from v0002.html) ---
+   --- RTL OVERRIDES ---
    ================================================================================= */
 [dir="rtl"] body {
     direction: rtl;
@@ -968,7 +966,7 @@ input:focus, textarea:focus {
     margin-right: 0;
     margin-left: 3px; /* Reduced from 5px */
 }
-[dir="rtl"] .currency-display .currency-img { /* For NOUB and Ankh Premium images */
+[dir="rtl"] .currency-display .currency-img {
     margin-right: 0;
     margin-left: 3px;
 }
@@ -1008,7 +1006,7 @@ input:focus, textarea:focus {
     text-align: right;
 }
 
-/* Card Overrides (for stacking text/details) */
+/* Card Overrides */
 [dir="rtl"] .card-stack .card-details {
     flex-direction: row-reverse; 
 }
