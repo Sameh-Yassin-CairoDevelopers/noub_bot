@@ -2,7 +2,7 @@
  * Filename: js/screens/upgrade.js
  * Version: NOUB 0.0.6 (UPGRADE MODULE - FINAL FIX)
  * Description: View Logic Module for the Card Upgrade screen.
- * FIXED: card_levels 400 Bad Request by assuming cost_ankh_premium column.
+ * FIXED: card_levels 400 Bad Request by using correct column names from DB for costs.
 */
 
 import { state } from '../state.js';
@@ -27,10 +27,8 @@ async function executeFactoryUpgrade(playerFactory) {
 
     showToast('Processing factory upgrade...', 'info');
     
-    // Check costs against player state
     const playerNoub = state.playerProfile.noub_score || 0;
     
-    // Find the item ID for the required material
     const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => item.details.name === FACTORY_UPGRADE_ITEM_NAME);
     const materialId = requiredMaterialEntry?.details.id;
     const playerMaterialQty = requiredMaterialEntry?.qty || 0;
@@ -45,11 +43,9 @@ async function executeFactoryUpgrade(playerFactory) {
     const newNoub = playerNoub - FACTORY_UPGRADE_COST;
     const newMaterialQty = playerMaterialQty - FACTORY_UPGRADE_QTY;
     
-    // Update profile
     const profileUpdate = { noub_score: newNoub };
     await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
     
-    // Update inventory
     await api.updateItemQuantity(state.currentUser.id, materialId, newMaterialQty);
     
     // 2. Update Factory Level
@@ -66,16 +62,12 @@ async function executeFactoryUpgrade(playerFactory) {
     
     await refreshPlayerState(); 
     
-    // Redirect back to the production screen to show new level
     navigateTo('production-screen');
 }
 
 
 // --- Card Upgrade Logic ---
 
-/**
- * Renders the initial list of cards available for upgrade selection.
- */
 export async function renderUpgrade() { 
     if (!state.currentUser) return;
     upgradeSelectionContainer.innerHTML = 'Loading cards for upgrade...';
@@ -93,7 +85,6 @@ export async function renderUpgrade() {
         return;
     }
     
-    // Group by Card ID only, as we only need to show ONE card per type for selection
     const cardTypes = new Map();
     playerCards.forEach(pc => {
         if (!cardTypes.has(pc.card_id)) {
@@ -118,16 +109,12 @@ export async function renderUpgrade() {
             </div>
         `;
         
-        // Add onclick handler to select the card for detailed upgrade view
         cardElement.onclick = () => renderUpgradeDetails(pc);
         upgradeSelectionContainer.appendChild(cardElement);
     }
 }
 
 
-/**
- * Executes the card upgrade transaction after all checks.
- */
 async function executeUpgrade(requirements) { 
     if (!selectedInstance) return;
     
@@ -137,9 +124,10 @@ async function executeUpgrade(requirements) {
     btn.disabled = true;
 
     // --- 1. Consume Currencies ---
-    const newNoub = (state.playerProfile.noub_score || 0) - requirements.cost_ankh; // Assuming cost_ankh in DB maps to NOUB
-    const newPrestige = (state.playerProfile.prestige || 0) - requirements.cost_prestige;
-    const newAnkhPremium = (state.playerProfile.ankh_premium || 0) - (requirements.cost_ankh_premium || requirements.cost_blessing || 0); // Assuming cost_blessing is now cost_ankh_premium in logic
+    // Using cost_ankh for NOUB, cost_blessing for Ankh Premium as per DB schema
+    const newNoub = (state.playerProfile.noub_score || 0) - (requirements.cost_ankh || 0); 
+    const newPrestige = (state.playerProfile.prestige || 0) - (requirements.cost_prestige || 0);
+    const newAnkhPremium = (state.playerProfile.ankh_premium || 0) - (requirements.cost_blessing || 0); 
 
     const profileUpdate = {
         noub_score: newNoub,
@@ -184,7 +172,6 @@ async function executeUpgrade(requirements) {
     
     await refreshPlayerState(); 
     
-    // Re-render the selection list to show the updated level
     navigateTo('card-upgrade-screen');
 }
 
@@ -192,7 +179,7 @@ async function executeUpgrade(requirements) {
 /**
  * Renders the detailed upgrade costs and logic for the selected card.
  */
-async function renderUpgradeDetails(playerCardInstance) {
+export async function renderUpgradeDetails(playerCardInstance) {
     selectedInstance = playerCardInstance;
     const currentLevel = playerCardInstance.level;
     const nextLevel = currentLevel + 1;
@@ -202,12 +189,12 @@ async function renderUpgradeDetails(playerCardInstance) {
     upgradeDetailArea.innerHTML = 'Loading upgrade costs...';
     upgradeDetailArea.classList.remove('hidden');
 
-    // Assumed: 'cost_blessing' is now 'cost_ankh_premium' in the DB (or renamed in API fetch)
+    // Fetch card upgrade requirements assuming correct column names from DB
     const { data: requirements, error } = await api.fetchCardUpgradeRequirements(cardId, nextLevel);
     
     if (error || !requirements) {
         upgradeDetailArea.innerHTML = `<p style="color: ${error ? 'red' : 'white'};">
-            ${error ? 'Error loading requirements. Check "cost_blessing" column in card_levels table.' : 'Max Level Reached!'}
+            ${error ? 'Error loading requirements. Please check your "card_levels" table columns (cost_ankh, cost_prestige, cost_blessing).' : 'Max Level Reached!'}
         </p>`;
         return;
     }
@@ -215,9 +202,11 @@ async function renderUpgradeDetails(playerCardInstance) {
     let allRequirementsMet = true;
     
     // --- Currency Cost Check ---
-    const noubCost = requirements.cost_ankh; // Assuming cost_ankh from DB maps to NOUB
-    const prestigeCost = requirements.cost_prestige;
-    const ankhPremiumCost = requirements.cost_blessing; // Assuming cost_blessing from DB maps to Ankh Premium
+    // Use cost_ankh from DB for NOUB, cost_prestige for Prestige, cost_blessing for Ankh Premium
+    const noubCost = requirements.cost_ankh || 0; 
+    const prestigeCost = requirements.cost_prestige || 0;
+    const ankhPremiumCost = requirements.cost_blessing || 0; 
+
     const playerNoub = state.playerProfile.noub_score || 0;
     const playerPrestige = state.playerProfile.prestige || 0;
     const playerAnkhPremium = state.playerProfile.ankh_premium || 0;
@@ -300,8 +289,7 @@ async function renderUpgradeDetails(playerCardInstance) {
             Upgrade Card
         </button>
     `;
-    
-    // Attach event listener
+        
     if (allRequirementsMet) {
         document.getElementById('execute-upgrade-btn').addEventListener('click', () => executeUpgrade(requirements));
     }
