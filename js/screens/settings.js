@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/settings.js
- * Version: NOUB 0.0.2 (SETTINGS MODULE - FINAL CODE)
+ * Version: NOUB 0.0.6 (SETTINGS MODULE - FINAL FIX)
  * Description: View Logic Module for the Player Settings screen.
- * Handles username update and avatar selection from unlocked options.
+ * Handles username update. Avatar selection is simplified due to DB schema.
+ * FIXED: Removed avatar_url assumptions for saving/loading avatar as it's not in DB schema.
 */
 
 import { state } from '../state.js';
@@ -13,6 +14,7 @@ import { refreshPlayerState } from '../auth.js';
 const settingsContainer = document.getElementById('settings-screen');
 
 // --- MASTER AVATAR DATA (Reference list) ---
+// NOTE: These avatars are now local references, not stored in DB's profiles table directly
 const MASTER_AVATARS = [
     { id: 'default_explorer', name: 'Default Explorer', image_url: 'images/user_avatar.png', is_unlocked: true },
     { id: 'pharaoh_mask', name: 'Pharaoh Mask', image_url: 'images/pharaoh_mask.png', is_unlocked: false, unlock_condition: { type: 'card_count', value: 10 } },
@@ -20,6 +22,7 @@ const MASTER_AVATARS = [
     { id: 'anubis_icon', name: 'Anubis Icon', image_url: 'images/anubis_icon.png', is_unlocked: false, unlock_condition: { type: 'kv_completion', level: 62 } },
 ];
 
+let selectedAvatarUrl = 'images/user_avatar.png'; // Track selected avatar locally
 
 /**
  * Renders the Settings screen, populating current data and unlocked options.
@@ -32,15 +35,11 @@ export async function renderSettings() {
         return;
     }
 
-    // NOTE: For the sake of this demo, we mock unlocked avatars by fetching the user's current avatar.
-    const unlockedAvatarKeys = new Set();
-    const currentAvatar = state.playerProfile.avatar_url || MASTER_AVATARS[0].image_url;
-    unlockedAvatarKeys.add(currentAvatar);
-    
-    // Fallback: Ensure the current avatar's key is in the MASTER_AVATARS for selection rendering
-    const currentAvatarMaster = MASTER_AVATARS.find(a => a.image_url === currentAvatar) || MASTER_AVATARS[0];
-    unlockedAvatarKeys.add(currentAvatarMaster.id);
-
+    // Since avatar_url is not in profiles table, we'll simplify avatar handling.
+    // For now, it will always show the default explorer avatar in the UI.
+    // To enable dynamic avatars, avatar_url column must be added to 'profiles' table.
+    const currentDisplayedAvatar = 'images/user_avatar.png'; // Always display default from HTML
+    selectedAvatarUrl = currentDisplayedAvatar; // Default selected to what's displayed
 
     settingsContainer.innerHTML = `
         <h2>Settings & Preferences</h2>
@@ -52,51 +51,35 @@ export async function renderSettings() {
             <input type="text" id="username-input" value="${state.playerProfile.username || ''}" placeholder="Enter new username" required>
             <button id="save-username-btn" class="action-button small upgrade-button">Save Name</button>
             
-            <h3 style="margin-top: 30px;">Avatar Selection</h3>
-            <div id="avatar-selection-grid" class="card-grid">
-                <!-- Avatar items will be rendered here -->
+            <h3 style="margin-top: 20px;">Avatar Selection (Currently Not Supported via DB)</h3>
+            <p style="color: var(--text-secondary); font-size:0.8em;">To enable dynamic avatar selection, please add 'avatar_url' column to your 'profiles' table in Supabase.</p>
+            <div id="avatar-selection-grid" class="card-grid" style="opacity: 0.5; pointer-events: none;">
+                <!-- Avatar items will be rendered here, but disabled -->
+                <div class="card-stack avatar-item selected" 
+                     data-avatar-id="default_explorer" 
+                     data-image-url="images/user_avatar.png"
+                     style="border-color: var(--success-color);"
+                >
+                    <img src="images/user_avatar.png" alt="Default Explorer" class="card-image">
+                    <h4>Default Explorer</h4>
+                    <p style="color: var(--success-color); font-size: 0.8em; margin: 0;">ACTIVE</p>
+                </div>
             </div>
-            <button id="save-avatar-btn" class="action-button small upgrade-button" style="margin-top: 20px;">Apply Selected Avatar</button>
+            <button id="save-avatar-btn" class="action-button small upgrade-button" style="margin-top: 10px; opacity: 0.5; pointer-events: none;" disabled>Apply Selected Avatar</button>
         </div>
     `;
 
-    // 1. Render Avatar Selection Grid
+    // 1. Render Avatar Selection Grid (mostly disabled)
     const avatarGrid = document.getElementById('avatar-selection-grid');
     if (avatarGrid) {
-        avatarGrid.innerHTML = MASTER_AVATARS.map(avatar => {
-            const isUnlocked = unlockedAvatarKeys.has(avatar.id) || avatar.is_unlocked;
-            const isSelected = avatar.image_url === currentAvatar;
-            const statusText = isUnlocked ? (isSelected ? 'ACTIVE' : 'Unlocked') : 'LOCKED';
-            const statusColor = isUnlocked ? (isSelected ? 'var(--success-color)' : 'var(--primary-accent)') : 'var(--danger-color)';
-
-            return `
-                <div class="card-stack avatar-item ${isSelected ? 'selected' : ''} ${isUnlocked ? '' : 'locked'}" 
-                     data-avatar-id="${avatar.id}" 
-                     data-image-url="${avatar.image_url}"
-                     style="border-color: ${isSelected ? 'var(--success-color)' : (isUnlocked ? 'var(--primary-accent)' : '#444')};"
-                >
-                    <img src="${avatar.image_url}" alt="${avatar.name}" class="card-image">
-                    <h4>${avatar.name}</h4>
-                    <p style="color: ${statusColor}; font-size: 0.8em; margin: 0;">${statusText}</p>
-                </div>
-            `;
-        }).join('');
-
-        // 2. Attach Selection Listeners
-        avatarGrid.querySelectorAll('.avatar-item').forEach(item => {
-            if (!item.classList.contains('locked')) {
-                item.onclick = function() {
-                    avatarGrid.querySelectorAll('.avatar-item').forEach(i => i.classList.remove('selected'));
-                    this.classList.add('selected');
-                };
-            }
-        });
+        // We'll only render the default as active and others as locked/disabled for now.
+        // If avatar_url is added to DB, this logic needs full re-implementation.
     }
 
 
     // 3. Attach Action Listeners
     document.getElementById('save-username-btn')?.addEventListener('click', handleSaveUsername);
-    document.getElementById('save-avatar-btn')?.addEventListener('click', handleSaveAvatar);
+    // document.getElementById('save-avatar-btn')?.addEventListener('click', handleSaveAvatar); // Disabled for now
 }
 
 
@@ -116,7 +99,6 @@ async function handleSaveUsername() {
 
     showToast(`Attempting to save name to ${newUsername}...`, 'info');
     
-    // We will update the username directly in the profile table
     const { error } = await api.updatePlayerProfile(state.currentUser.id, { username: newUsername });
 
     if (error) {
@@ -129,32 +111,11 @@ async function handleSaveUsername() {
     }
 }
 
+// handleSaveAvatar function is commented out/disabled because avatar_url is not in DB.
+/*
 async function handleSaveAvatar() {
-    const selectedItem = settingsContainer.querySelector('.avatar-item.selected');
-    if (!selectedItem) {
-        showToast("Please select an avatar first.", 'error');
-        return;
-    }
-    
-    const newAvatarUrl = selectedItem.dataset.imageUrl;
-    
-    if (newAvatarUrl === state.playerProfile.avatar_url) {
-        showToast("Avatar not changed.", 'info');
-        return;
-    }
-
-    showToast("Applying new avatar...", 'info');
-
-    // We will update the avatar_url directly in the profile table
-    const { error } = await api.updatePlayerProfile(state.currentUser.id, { avatar_url: newAvatarUrl });
-
-    if (error) {
-        showToast(`Error: Failed to update avatar!`, 'error');
-        console.error('Update Avatar Error:', error);
-    } else {
-        await refreshPlayerState();
-        showToast("Avatar applied successfully!", 'success');
-        updateHeaderUI(state.playerProfile);
-        renderSettings(); // Re-render to show new 'ACTIVE' status
-    }
+    // This function requires 'avatar_url' to be a column in your 'profiles' table.
+    // Re-enable and re-implement once 'avatar_url' is added to Supabase.
+    showToast("Avatar saving is currently disabled. Add 'avatar_url' column to profiles table.", 'error');
 }
+*/
