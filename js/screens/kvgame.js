@@ -1,9 +1,8 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.6 (KV GAME LOGIC - NOUB & ANKH Rework)
+ * Version: NOUB 0.0.6 (KV GAME LOGIC - NOUB & ANKH Rework - FINAL FIX)
  * Description: Implements the full 62-level Valley of the Kings (Crack the Code) logic.
- * Merged core game engine from 'noub original game.html' with Supabase integration.
- * UPDATED: Currency usage for NOUB and Ankh Premium.
+ * FIXED: JSON parse error for unlocked_levels_json and PATCH 400 for kv_game_progress.
 */
 
 import { state } from '../state.js';
@@ -49,7 +48,7 @@ const kvGatesData = [
     { kv: 48, name: "Amenemope" }, { kv: 49, name: "Unknown" }, { kv: 50, name: "Unknown" }, { kv: 51, name: "Unknown" },
     { kv: 52, name: "Unknown" },
     { kv: 53, name: "Unknown" }, { kv: 54, name: "Tutankhamun cache?" }, { kv: 55, name: "Amarna Cache (Akhenaten?)" }, { kv: 56, name: "Gold Tomb?" },
-    { kv: 57, name: "Horemheb" }, { kv: 58, name: "Chariot Tomb?" }, { kv: 59, name: "Unknown" }, { kv: 60, name: "Sitre" },
+    { kv: 57, name: "Horemheb" }, { kv: 58, name: "Unknown (Chariot Tomb?)" }, { kv: 59, name: "Unknown" }, { kv: 60, name: "Sitre" },
     { kv: 61, name: "Unknown" }, { kv: 62, name: "Tutankhamun" }
 ];
 
@@ -106,22 +105,50 @@ function calculateCodeHints(code) {
 async function updateKVProgress(isWin) {
     if (!state.currentUser) return;
     
-    const { data: progress } = await api.fetchKVProgress(state.currentUser.id);
-    if (!progress) return;
+    // Attempt to fetch existing progress
+    let { data: progress } = await api.fetchKVProgress(state.currentUser.id);
+
+    // If no progress found, initialize it
+    if (!progress) {
+        progress = {
+            player_id: state.currentUser.id,
+            current_kv_level: 1, // Start at level 1
+            last_game_result: null,
+            unlocked_levels_json: '[]' // Initialize as empty JSON array
+        };
+        // Use upsert to insert the initial row
+        await api.updateKVProgress(state.currentUser.id, progress);
+        // Re-fetch to ensure 'progress' object is up-to-date after initial upsert
+        ({ data: progress } = await api.fetchKVProgress(state.currentUser.id));
+        if (!progress) {
+            console.error("Failed to initialize or fetch KV progress after upsert.");
+            showToast("Error initializing game progress.", 'error');
+            return;
+        }
+    }
+
+    // Safely parse JSON or default to empty array
+    let unlockedLevels = [];
+    try {
+        unlockedLevels = JSON.parse(progress.unlocked_levels_json || '[]');
+    } catch (e) {
+        console.error("Error parsing unlocked_levels_json:", e, "Raw data:", progress.unlocked_levels_json);
+        // Reset to empty array if parsing fails
+        unlockedLevels = [];
+    }
     
     const currentLevel = kvGameState.levelIndex + 1;
     let updateObject = {
         player_id: state.currentUser.id,
         current_kv_level: progress.current_kv_level,
         last_game_result: isWin ? 'Win' : 'Loss',
-        unlocked_levels_json: progress.unlocked_levels_json
+        unlocked_levels_json: JSON.stringify(unlockedLevels) // Ensure it's stringified JSON
     };
     
     if (isWin) {
         const nextLevel = currentLevel + 1;
         updateObject.current_kv_level = nextLevel;
         
-        let unlockedLevels = JSON.parse(progress.unlocked_levels_json || '[]');
         if (!unlockedLevels.includes(currentLevel)) {
             unlockedLevels.push(currentLevel);
             updateObject.unlocked_levels_json = JSON.stringify(unlockedLevels);
@@ -201,7 +228,7 @@ function updateHintDisplay() {
 /**
  * Handles purchase/use of consumables (Hint Scroll, Time Amulet).
  */
-async function handlePurchaseAndUseItem(itemKey, ankhPremiumCost, itemType) { // ankhPremiumCost renamed
+async function handlePurchaseAndUseItem(itemKey, ankhPremiumCost, itemType) {
     if (!kvGameState.active) return;
     
     const consumableCount = state.consumables.get(itemKey) || 0;
@@ -220,14 +247,14 @@ async function handlePurchaseAndUseItem(itemKey, ankhPremiumCost, itemType) { //
         showToast(`${itemKey.split('_')[0]} used!`, 'success');
         itemUsedSuccessfully = true;
 
-    } else if ((state.playerProfile.ankh_premium || 0) >= ankhPremiumCost) { // Using ankh_premium
+    } else if ((state.playerProfile.ankh_premium || 0) >= ankhPremiumCost) {
         const newAnkhPremium = state.playerProfile.ankh_premium - ankhPremiumCost;
-        await api.updatePlayerProfile(state.currentUser.id, { ankh_premium: newAnkhPremium }); // Update ankh_premium
+        await api.updatePlayerProfile(state.currentUser.id, { ankh_premium: newAnkhPremium });
         showToast(`${itemType} purchased with Ankh Premium!`, 'success');
         itemUsedSuccessfully = true;
         
     } else {
-        showToast(`Need ${ankhPremiumCost} Ankh (☥) or the consumable item.`, 'error'); // Ankh Premium symbol
+        showToast(`Need ${ankhPremiumCost} Ankh (☥) or the consumable item.`, 'error');
         return;
     }
     
@@ -257,9 +284,9 @@ async function endCurrentKVGame(result) {
     // 2. Grant rewards/Display messages
     if (isWin) {
         const reward = WIN_REWARD_BASE + (kvGameState.levelIndex * 50);
-        const newNoubScore = (state.playerProfile.noub_score || 0) + reward; // Reward in NOUB
-        await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore }); // Update noub_score
-        showToast(`*Congratulations!* You cracked KV${gateInfo.kv}! +${reward} NOUB!`, 'success'); // NOUB currency
+        const newNoubScore = (state.playerProfile.noub_score || 0) + reward;
+        await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
+        showToast(`*Congratulations!* You cracked KV${gateInfo.kv}! +${reward} NOUB!`, 'success');
     } else {
         showToast(`Expedition ended. The correct code was ${kvGameState.code}. Try again!`, 'error');
     }
@@ -291,7 +318,7 @@ function handleSubmitGuess() {
     } else {
         showToast("Incorrect code. Keep trying!", 'info');
         guessInputEl.value = '';
-        guessInputEl.focus(); // Keep focus on input
+        guessInputEl.focus();
     }
 }
 
@@ -299,12 +326,25 @@ function handleSubmitGuess() {
 async function startNewKVGame() {
     if (!state.currentUser || kvGameState.active) return;
 
-    const { data: progress } = await api.fetchKVProgress(state.currentUser.id);
+    // Fetch and initialize progress if it doesn't exist to prevent PATCH 400
+    let { data: progress } = await api.fetchKVProgress(state.currentUser.id);
     if (!progress) {
-        showToast("Error loading game progress. Try logging out/in.", 'error');
-        return;
+        // Initialize progress for new players
+        await api.updateKVProgress(state.currentUser.id, {
+            player_id: state.currentUser.id,
+            current_kv_level: 1,
+            last_game_result: null,
+            unlocked_levels_json: '[]'
+        });
+        // Re-fetch to get the newly inserted row
+        ({ data: progress } = await api.fetchKVProgress(state.currentUser.id));
+        if (!progress) {
+            console.error("Failed to initialize KV progress for new player.");
+            showToast("Error preparing game progress.", 'error');
+            return;
+        }
     }
-    
+
     kvGameState.levelIndex = (progress.current_kv_level || 1) - 1;
     
     if (kvGameState.levelIndex >= kvGatesData.length) {
@@ -312,15 +352,14 @@ async function startNewKVGame() {
          return;
     }
 
-    // Cost is now in NOUB (gold coin)
     if ((state.playerProfile.noub_score || 0) < LEVEL_COST) {
-        showToast(`You need ${LEVEL_COST} NOUB (🪙) to start.`, 'error'); // NOUB currency
+        showToast(`You need ${LEVEL_COST} NOUB (🪙) to start.`, 'error');
         return;
     }
 
     // 1. Deduct cost and save
-    const newNoubScore = (state.playerProfile.noub_score || 0) - LEVEL_COST; // Deduct from noub_score
-    await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore }); // Update noub_score
+    const newNoubScore = (state.playerProfile.noub_score || 0) - LEVEL_COST;
+    await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
     await refreshPlayerState();
 
     // 2. Setup game state
@@ -342,7 +381,7 @@ async function startNewKVGame() {
         guessInputEl.maxLength = config.digits;
         guessInputEl.placeholder = `Enter code... (${config.digits} digits)`;
         guessInputEl.disabled = false;
-        guessInputEl.focus(); // Focus input on game start
+        guessInputEl.focus();
     }
 
     // Show game elements
@@ -359,7 +398,6 @@ async function startNewKVGame() {
     updateHintDisplay();
     trackDailyActivity('games', 1);
     
-    // Display initial hints (from original game logic)
     const hints = calculateCodeHints(kvGameState.code);
     showToast(`Hint 1 (Sum): ${hints.sum}`, 'info');
     setTimeout(() => {
@@ -398,8 +436,21 @@ function renderKVGameContent() {
 async function updateKVProgressInfo() {
     const startBtn = document.getElementById('kv-start-btn');
     
-    const { data: progress } = await api.fetchKVProgress(state.currentUser.id);
-    if (!progress) return;
+    // Fetch and initialize progress if it doesn't exist
+    let { data: progress } = await api.fetchKVProgress(state.currentUser.id);
+    if (!progress) {
+        await api.updateKVProgress(state.currentUser.id, {
+            player_id: state.currentUser.id,
+            current_kv_level: 1,
+            last_game_result: null,
+            unlocked_levels_json: '[]'
+        });
+        ({ data: progress } = await api.fetchKVProgress(state.currentUser.id));
+        if (!progress) {
+            console.error("Failed to initialize KV progress for UI info.");
+            return;
+        }
+    }
 
     kvGameState.levelIndex = (progress.current_kv_level || 1) - 1;
     const nextGate = kvGatesData[kvGameState.levelIndex];
