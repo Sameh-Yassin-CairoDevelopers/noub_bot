@@ -1,9 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.6 (API FINAL DEBUG - CRITICAL SQL SELECT FIX)
+ * Version: NOUB 0.0.6 (API FINAL DEBUG - PROFILE SELECT FIX)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * FIXED: Ensured all SELECT statements are absolutely clean and match DB schema for rewards.
- * CONFIRMED: Column names in contracts and master_albums match the provided ERD.
+ * FIXED: 'avatar_url' removed from fetchProfile SELECT as it's not in DB schema.
 */
 
 import { supabaseClient } from './config.js';
@@ -11,8 +10,8 @@ import { supabaseClient } from './config.js';
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    // Ensure these columns exist in the 'profiles' table
-    return await supabaseClient.from('profiles').select('id, created_at, username, avatar_url, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address').eq('id', userId).single();
+    // FIXED: Removed 'avatar_url' as it is not present in the provided 'profiles' schema.
+    return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
@@ -149,7 +148,6 @@ export async function fetchAvailableContracts(playerId) {
 }
 
 export async function fetchPlayerContracts(playerId) {
-    // Corrected to use 'reward_score' and 'reward_prestige' from the 'contracts' table
     return await supabaseClient
         .from('player_contracts')
         .select(`
@@ -161,7 +159,6 @@ export async function fetchPlayerContracts(playerId) {
 }
 
 export async function fetchContractWithRequirements(contractId) {
-    // Corrected to use 'reward_score' and 'reward_prestige' from the 'contracts' table
     return await supabaseClient
         .from('contracts')
         .select(`
@@ -189,7 +186,6 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
-    // Update 'noub_score' in 'profiles' table, assuming newTotals.noub_score
     return await supabaseClient
         .from('profiles')
         .update({ noub_score: newTotals.noub_score, prestige: newTotals.prestige })
@@ -277,7 +273,6 @@ export async function fetchUCPProtocol(playerId) {
 // --- TON Integration Functions ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) {
-    // This is a mock API call, actual TON transaction verification would be on backend
     return { success: true, amount: amountAnkhPremium }; 
 }
 
@@ -314,7 +309,6 @@ export async function fetchGameHistory(playerId) {
 }
 
 export async function fetchPlayerAlbums(playerId) {
-    // Corrected to use 'reward_ankh' and 'reward_prestige' from the 'master_albums' table
     return await supabaseClient
         .from('player_albums')
         .select(`
