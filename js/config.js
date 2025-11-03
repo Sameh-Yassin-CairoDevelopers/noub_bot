@@ -47,3 +47,4 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Export all constants and the client
 export { supabaseClient, TOKEN_RATES, ASSET_PATHS, SUPABASE_URL };
 
+
