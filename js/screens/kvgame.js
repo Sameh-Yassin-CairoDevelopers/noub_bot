@@ -3,6 +3,7 @@
  * Version: NOUB 0.0.6 (KV GAME LOGIC - NOUB & ANKH Rework - Targeted Update)
  * Description: Implements the full 62-level Valley of the Kings (Crack the Code) logic.
  * FIXED: JSON parse error for unlocked_levels_json and PATCH 400 for kv_game_progress initialization.
+ * FIXED: Syntax error in kvGatesData array at line 42.
 */
 
 import { state } from '../state.js';
@@ -41,15 +42,17 @@ const kvGatesData = [
     { kv: 22, name: "Amenhotep III" }, { kv: 23, name: "Ay" }, { kv: 24, name: "Unknown" }, 
     { kv: 25, name: "Unknown" }, { kv: 26, name: "Unknown" }, { kv: 27, name: "Unknown" }, { kv: 28, name: "Unknown" },
     { kv: 29, name: "Unknown" }, { kv: 30, name: "Unknown" }, { kv: 31, name: "Unknown" }, { kv: 32, name: "Tia'a" },
-    { kv: 33, name: "Unknown" }, { kv: 34: "Thutmose III" }, { kv: 35: "Amenhotep II" }, { kv: 36: "Maiherpri" },
-    { kv: 37: "Unknown" }, { kv: 38: "Thutmose I" }, { kv: 39: "Unknown" }, { kv: 40: "Unknown" },
-    { kv: 41: "Unknown" }, { kv: 42: "Hatshepsut-Meryet-Ra" }, { kv: 43: "Thutmose IV" }, { kv: 44: "Unknown" },
-    { kv: 45: "Userhet" }, { kv: 46: "Yuya & Thuya" }, { kv: 47: "Siptah" }, 
-    { kv: 48: "Amenemope" }, { kv: 49: "Unknown" }, { kv: 50: "Unknown" }, { kv: 51: "Unknown" },
-    { kv: 52: "Unknown" },
-    { kv: 53: "Unknown" }, { kv: 54: "Tutankhamun cache?" }, { kv: 55: "Amarna Cache (Akhenaten?)" }, { kv: 56: "Gold Tomb?" },
-    { kv: 57: "Horemheb" }, { kv: 58: "Unknown (Chariot Tomb?)" }, { kv: 59: "Unknown" }, { kv: 60: "Sitre" },
-    { kv: 61: "Unknown" }, { kv: 62: "Tutankhamun" }
+    { kv: 33, name: "Unknown" }, 
+    // FIXED: Syntax error here - these were malformed objects
+    { kv: 34, name: "Thutmose III" }, { kv: 35, name: "Amenhotep II" }, { kv: 36, name: "Maiherpri" },
+    { kv: 37, name: "Unknown" }, { kv: 38, name: "Thutmose I" }, { kv: 39, name: "Unknown" }, { kv: 40, name: "Unknown" },
+    { kv: 41, name: "Unknown" }, { kv: 42, name: "Hatshepsut-Meryet-Ra" }, { kv: 43, name: "Thutmose IV" }, { kv: 44, name: "Unknown" },
+    { kv: 45, name: "Userhet" }, { kv: 46, name: "Yuya & Thuya" }, { kv: 47, name: "Siptah" }, 
+    { kv: 48, name: "Amenemope" }, { kv: 49, name: "Unknown" }, { kv: 50, name: "Unknown" }, { kv: 51, name: "Unknown" },
+    { kv: 52, name: "Unknown" },
+    { kv: 53, name: "Unknown" }, { kv: 54, name: "Tutankhamun cache?" }, { kv: 55, name: "Amarna Cache (Akhenaten?)" }, { kv: 56, name: "Gold Tomb?" },
+    { kv: 57, name: "Horemheb" }, { kv: 58, name: "Unknown (Chariot Tomb?)" }, { kv: 59, name: "Unknown" }, { kv: 60, name: "Sitre" },
+    { kv: 61, name: "Unknown" }, { kv: 62, name: "Tutankhamun" }
 ];
 
 
@@ -116,7 +119,7 @@ async function updateKVProgress(isWin) {
             last_game_result: null,
             unlocked_levels_json: '[]' // Initialize as empty JSON array string
         };
-        // Use upsert to insert the initial row for new players
+        // Use upsert to insert the initial row
         await api.updateKVProgress(state.currentUser.id, progress);
         // Re-fetch to ensure 'progress' object is up-to-date after initial upsert
         ({ data: progress } = await api.fetchKVProgress(state.currentUser.id));
@@ -215,7 +218,7 @@ function updateHintDisplay() {
             : `Buy Time (+45s) (${TIME_AMULET_COST_ANKH_PREMIUM} ☥)`; // Ankh Premium symbol
             
         timeBtn.disabled = !kvGameState.active;
-        timeBtn.onclick = () => handlePurchaseAndUseItem(TIME_AMULET_ITEM_KEY, TIME_AMULET_COST_ANKH_PREMIUM, 'time');
+        timeBtn.onclick = () => handlePurchaseAndUseItem(TIME_AMULET_ITEM_KEY, HINT_SCROLL_COST_ANKH_PREMIUM, 'time');
         
         const buttonContainer = document.createElement('div');
         buttonContainer.id = 'kv-use-item-button-container';
