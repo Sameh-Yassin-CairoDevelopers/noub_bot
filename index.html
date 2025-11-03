@@ -52,6 +52,8 @@
                 <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
                 <!-- Ankh (مفتاح الحياة) -->
                 <div class="currency-display"><img src="images/ankh_premium_key_of_life.png" alt="Ankh Premium" class="icon currency-img" id="ankh-premium-icon"> <span id="ankh-premium-display">0</span></div>
+                <!-- Spin Tickets (تذاكر الدوران) -->
+                <div class="currency-display"><span class="icon">🎟️</span> <span id="spin-ticket-display">0</span></div>
                 <!-- TON Wallet Connect Button Container -->
                 <div id="connectButton" class="ton-connect-btn"></div> 
             </div>
@@ -87,7 +89,6 @@
                         <div class="icon-box">💰</div>
                         <span>Shop</span>
                     </a>
-                    <!-- Contracts Removed from Home Screen -->
                 </div>
 
                 <div class="daily-task-summary">
@@ -141,7 +142,7 @@
                 <h2>Tomb of Treasures (Slot)</h2>
                  <div id="slot-machine-container" class="game-container">
                     <div id="slot-result-message"></div> 
-                    <div class="balance-info">Spins Available: <span id="spin-ticket-display">0</span> 🗡️</div>
+                    <div class="balance-info">Spins Available: <span id="spin-ticket-display">0</span> 🎟️</div>
                     <div class="reels-container">
                         <div class="reel" id="reel-1"></div>
                         <div class="reel" id="reel-2"></div>
@@ -162,7 +163,6 @@
             <div id="kv-game-screen" class="screen hidden">
                 <h2>Valley of the Kings - Crack the Code</h2>
                 <div id="kv-game-content" class="game-container">
-                    <!-- KV Game structure: includes necessary IDs for kvgame.js fix -->
                     <div id="kv-game-intro-content">
                          <div id="kv-progress-info" class="game-status-message hidden">
                             <div id="kv-timer-display">Time Left: 0s</div>
@@ -173,11 +173,11 @@
                     </div>
                     
                     <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
-                        <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
-                            <input type="number" id="kv-guess-input" style="width: 150px; font-size: 1.2em; text-align: center;" placeholder="Enter code...">
+                        <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
+                            <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
                         </div>
                         
-                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 5px;">
+                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;">
                              <!-- Dynamic hint content here -->
                         </ul>
                         
@@ -242,7 +242,7 @@
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
                 <div id="chat-messages"></div>
-                <div id="chat-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                <div id="chat-input-area" style="display: flex; flex-direction: column; gap: 7px; margin-top: 7px;">
                     <input type="text" id="chat-input-field" placeholder="Chat with Eve..." style="flex-grow: 1;">
                     <button id="chat-send-button" class="action-button small">Send</button>
                 </div>
@@ -251,7 +251,6 @@
         
         <!-- Modals -->
         <div id="shop-modal" class="modal-overlay hidden">
-             <!-- Shop Tabs Structure -->
             <div class="modal-content">
                 <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
                 <h2>Shop</h2>
@@ -297,14 +296,12 @@
     
     <script type="module" src="js/main.js?v=202511021914"></script> 
     
-    <!-- CRITICAL FIX: TON Connect immediate initialization -->
+    <!-- TON Connect immediate initialization -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.TON_CONNECT_UI) {
-                // NOTE: Use your actual manifest URL here if hosted separately
                 const manifestUrl = 'https://raw.githubusercontent.com/sameh-yassin-cairodevelopers/noub_bot/main/tonconnect-manifest.json';
                 
-                // Initialize the UI manager immediately to ensure the button is rendered into #connectButton
                 window.TonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
                     manifestUrl: manifestUrl,
                     buttonRootId: 'connectButton' 
