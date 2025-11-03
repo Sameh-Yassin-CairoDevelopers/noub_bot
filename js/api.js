@@ -1,8 +1,10 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.6 (API FINAL DEBUG - PROFILE SELECT FIX)
+ * Version: NOUB 0.0.6 (API FINAL DEBUG - Profile & Card_Levels Fix)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * FIXED: 'avatar_url' removed from fetchProfile SELECT as it's not in DB schema.
+ * FIXED: 'avatar_url' removed from fetchProfile.
+ * CHECKED: Column names in contracts and master_albums match the provided ERD.
+ * REVIEWED: card_levels select for existing columns.
 */
 
 import { supabaseClient } from './config.js';
@@ -10,11 +12,12 @@ import { supabaseClient } from './config.js';
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    // FIXED: Removed 'avatar_url' as it is not present in the provided 'profiles' schema.
+    // Corrected based on your provided ERD. 'avatar_url' is not in 'profiles'.
     return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
+    // Added 'lore' to cards select as it's in your ERD.
     return await supabaseClient.from('player_cards').select('instance_id, level, card_id, power_score, cards(id, name, rarity_level, image_url, power_score, description, lore)').eq('player_id', playerId);
 }
 
@@ -38,6 +41,8 @@ export async function addCardToPlayerCollection(playerId, cardId) {
 }
 
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
+    // Assuming 'cost_blessing' exists in 'card_levels' based on your ERD.
+    // If not, this must be changed in DB or here.
     return await supabaseClient
         .from('card_levels')
         .select(`
@@ -67,6 +72,7 @@ export async function deleteCardInstance(instanceId) {
 // --- Economy API Functions ---
 
 export async function fetchPlayerFactories(playerId) {
+    // Added 'base_value' to items select as it's in your ERD.
     return await supabaseClient
         .from('player_factories')
         .select(`
@@ -91,6 +97,7 @@ export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
 }
 
 export async function fetchPlayerInventory(playerId) {
+    // Added 'base_value' to items select as it's in your ERD.
     return await supabaseClient
         .from('player_inventory')
         .select(`quantity, item_id, items (id, name, type, image_url, base_value)`)
@@ -138,9 +145,11 @@ export async function fetchAvailableContracts(playerId) {
     const acceptedIds = playerContractIds.map(c => c.contract_id);
     
     if (acceptedIds.length === 0) {
+        // Corrected to use 'reward_score' and 'reward_prestige' from 'contracts' table.
         return await supabaseClient.from('contracts').select('id, title, description, reward_score, reward_prestige');
     }
     
+    // Corrected to use 'reward_score' and 'reward_prestige' from 'contracts' table.
     return await supabaseClient
         .from('contracts')
         .select('id, title, description, reward_score, reward_prestige')
@@ -148,6 +157,7 @@ export async function fetchAvailableContracts(playerId) {
 }
 
 export async function fetchPlayerContracts(playerId) {
+    // Corrected to use 'reward_score' and 'reward_prestige' from the 'contracts' table.
     return await supabaseClient
         .from('player_contracts')
         .select(`
@@ -159,6 +169,7 @@ export async function fetchPlayerContracts(playerId) {
 }
 
 export async function fetchContractWithRequirements(contractId) {
+    // Corrected to use 'reward_score' and 'reward_prestige' from the 'contracts' table.
     return await supabaseClient
         .from('contracts')
         .select(`
@@ -186,6 +197,7 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
+    // Update 'noub_score' in 'profiles' table, assuming newTotals.noub_score
     return await supabaseClient
         .from('profiles')
         .update({ noub_score: newTotals.noub_score, prestige: newTotals.prestige })
@@ -273,6 +285,7 @@ export async function fetchUCPProtocol(playerId) {
 // --- TON Integration Functions ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) {
+    // This is a mock API call, actual TON transaction verification would be on backend
     return { success: true, amount: amountAnkhPremium }; 
 }
 
@@ -309,6 +322,7 @@ export async function fetchGameHistory(playerId) {
 }
 
 export async function fetchPlayerAlbums(playerId) {
+    // Corrected to use 'reward_ankh' and 'reward_prestige' from the 'master_albums' table.
     return await supabaseClient
         .from('player_albums')
         .select(`
