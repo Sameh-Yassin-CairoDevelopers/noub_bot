@@ -7,11 +7,10 @@
 
 import { supabaseClient } from './config.js';
 
-// --- Player and Card Functions (UPDATED) ---
+// --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    // Fetch new currency names: noub_score, ankh_premium
-    return await supabaseClient.from('profiles').select('*, noub_score, ankh_premium').eq('id', userId).single();
+    return await supabaseClient.from('profiles').select('*, noub_score, ankh_premium, prestige, spin_tickets').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
@@ -23,7 +22,6 @@ export async function fetchAllMasterCards() {
 }
 
 export async function updatePlayerProfile(playerId, updateObject) {
-    // Ensure updateObject uses noub_score and ankh_premium
     return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
 }
 
@@ -65,7 +63,7 @@ export async function deleteCardInstance(instanceId) {
 }
 
 
-// --- Economy API Functions (UNCHANGED logic, but underlying profile calls use new names) ---
+// --- Economy API Functions ---
 
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
@@ -130,7 +128,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
 }
 
 
-// --- Contract API Functions (UNCHANGED logic, but underlying profile calls use new names) ---
+// --- Contract API Functions ---
 
 export async function fetchAvailableContracts(playerId) {
     const { data: playerContractIds, error: playerError } = await supabaseClient
@@ -158,7 +156,7 @@ export async function fetchPlayerContracts(playerId) {
         .select(`
             id, 
             status,
-            contracts (id, title, description, reward_noub_score, reward_prestige) -- Renamed reward_score to reward_noub_score
+            contracts (id, title, description, reward_noub_score, reward_prestige)
         `)
         .eq('player_id', playerId)
         .eq('status', 'active');
@@ -192,7 +190,6 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
-    // Ensure newTotals uses noub_score and ankh_premium
     return await supabaseClient
         .from('profiles')
         .update({ noub_score: newTotals.noub_score, prestige: newTotals.prestige })
@@ -207,14 +204,13 @@ export async function refreshAvailableContracts(playerId) {
 }
 
 
-// --- Games & Consumables API Functions (UNCHANGED logic, but underlying profile calls use new names) ---
+// --- Games & Consumables API Functions ---
 
 export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('*');
 }
 
 export async function getDailySpinTickets(playerId) {
-    // Fetch new currency names: noub_score, ankh_premium
     const { data: profileData, error } = await supabaseClient.from('profiles')
         .select('spin_tickets, last_daily_spin, noub_score, ankh_premium')
         .eq('id', playerId)
@@ -222,7 +218,7 @@ export async function getDailySpinTickets(playerId) {
     
     if (error || !profileData) return { available: false, profileData: null };
 
-    const lastSpinTime = new Date(profileData.last_daily_daily_spin).getTime(); // Assuming a daily_spin column for consistency
+    const lastSpinTime = new Date(profileData.last_daily_spin).getTime();
     const now = Date.now();
     const twentyFourHours = 24 * 60 * 60 * 1000;
     
@@ -259,7 +255,7 @@ export async function updateKVProgress(playerId, updateObject) {
 }
 
 
-// --- UCP-LLM Protocol API Functions (UNCHANGED) ---
+// --- UCP-LLM Protocol API Functions ---
 
 export async function saveUCPSection(playerId, sectionKey, sectionData) {
     return await supabaseClient
@@ -275,24 +271,15 @@ export async function fetchUCPProtocol(playerId) {
 }
 
 
-// --- TON Integration Functions (UNCHANGED logic, but underlying profile calls use new names) ---
+// --- TON Integration Functions ---
 
-export async function saveTonTransaction(playerId, txId, amountTon, amountAnkh) {
-    // Here, amountAnkh refers to the new Ankh premium currency (Key of Life)
-    return { success: true, amount: amountAnkh }; 
+export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) {
+    return { success: true, amount: amountAnkhPremium }; 
 }
 
 
-// =================================================================================
-// --- NOUB 0.0.6 ADDITIONS (Activity Log & Utility) ---
-// =================================================================================
+// --- Activity Log & Utility ---
 
-/**
- * Logs a critical player activity to the database.
- * @param {uuid} playerId - The user's ID.
- * @param {string} activityType - 'EXCHANGE', 'PURCHASE', 'UPGRADE', 'CONTRACT_COMPLETE'.
- * @param {string} description - Detailed description of the event.
- */
 export async function logActivity(playerId, activityType, description) {
     return await supabaseClient
         .from('activity_log')
@@ -303,9 +290,6 @@ export async function logActivity(playerId, activityType, description) {
         });
 }
 
-/**
- * Fetches the recent activity log for the player.
- */
 export async function fetchActivityLog(playerId) {
     return await supabaseClient
         .from('activity_log')
@@ -315,22 +299,16 @@ export async function fetchActivityLog(playerId) {
         .limit(50); 
 }
 
-// --- NOUB 0.0.2 ADDITIONS (History, Library, Albums - UNCHANGED) ---
+// --- History, Library, Albums ---
 
-/**
- * Fetches the complete game history for the player.
- */
 export async function fetchGameHistory(playerId) {
     return await supabaseClient
         .from('game_history')
         .select('*')
         .eq('player_id', playerId)
-        .order('created_at', { ascending: false }); // Assuming 'created_at' is used for ordering
+        .order('created_at', { ascending: false });
 }
 
-/**
- * Fetches the player's current status on all master card albums/sets.
- */
 export async function fetchPlayerAlbums(playerId) {
     return await supabaseClient
         .from('player_albums')
@@ -338,14 +316,11 @@ export async function fetchPlayerAlbums(playerId) {
             album_id, 
             is_completed, 
             reward_claimed,
-            master_albums (id, name, icon, description, card_ids, reward_noub_score, reward_ankh_premium) -- Added new rewards
+            master_albums (id, name, icon, description, card_ids, reward_noub_score, reward_ankh_premium)
         `)
         .eq('player_id', playerId);
 }
 
-/**
- * Fetches the player's unlocked entries in the Tomb Encyclopedia (Library).
- */
 export async function fetchPlayerLibrary(playerId) {
     return await supabaseClient
         .from('player_library')
