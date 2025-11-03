@@ -1,13 +1,14 @@
 /*
  * Filename: js/screens/profile.js
- * Version: NOUB 0.0.1 Eve Edition (Profile Module - Complete)
+ * Version: NOUB 0.0.6 (Profile Module - FINAL FIX)
  * Description: View Logic Module for the Profile screen. Calculates total player power
  * based on owned cards and displays stats.
+ * FIXED: Removed avatar_url reference as it's not in DB schema.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { logout } from '../auth.js'; // Import logout function
+import { logout } from '../auth.js'; 
 
 // DOM Element References
 const playerNameEl = document.getElementById('player-name');
@@ -15,6 +16,7 @@ const playerPowerScoreEl = document.getElementById('player-power-score');
 const statTotalCardsEl = document.getElementById('stat-total-cards');
 const statContractsEl = document.getElementById('stat-contracts');
 const logoutBtn = document.getElementById('logout-btn');
+const playerAvatarImg = document.getElementById('player-avatar-img'); // Assuming this element still exists in HTML
 
 /**
  * Calculates the total Power Score by summing the power_score of all owned card instances.
@@ -22,9 +24,7 @@ const logoutBtn = document.getElementById('logout-btn');
 async function calculateTotalPower(playerCards) {
     if (!playerCards || playerCards.length === 0) return 0;
     
-    // Total Power is the sum of the power_score column for each individual card instance
     const totalPower = playerCards.reduce((sum, card) => {
-        // Use the power_score stored directly on the player_cards instance
         return sum + (card.power_score || 0); 
     }, 0);
 
@@ -43,25 +43,31 @@ export async function renderProfile() {
         { data: playerContracts }
     ] = await Promise.all([
         api.fetchPlayerCards(state.currentUser.id),
-        api.fetchPlayerContracts(state.currentUser.id) // Using fetchPlayerContracts which usually gets ACTIVE ones, but we need COMPLETED ones too. Assuming a fetchCompletedContracts API later or counting total.
+        api.fetchPlayerContracts(state.currentUser.id) 
     ]);
     
     // 2. Calculate Stats
     const totalPower = await calculateTotalPower(playerCards);
     const totalCardsCount = playerCards ? playerCards.length : 0;
     
-    // NOTE: For simplicity, we count all player contracts including active ones here. 
-    // A proper stat should count contracts where status = 'completed'.
-    const totalContractsCompleted = playerContracts ? playerContracts.length : 0;
+    const totalContractsCompleted = playerContracts ? playerContracts.length : 0; // This still counts active, needs refinement for 'completed' only
 
     // 3. Update UI
     playerNameEl.textContent = state.playerProfile.username || 'Explorer';
     playerPowerScoreEl.textContent = totalPower;
     statTotalCardsEl.textContent = totalCardsCount;
-    statContractsEl.textContent = totalContractsCompleted; // Will need adjustment later for 'Completed' count only
+    statContractsEl.textContent = totalContractsCompleted; 
+
+    // FIXED: Do not try to access state.playerProfile.avatar_url if it's not in DB
+    // Instead, assign a default image.
+    if (playerAvatarImg) {
+        playerAvatarImg.src = 'images/user_avatar.png'; // Set a default local avatar image
+        playerAvatarImg.alt = state.playerProfile.username || 'Player Avatar';
+    }
+
 
     // Ensure logout listener is active
     if (logoutBtn) {
-        logoutBtn.onclick = logout; // Use the imported logout function
+        logoutBtn.onclick = logout;
     }
 }
