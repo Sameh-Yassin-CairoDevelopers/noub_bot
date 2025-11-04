@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NOUB 0.0.7 - Pharaoh's Legacy</title>
+    <title>NOUB 0.0.8 - Pharaoh's Legacy</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -42,9 +42,9 @@
         
         <header>
             <div class="balance-bar">
-                <div class="currency-display"><img src="images/noub_gold_coin.png" alt="NOUB" class="icon currency-img" id="noub-icon"> <span id="noub-display">0</span></div>
+                <div class="currency-display"><img src="images/noub_gold_coin.png" alt="NOUB" class="icon currency-img"> <span id="noub-display">0</span></div>
                 <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
-                <div class="currency-display"><img src="images/ankh_premium_key_of_life.png" alt="Ankh" class="icon currency-img" id="ankh-premium-icon"> <span id="ankh-premium-display">0</span></div>
+                <div class="currency-display"><img src="images/ankh_premium_key_of_life.png" alt="Ankh" class="icon currency-img"> <span id="ankh-premium-display">0</span></div>
                 <div class="currency-display"><span class="icon">🎟️</span> <span id="spin-ticket-display">0</span></div>
                 <div id="connectButton" class="ton-connect-btn"></div> 
             </div>
@@ -53,29 +53,38 @@
         <main id="content-container">
             
             <div id="home-screen" class="screen active">
-                <div class="home-action-icons">
-                    <!-- Row 1 -->
-                    <a class="action-icon-link" data-target="kv-game-screen"><div class="icon-box">🗝️</div><span>KV Game</span></a>
-                    <a class="action-icon-link" data-target="slot-game-screen"><div class="icon-box">🎰</div><span>Slot Game</span></a>
-                    <a class="action-icon-link" data-target="wheel-screen"><div class="icon-box">🎡</div><span>Wheel</span></a>
-                    <a class="action-icon-link" data-target="card-upgrade-screen"><div class="icon-box">✨</div><span>Upgrade</span></a>
-                    <a class="action-icon-link" id="home-shop-btn"><div class="icon-box">💰</div><span>Shop</span></a>
-                    
-                    <!-- Row 2 -->
-                    <a class="action-icon-link" data-target="exchange-screen"><div class="icon-box">🔄</div><span>Exchange</span></a>
-                    <a class="action-icon-link" data-target="activity-screen"><div class="icon-box">📝</div><span>Activity</span></a>
-                    <a class="action-icon-link" data-target="history-screen"><div class="icon-box">🕒</div><span>History</span></a>
-                    <a class="action-icon-link" data-target="library-screen"><div class="icon-box">📚</div><span>Library</span></a>
-                    <a class="action-icon-link" data-target="chat-screen"><div class="icon-box">💬</div><span>Chat</span></a>
+                <div class="home-layout">
+                    <div class="home-section">
+                        <h3>Games & Challenges</h3>
+                        <div class="home-featured-actions">
+                            <a class="action-card-link" data-target="kv-game-screen">
+                                <div class="icon-box large">🗝️</div>
+                                <span>KV Game</span>
+                            </a>
+                            <a class="action-card-link" data-target="slot-game-screen">
+                                <div class="icon-box large">🎰</div>
+                                <span>Slot Game</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="home-section">
+                        <h3>Management & Growth</h3>
+                        <div class="home-secondary-actions">
+                            <a class="action-icon-link" data-target="card-upgrade-screen"><div class="icon-box">✨</div><span>Upgrade</span></a>
+                            <a class="action-icon-link" data-target="albums-screen"><div class="icon-box">📖</div><span>Albums</span></a>
+                            <a class="action-icon-link" data-target="contracts-screen"><div class="icon-box">📜</div><span>Contracts</span></a>
+                            <a class="action-icon-link" data-target="wheel-screen"><div class="icon-box">🎡</div><span>Wheel</span></a>
+                        </div>
+                    </div>
                 </div>
             </div>
-
+            
             <div id="collection-screen" class="screen hidden"><h2>My Collection</h2><div class="card-grid" id="collection-container"></div></div>
             
             <div id="economy-screen" class="screen hidden">
                 <h2>Economy Hub</h2>
                 
-                <div class="stock-tabs-container">
+                 <div class="stock-tabs-container">
                     <button class="stock-tab-btn active" data-stock-tab="production">Production</button>
                     <button class="stock-tab-btn" data-stock-tab="resources">Resources</button>
                     <button class="stock-tab-btn" data-stock-tab="materials">Materials</button>
@@ -83,20 +92,26 @@
                 </div>
                 
                 <div id="stock-content-production" class="stock-content-tab active">
-                    <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
-                    <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
+                     <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
+                     <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
                 </div>
 
                 <div id="stock-content-resources" class="stock-content-tab"><div id="stock-resources-container" class="stock-grid"></div></div>
                 <div id="stock-content-materials" class="stock-content-tab"><div id="stock-materials-container" class="stock-grid"></div></div>
                 <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods-container" class="stock-grid"></div></div>
             </div>
-
+            
             <div id="tasks-screen" class="screen hidden">
                 <h2>Daily Tasks</h2>
                 <div class="daily-task-summary">
                     <div id="daily-quests-container"></div>
                 </div>
+            </div>
+            
+            <div id="contracts-screen" class="screen hidden">
+                <h2>Royal Decrees</h2>
+                <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
+                <div class="contracts-section"><div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div><div id="available-contracts-container" class="contracts-list"></div></div>
             </div>
             
             <div id="albums-screen" class="screen hidden"></div>
@@ -212,6 +227,8 @@
         
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
+                <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
+                <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
                 <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
                 <a class="more-menu-item" data-target="profile-screen"><div class="icon">👤</div><span>Profile</span></a>
                 <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
@@ -223,12 +240,12 @@
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
         <a class="nav-item" data-target="economy-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
         <a class="nav-item" data-target="collection-screen" title="My Cards"><div class="icon">🏛️</div><span>My Cards</span></a>
-        <a class="nav-item" data-target="albums-screen" title="Albums"><div class="icon">📖</div><span>Albums</span></a>
         <a class="nav-item" data-target="tasks-screen" title="Tasks"><div class="icon">📜</div><span>Tasks</span></a>
+        <a class="nav-item" id="bottom-shop-btn" title="Shop"><div class="icon">💰</div><span>Shop</span></a>
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
     </nav>
     
-    <script type="module" src="js/main.js?v=202511021915"></script> 
+    <script type="module" src="js/main.js?v=202511021916"></script> 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.TON_CONNECT_UI) {
