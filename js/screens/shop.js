@@ -29,9 +29,9 @@ const GAME_ITEMS = [
 ];
 
 const TON_PACKAGES = [
-    { name: 'Minor Ankh Deposit', ton_amount: 0.5, ankh_amount: 100 },
-    { name: 'Major Ankh Deposit', ton_amount: 2.0, ankh_amount: 500 },
-    { name: 'Pharaoh\'s Treasury', ton_amount: 5.0, ankh_amount: 1500 }
+    { name: 'Minor Ankh Deposit', ton_amount: 0.00015, ankh_amount: 100 },
+    { name: 'Major Ankh Deposit', ton_amount: 0.00015, ankh_amount: 500 },
+    { name: 'Pharaoh\'s Treasury', ton_amount: 0.00015, ankh_amount: 1500 }
 ];
 
 
@@ -242,3 +242,4 @@ export async function openShopModal() {
 window.handleBuyCardPack = handleBuyCardPack;
 window.handleBuyGameItem = handleBuyGameItem;
 window.handleTonExchange = handleTonExchange;
+
