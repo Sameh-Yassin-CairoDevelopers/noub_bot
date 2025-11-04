@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NOUB 0.0.6 - Pharaoh's Legacy</title>
+    <title>NOUB 0.0.7 - Pharaoh's Legacy</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -13,14 +13,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- TON Connect Library -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
 
-    <!-- Authentication Overlay - Initially Visible -->
     <div id="auth-overlay">
         <div class="auth-form" id="login-form">
             <h2>Login to "Noub"</h2>
@@ -41,67 +38,41 @@
         </div>
     </div>
 
-    <!-- Main App Container - Initially Hidden -->
     <div id="app-container" class="hidden">
         
         <header>
             <div class="balance-bar">
-                <!-- NOUB (الميدالية الذهبية) -->
                 <div class="currency-display"><img src="images/noub_gold_coin.png" alt="NOUB" class="icon currency-img" id="noub-icon"> <span id="noub-display">0</span></div>
-                <!-- Prestige (الجعران / Scarabs) -->
                 <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
-                <!-- Ankh (مفتاح الحياة) -->
-                <div class="currency-display"><img src="images/ankh_premium_key_of_life.png" alt="Ankh Premium" class="icon currency-img" id="ankh-premium-icon"> <span id="ankh-premium-display">0</span></div>
-                <!-- Spin Tickets (تذاكر الدوران) -->
+                <div class="currency-display"><img src="images/ankh_premium_key_of_life.png" alt="Ankh" class="icon currency-img" id="ankh-premium-icon"> <span id="ankh-premium-display">0</span></div>
                 <div class="currency-display"><span class="icon">🎟️</span> <span id="spin-ticket-display">0</span></div>
-                <!-- TON Wallet Connect Button Container -->
                 <div id="connectButton" class="ton-connect-btn"></div> 
             </div>
         </header>
 
         <main id="content-container">
             
-            <!-- Home Dashboard Screen (Home) -->
             <div id="home-screen" class="screen active">
                 <div class="home-action-icons">
-                    <!-- KV Game -->
-                    <a class="action-icon-link" data-target="kv-game-screen">
-                        <div class="icon-box">🗝️</div>
-                        <span>KV Game</span>
-                    </a>
-                    <!-- Slot Machine -->
-                    <a class="action-icon-link" data-target="slot-game-screen">
-                        <div class="icon-box">🎰</div>
-                        <span>Slot Game</span>
-                    </a>
-                    <!-- Wheel of Fortune (NEW SCREEN) -->
-                    <a class="action-icon-link" data-target="wheel-screen">
-                        <div class="icon-box">🎡</div>
-                        <span>Wheel</span>
-                    </a>
-                    <!-- Upgrade -->
-                    <a class="action-icon-link" data-target="card-upgrade-screen">
-                        <div class="icon-box">✨</div>
-                        <span>Upgrade</span>
-                    </a>
-                    <!-- Shop (Modal) -->
-                    <a class="action-icon-link" id="home-shop-btn">
-                        <div class="icon-box">💰</div>
-                        <span>Shop</span>
-                    </a>
-                </div>
-
-                <div class="daily-task-summary">
-                    <h3>Current Daily Task:</h3>
-                    <div id="daily-quests-container"></div>
+                    <!-- الصف الأول من الأيقونات -->
+                    <a class="action-icon-link" data-target="kv-game-screen"><div class="icon-box">🗝️</div><span>KV Game</span></a>
+                    <a class="action-icon-link" data-target="slot-game-screen"><div class="icon-box">🎰</div><span>Slot Game</span></a>
+                    <a class="action-icon-link" data-target="wheel-screen"><div class="icon-box">🎡</div><span>Wheel</span></a>
+                    <a class="action-icon-link" data-target="card-upgrade-screen"><div class="icon-box">✨</div><span>Upgrade</span></a>
+                    <a class="action-icon-link" id="home-shop-btn"><div class="icon-box">💰</div><span>Shop</span></a>
+                    
+                    <!-- الصف الثاني - أيقونات جديدة من قائمة "More" -->
+                    <a class="action-icon-link" data-target="exchange-screen"><div class="icon-box">🔄</div><span>Exchange</span></a>
+                    <a class="action-icon-link" data-target="activity-screen"><div class="icon-box">📝</div><span>Activity</span></a>
+                    <a class="action-icon-link" data-target="history-screen"><div class="icon-box">🕒</div><span>History</span></a>
+                    <a class="action-icon-link" data-target="library-screen"><div class="icon-box">📚</div><span>Library</span></a>
+                    <a class="action-icon-link" data-target="chat-screen"><div class="icon-box">💬</div><span>Chat</span></a>
                 </div>
             </div>
 
-            <!-- My Collection Screen -->
             <div id="collection-screen" class="screen hidden"><h2>My Collection</h2><div class="card-grid" id="collection-container"></div></div>
             
-            <!-- Economy Hub Screen -->
-            <div id="production-screen" class="screen hidden">
+            <div id="economy-screen" class="screen hidden">
                 <h2>Economy Hub</h2>
                 
                  <div class="stock-tabs-container">
@@ -111,33 +82,31 @@
                     <button class="stock-tab-btn" data-stock-tab="goods">Goods</button>
                 </div>
                 
-                <!-- Production Content -->
                 <div id="stock-content-production" class="stock-content-tab active">
                      <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
                      <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
                 </div>
 
-                <!-- Stockpile Content -->
-                <div id="stock-content-resources" class="stock-content-tab"><div id="stock-resources"></div></div>
-                <div id="stock-content-materials" class="stock-content-tab"><div id="stock-materials"></div></div>
-                <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods"></div></div>
+                <div id="stock-content-resources" class="stock-content-tab"><div id="stock-resources-container"></div></div>
+                <div id="stock-content-materials" class="stock-content-tab"><div id="stock-materials-container"></div></div>
+                <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods-container"></div></div>
             </div>
 
-            <!-- Contracts Screen -->
-            <div id="contracts-screen" class="screen hidden">
-                <h2>Royal Decrees</h2>
-                <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
-                <div class="contracts-section"><div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div><div id="available-contracts-container" class="contracts-list"></div></div>
+            <div id="tasks-screen" class="screen hidden">
+                <h2>Daily Tasks</h2>
+                <div class="daily-task-summary">
+                    <div id="daily-quests-container"></div>
+                </div>
             </div>
+            
+            <div id="albums-screen" class="screen hidden"></div>
 
-            <!-- Card Upgrade Screen -->
             <div id="card-upgrade-screen" class="screen hidden">
                 <h2>Card & Factory Upgrades</h2>
                 <div class="upgrade-select-area"><h3>Select Card to Upgrade:</h3><div id="upgrade-card-selection-container" class="card-grid"></div></div>
                 <div id="upgrade-detail-area" class="upgrade-detail-area hidden"></div>
             </div>
 
-            <!-- Slot Machine Game Screen -->
             <div id="slot-game-screen" class="screen hidden">
                 <h2>Tomb of Treasures (Slot)</h2>
                  <div id="slot-machine-container" class="game-container">
@@ -154,12 +123,8 @@
                 </div>
             </div>
             
-            <!-- Wheel of Fortune Screen (NEW SCREEN) -->
-            <div id="wheel-screen" class="screen hidden">
-                <!-- Content injected by wheel.js -->
-            </div>
+            <div id="wheel-screen" class="screen hidden"></div>
 
-            <!-- KV Game (Valley of the Kings) Screen -->
             <div id="kv-game-screen" class="screen hidden">
                 <h2>Valley of the Kings - Crack the Code</h2>
                 <div id="kv-game-content" class="game-container">
@@ -177,9 +142,7 @@
                             <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
                         </div>
                         
-                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;">
-                             <!-- Dynamic hint content here -->
-                        </ul>
+                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;"></ul>
                         
                         <div class="kv-controls-grid">
                             <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
@@ -188,17 +151,10 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Albums Catalog Screen (NEW SCREEN) -->
-            <div id="albums-screen" class="screen hidden">
-                <!-- Content injected by albums.js -->
-            </div>
-
-            <!-- Profile Screen Content -->
+            
             <div id="profile-screen" class="screen hidden">
                  <div class="profile-container">
                     <div class="profile-header">
-                        <!-- Removed direct avatar_url reference here -->
                         <img src="images/user_avatar.png" alt="Avatar" class="avatar" id="player-avatar-img">
                         <h2 id="player-name">Player</h2>
                     </div>
@@ -214,32 +170,12 @@
                 </div>
             </div>
             
-            <!-- History Screen (NEW SCREEN) -->
-            <div id="history-screen" class="screen hidden">
-                <!-- Content injected by history.js -->
-            </div>
+            <div id="history-screen" class="screen hidden"></div>
+            <div id="library-screen" class="screen hidden"></div>
+            <div id="settings-screen" class="screen hidden"></div>
+            <div id="activity-screen" class="screen hidden"></div>
+            <div id="exchange-screen" class="screen hidden"></div>
             
-            <!-- Library Screen (NEW SCREEN) -->
-            <div id="library-screen" class="screen hidden">
-                <!-- Content injected by library.js -->
-            </div>
-            
-            <!-- Settings Screen (NEW SCREEN) -->
-            <div id="settings-screen" class="screen hidden">
-                <!-- Content injected by settings.js -->
-            </div>
-            
-            <!-- Activity Log Screen (NEW SCREEN) -->
-            <div id="activity-screen" class="screen hidden">
-                 <!-- Content injected by activity.js -->
-            </div>
-            
-            <!-- Exchange Hub Screen (NEW SCREEN) -->
-            <div id="exchange-screen" class="screen hidden">
-                <!-- Content injected by exchange.js -->
-            </div>
-            
-            <!-- Chat Screen (Eve/UCP) -->
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
                 <div id="chat-messages"></div>
@@ -250,7 +186,6 @@
             </div>
         </main>
         
-        <!-- Modals -->
         <div id="shop-modal" class="modal-overlay hidden">
             <div class="modal-content">
                 <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
@@ -270,34 +205,30 @@
         <div id="toast-container"></div>
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
+        <div id="card-detail-modal" class="modal-overlay hidden">
+            <div id="card-detail-modal-content" class="modal-content"></div>
+        </div>
+        <div id="specialization-choice-modal" class="modal-overlay hidden"></div>
+        
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
-                <a class="more-menu-item" data-target="exchange-screen"><div class="icon">🔄</div><span>Currency Exchange</span></a>
-                <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
-                <a class="more-menu-item" data-target="wheel-screen"><div class="icon">🎡</div><span>Wheel of Fortune</span></a>
-                <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
-                <a class="more-menu-item" data-target="library-screen"><div class="icon">📚</div><span>Tomb Encyclopedia</span></a>
                 <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
                 <a class="more-menu-item" data-target="profile-screen"><div class="icon">👤</div><span>Profile</span></a>
-                <a class="more-menu-item" data-target="chat-screen"><div class="icon">💬</div><span>Chat with Eve</span></a>
                 <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
             </div>
         </div>
     </div>
 
-    <!-- Refined Bottom Navigation Bar (5 Icons) -->
     <nav class="bottom-nav">
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
-        <a class="nav-item" data-target="production-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
+        <a class="nav-item" data-target="economy-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
         <a class="nav-item" data-target="collection-screen" title="My Cards"><div class="icon">🏛️</div><span>My Cards</span></a>
         <a class="nav-item" data-target="albums-screen" title="Albums"><div class="icon">📖</div><span>Albums</span></a>
-        <a class="nav-item" data-target="contracts-screen" title="Contracts"><div class="icon">📜</div><span>Contracts</span></a>
+        <a class="nav-item" data-target="tasks-screen" title="Tasks"><div class="icon">📜</div><span>Tasks</span></a>
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
     </nav>
     
-    <script type="module" src="js/main.js?v=202511021914"></script> 
-    
-    <!-- TON Connect immediate initialization -->
+    <script type="module" src="js/main.js?v=202511021915"></script> 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.TON_CONNECT_UI) {
