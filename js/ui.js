@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.6 (UI Controller - NOUB & ANKH Rework + Sizing - FINAL FIX)
- * Description: UI Controller Module. The final module to handle all module imports and exports.
- * FIXED: Ensured showToast is globally accessible.
+ * Version: NOUB 0.0.7 (UI Controller - UI Rework)
+ * Description: UI Controller Module. Handles all UI logic and navigation.
+ * UPDATED: Added navigation for new 'tasks' screen and removed 'card-upgrade-screen'.
 */
 
 // --- CORE IMPORTS ---
@@ -19,8 +19,9 @@ import * as albumsModule from './screens/albums.js';
 import * as wheelModule from './screens/wheel.js';           
 import * as exchangeModule from './screens/exchange.js';       
 import * as activityModule from './screens/activity.js';     
+import * as tasksModule from './screens/tasks.js'; // NEW import for tasks screen
 
-// Modules that were correct initially (KEPT AS IS):
+// Other screen imports
 import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
@@ -41,13 +42,24 @@ export const renderAlbums = albumsModule.renderAlbums;
 export const renderWheel = wheelModule.renderWheel;
 export const renderActivity = activityModule.renderActivity; 
 export const renderExchange = exchangeModule.renderExchange; 
+export const renderTasks = tasksModule.renderTasks; // NEW export for tasks
 
 
+// Make utility functions globally available for onclick attributes in HTML
 window.closeModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('hidden');
     }
+}
+
+window.showToast = function(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 const contentContainer = document.getElementById('content-container');
@@ -72,7 +84,7 @@ export function navigateTo(targetId) {
         targetNavItem.classList.add('active');
     }
 
-
+    // Call the appropriate render function for the target screen
     switch (targetId) {
         case 'home-screen': 
             renderHome();
@@ -80,15 +92,14 @@ export function navigateTo(targetId) {
         case 'collection-screen':
             collectionModule.renderCollection(); 
             break;
-        case 'production-screen':
+        case 'economy-screen': // UPDATED from production-screen to match index.html
             renderProduction(); 
             break;
-        case 'contracts-screen':
-            renderActiveContracts();
-            renderAvailableContracts();
+        case 'albums-screen':
+            albumsModule.renderAlbums(); 
             break;
-        case 'card-upgrade-screen':
-            upgradeModule.renderUpgrade(); 
+        case 'tasks-screen': // NEW case for the tasks screen
+            tasksModule.renderTasks();
             break;
         case 'slot-game-screen':
             renderSlotGame(); 
@@ -111,9 +122,6 @@ export function navigateTo(targetId) {
         case 'settings-screen':
             settingsModule.renderSettings(); 
             break;
-        case 'albums-screen':
-            albumsModule.renderAlbums(); 
-            break;
         case 'wheel-screen':
             wheelModule.renderWheel(); 
             break;
@@ -123,6 +131,8 @@ export function navigateTo(targetId) {
         case 'activity-screen': 
             activityModule.renderActivity();
             break;
+        // REMOVED 'card-upgrade-screen' as it's now a modal in collection.js
+        // REMOVED 'contracts-screen' as it's now part of the 'tasks' screen logic, but we might keep it if it has other functions
     }
 }
 
@@ -148,23 +158,7 @@ export function updateHeaderUI(profile) {
     if(spinDisplay) {
         spinDisplay.textContent = profile.spin_tickets || 0;
     }
-    
-    if (window.TonConnectUI) {
-        // Handled by TON Connect UI library directly via buttonRootId
-    }
 }
-
-export function showToast(message, type = 'info') {
-    const toastContainer = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-
-// CRITICAL FIX: Make showToast globally accessible for onclick attributes
-window.showToast = showToast; 
 
 function setupNavEvents() {
     document.querySelectorAll('.bottom-nav a[data-target]').forEach(item => {
@@ -225,4 +219,3 @@ export function setupEventListeners() {
         });
     });
 }
-
