@@ -1,9 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.7 (API FINAL FIX)
+ * Version: NOUB 0.0.7 (API FINAL FIX - Game History Read/Write)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * FIXED: All SELECT statements are now confirmed to match the provided database schema,
- * including the 'game_history' table.
+ * FIXED: fetchGameHistory now uses the correct 'date' column.
+ * NEW: Added insertGameHistory function to write game results to the database.
 */
 
 import { supabaseClient } from './config.js';
@@ -310,9 +310,17 @@ export async function fetchActivityLog(playerId) {
 
 // --- History, Library, Albums ---
 
+/**
+ * NEW: Inserts a new record into the game_history table.
+ */
+export async function insertGameHistory(historyObject) {
+    return await supabaseClient.from('game_history').insert(historyObject);
+}
+
+/**
+ * FIXED: Fetches the complete game history for the player using the correct 'date' column.
+ */
 export async function fetchGameHistory(playerId) {
-    // FIXED: The original file had a 'date' column, not 'created_at'.
-    // This now reflects the likely schema of the 'game_history' table.
     return await supabaseClient
         .from('game_history')
         .select('id, player_id, game_type, level_kv, result_status, time_taken, code, date')
