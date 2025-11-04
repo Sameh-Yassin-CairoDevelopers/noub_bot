@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NOUB 0.0.8 - Pharaoh's Legacy</title>
+    <title>NOUB 0.0.9 - Final UI Fix</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -74,6 +74,8 @@
                             <a class="action-icon-link" data-target="albums-screen"><div class="icon-box">📖</div><span>Albums</span></a>
                             <a class="action-icon-link" data-target="contracts-screen"><div class="icon-box">📜</div><span>Contracts</span></a>
                             <a class="action-icon-link" data-target="wheel-screen"><div class="icon-box">🎡</div><span>Wheel</span></a>
+                            <a class="action-icon-link" data-target="exchange-screen"><div class="icon-box">🔄</div><span>Exchange</span></a>
+                            <a class="action-icon-link" data-target="library-screen"><div class="icon-box">📚</div><span>Library</span></a>
                         </div>
                     </div>
                 </div>
@@ -83,19 +85,16 @@
             
             <div id="economy-screen" class="screen hidden">
                 <h2>Economy Hub</h2>
-                
-                 <div class="stock-tabs-container">
+                <div class="stock-tabs-container">
                     <button class="stock-tab-btn active" data-stock-tab="production">Production</button>
                     <button class="stock-tab-btn" data-stock-tab="resources">Resources</button>
                     <button class="stock-tab-btn" data-stock-tab="materials">Materials</button>
                     <button class="stock-tab-btn" data-stock-tab="goods">Goods</button>
                 </div>
-                
                 <div id="stock-content-production" class="stock-content-tab active">
-                     <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
-                     <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
+                    <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
+                    <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
                 </div>
-
                 <div id="stock-content-resources" class="stock-content-tab"><div id="stock-resources-container" class="stock-grid"></div></div>
                 <div id="stock-content-materials" class="stock-content-tab"><div id="stock-materials-container" class="stock-grid"></div></div>
                 <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods-container" class="stock-grid"></div></div>
@@ -128,11 +127,7 @@
                     <div id="slot-result-message"></div> 
                     <div class="balance-info">Spins Available: <span id="spin-ticket-display">0</span> 🎟️</div>
                     <div class="reels-container">
-                        <div class="reel" id="reel-1"></div>
-                        <div class="reel" id="reel-2"></div>
-                        <div class="reel" id="reel-3"></div>
-                        <div class="reel" id="reel-4"></div>
-                        <div class="reel" id="reel-5"></div> 
+                        <div class="reel" id="reel-1"></div><div class="reel" id="reel-2"></div><div class="reel" id="reel-3"></div><div class="reel" id="reel-4"></div><div class="reel" id="reel-5"></div> 
                     </div>
                     <button id="spin-button" class="action-button small">SPIN (1 TICKET)</button>
                 </div>
@@ -145,20 +140,16 @@
                 <div id="kv-game-content" class="game-container">
                     <div id="kv-game-intro-content">
                          <div id="kv-progress-info" class="game-status-message hidden">
-                            <div id="kv-timer-display">Time Left: 0s</div>
-                            <div id="kv-attempts-display">Attempts Left: 0</div>
+                            <div id="kv-timer-display">Time Left: 0s</div><div id="kv-attempts-display">Attempts Left: 0</div>
                          </div>
                          <h2 style="margin-top: 0; padding-top: 0;"><span id="kv-level-name-display">KV Gate Name</span></h2>
                          <button id="kv-start-btn" class="action-button small" style="width: 200px;">Load Game</button>
                     </div>
-                    
                     <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
                         <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
                             <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
                         </div>
-                        
                         <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;"></ul>
-                        
                         <div class="kv-controls-grid">
                             <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
                             <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
@@ -174,8 +165,7 @@
                         <h2 id="player-name">Player</h2>
                     </div>
                     <div class="profile-power">
-                        <p class="label">Power Score</p>
-                        <div id="player-power-score" class="power-score">0</div>
+                        <p class="label">Power Score</p><div id="player-power-score" class="power-score">0</div>
                     </div>
                     <div class="profile-stats-grid">
                         <div class="stat-box"><div id="stat-total-cards" class="value">0</div><div class="label">Total Cards</div></div>
@@ -205,13 +195,11 @@
             <div class="modal-content">
                 <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
                 <h2>Shop</h2>
-                
                 <div class="shop-tabs-container">
                     <button class="shop-tab-btn active" data-shop-tab="cards">Card Packs</button>
                     <button class="shop-tab-btn" data-shop-tab="game_items">Game Items</button>
                     <button class="shop-tab-btn" data-shop-tab="ton_exchange">TON Exchange</button>
                 </div>
-
                 <div id="shop-content-cards" class="shop-content-tab active"><div id="shop-items-cards-container"></div></div>
                 <div id="shop-content-game_items" class="shop-content-tab"><div id="shop-items-game_items-container"></div></div>
                 <div id="shop-content-ton_exchange" class="shop-content-tab"><div id="shop-items-ton_exchange-container"></div></div>
@@ -227,13 +215,11 @@
         
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
-                <a class="more-menu-item" data-target="exchange-screen"><div class="icon">🔄</div><span>Currency Exchange</span></a>
                 <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
                 <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
-                <a class="more-menu-item" data-target="library-screen"><div class="icon">📚</div><span>Tomb Encyclopedia</span></a>
-                <a class="more-menu-item" data-target="chat-screen"><div class="icon">💬</div><span>Chat with Eve</span></a>
                 <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
                 <a class="more-menu-item" data-target="profile-screen"><div class="icon">👤</div><span>Profile</span></a>
+                <a class="more-menu-item" data-target="chat-screen"><div class="icon">💬</div><span>Chat with Eve</span></a>
                 <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
             </div>
         </div>
@@ -248,7 +234,7 @@
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
     </nav>
     
-    <script type="module" src="js/main.js?v=202511021916"></script> 
+    <script type="module" src="js/main.js?v=202511021919"></script> 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.TON_CONNECT_UI) {
