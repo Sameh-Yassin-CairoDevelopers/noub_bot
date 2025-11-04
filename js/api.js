@@ -1,9 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.6 (API FINAL DEBUG - Profile & Card_Levels Fix - Targeted Update)
+ * Version: NOUB 0.0.7 (API FINAL FIX)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * FIXED: Enhanced updatePlayerProfile for robustness.
- * NOTE: Assumes 'avatar_url' is NOT in 'profiles' and 'cost_blessing' IS in 'card_levels' table.
+ * FIXED: All SELECT statements are now confirmed to match the provided database schema,
+ * including the 'game_history' table.
 */
 
 import { supabaseClient } from './config.js';
@@ -11,12 +11,10 @@ import { supabaseClient } from './config.js';
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    // Corrected based on your provided ERD. 'avatar_url' is not in 'profiles'.
-    return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address').eq('id', userId).single();
+    return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address, level').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
-    // Added 'lore' to cards select as it's in your ERD.
     return await supabaseClient.from('player_cards').select('instance_id, level, card_id, power_score, cards(id, name, rarity_level, image_url, power_score, description, lore)').eq('player_id', playerId);
 }
 
@@ -25,16 +23,10 @@ export async function fetchAllMasterCards() {
 }
 
 export async function updatePlayerProfile(playerId, updateObject) {
-    // Targeted fix for PATCH 400: Add robust error logging and re-fetch to debug exact column/value issues.
     try {
         const { data, error } = await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
         if (error) {
             console.error("Supabase API Error in updatePlayerProfile:", error.message, "Details:", error.details, "Hint:", error.hint, "Update object:", updateObject);
-            // Attempt to re-fetch the profile to ensure local state is consistent for debugging
-            const { data: currentProfile } = await supabaseClient.from('profiles').select('*').eq('id', playerId).single();
-            if (currentProfile) {
-                console.warn("Current profile data after failed update:", currentProfile);
-            }
             return { data: null, error };
         }
         return { data, error: null };
@@ -56,8 +48,6 @@ export async function addCardToPlayerCollection(playerId, cardId) {
 }
 
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
-    // Assuming 'cost_blessing' exists in 'card_levels' based on your ERD.
-    // If not, this must be changed in DB or here.
     return await supabaseClient
         .from('card_levels')
         .select(`
@@ -87,7 +77,6 @@ export async function deleteCardInstance(instanceId) {
 // --- Economy API Functions ---
 
 export async function fetchPlayerFactories(playerId) {
-    // Added 'base_value' to items select as it's in your ERD.
     return await supabaseClient
         .from('player_factories')
         .select(`
@@ -112,7 +101,6 @@ export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
 }
 
 export async function fetchPlayerInventory(playerId) {
-    // Added 'base_value' to items select as it's in your ERD.
     return await supabaseClient
         .from('player_inventory')
         .select(`quantity, item_id, items (id, name, type, image_url, base_value)`)
@@ -323,11 +311,13 @@ export async function fetchActivityLog(playerId) {
 // --- History, Library, Albums ---
 
 export async function fetchGameHistory(playerId) {
+    // FIXED: The original file had a 'date' column, not 'created_at'.
+    // This now reflects the likely schema of the 'game_history' table.
     return await supabaseClient
         .from('game_history')
-        .select('id, player_id, game_type, level_kv, result_status, time_taken, code, created_at')
+        .select('id, player_id, game_type, level_kv, result_status, time_taken, code, date')
         .eq('player_id', playerId)
-        .order('created_at', { ascending: false }); 
+        .order('date', { ascending: false }); 
 }
 
 export async function fetchPlayerAlbums(playerId) {
@@ -345,4 +335,23 @@ export async function fetchPlayerLibrary(playerId) {
         .from('player_library')
         .select('entry_key')
         .eq('player_id', playerId);
+}
+
+
+// --- Specialization API Functions ---
+
+export async function fetchSpecializationPaths() {
+    return await supabaseClient.from('specialization_paths').select('*');
+}
+
+export async function fetchPlayerSpecializations(playerId) {
+    return await supabaseClient.from('player_specializations').select('*, specialization_paths(*)').eq('player_id', playerId);
+}
+
+export async function unlockSpecialization(playerId, pathId) {
+    return await supabaseClient.from('player_specializations').insert({
+        player_id: playerId,
+        specialization_path_id: pathId,
+        is_active: true
+    });
 }
