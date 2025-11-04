@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: NOUB 0.0.6 - FINAL VISUAL POLISH & SIZING ADJUSTMENT - Targeted Update
- * Description: Main stylesheet for the "Noub" game. Optimized for Mobile/Telegram Web App.
- * FIXED: Icon/emoji display issues in various UI elements, especially Slot Game reels.
+ * Version: NOUB 0.0.7 - UI Rework & Further Sizing
+ * Description: Main stylesheet for the "Noub" game.
+ * This is the complete and final version for this update.
 */
 
 
@@ -15,14 +15,13 @@
     --primary-accent: #D4AF37; /* Gold/Bronze */
     --text-primary: #ffffff;
     --text-secondary: #aaaaaa;
-    --noub-color: #f39c12; /* Golden/Orange for NOUB */
-    --prestige-color: #7f8c8d; /* Grey for Prestige Scarabs */
-    --ankh-premium-color: #29b6f6; /* Cyan Blue for Ankh Premium */
+    --noub-color: #f39c12;
+    --ankh-premium-color: #29b6f6;
     --success-color: #34c759;
     --danger-color: #ff453a;
     --ton-color: #0088cc;
     --input-bg: #2a2a2e;
-    --kv-gate-color: #f7d794; /* Color for KV game elements */
+    --kv-gate-color: #f7d794;
     --chat-eve-color: #f0f0f0;
     --chat-user-color: #d4edda;
     /* Rarity Colors */
@@ -50,8 +49,8 @@ body {
 
 .hidden { display: none !important; }
 
-.screen { 
-    animation: fadeIn 0.3s ease-in-out; 
+.screen {
+    animation: fadeIn 0.3s ease-in-out;
     background-color: var(--background-dark);
     background-size: cover;
     background-position: center;
@@ -65,20 +64,10 @@ body {
 
 
 /* --- SCREEN BACKGROUNDS --- */
-#home-screen {
-    background-image: url('images/bgs/home_bg.jpg'); 
-}
-#kv-game-screen {
-    background-image: url('images/bgs/kvgame_bg.jpg'); 
-    background-size: 150%;
-}
-#production-screen {
-    background-image: url('images/bgs/economy_bg.jpg');
-}
-#collection-screen, #albums-screen, #card-upgrade-screen {
-     background-image: url('images/bgs/cards_bg.jpg');
-     background-size: cover;
-}
+#home-screen { background-image: url('images/bgs/home_bg.jpg'); }
+#kv-game-screen { background-image: url('images/bgs/kvgame_bg.jpg'); background-size: 150%; }
+#economy-screen { background-image: url('images/bgs/economy_bg.jpg'); }
+#collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('images/bgs/cards_bg.jpg'); background-size: cover; }
 
 
 /* --- Header & Bottom Navigation --- */
@@ -118,7 +107,6 @@ header {
     font-size: 15px;
     margin-right: 3px;
     color: var(--primary-accent);
-    /* FIX: Ensure emoji font is used for generic icons */
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 
@@ -153,7 +141,7 @@ header {
     font-size: 10px;
     cursor: pointer;
     user-select: none;
-    flex-grow: 1; 
+    flex-grow: 1;
     flex-shrink: 0;
     padding: 0 7px;
 }
@@ -165,7 +153,6 @@ header {
 .nav-item .icon {
     font-size: 20px;
     margin-bottom: 3px;
-    /* FIX: Ensure emoji font is used for nav icons */
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 
@@ -182,13 +169,12 @@ header {
 }
 
 .action-button {
-    width: 95%; 
+    width: 95%;
     max-width: 250px;
     margin-top: 10px;
     margin-left: auto;
     margin-right: auto;
     display: block;
-    
     padding: 8px;
     border: none;
     border-radius: 6px;
@@ -257,13 +243,13 @@ input:focus, textarea:focus {
     backdrop-filter: blur(5px);
     z-index: 200;
     display: flex;
-    align-items: flex-end; 
+    align-items: flex-end;
     justify-content: center;
-    padding: 0; 
+    padding: 0;
 }
 
 .modal-content {
-    position: relative; 
+    position: relative;
     bottom: 0;
     left: 0;
     right: 0;
@@ -272,12 +258,12 @@ input:focus, textarea:focus {
     border-top-right-radius: 14px;
     padding: 14px;
     width: 100%;
-    max-width: none; 
+    max-width: none;
     max-height: 80vh;
     overflow-y: auto;
     border-top: 2px solid var(--primary-accent);
     box-shadow: 0 -3px 10px rgba(0,0,0,0.5);
-    animation: slideUp 0.3s ease-out; 
+    animation: slideUp 0.3s ease-out;
 }
 @keyframes slideUp {
     from { transform: translateY(100%); }
@@ -297,16 +283,12 @@ input:focus, textarea:focus {
 
 
 /* --- HOME SCREEN STYLES --- */
-#home-screen {
-    text-align: center;
-}
 .home-action-icons {
-    display: flex;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
     gap: 10px;
-    margin-bottom: 28px;
+    margin-bottom: 20px;
     margin-top: 10px;
-    flex-wrap: wrap; 
 }
 .action-icon-link {
     display: flex;
@@ -316,11 +298,12 @@ input:focus, textarea:focus {
     color: var(--text-primary);
     font-size: 0.8em;
     font-weight: bold;
-    min-width: 60px;
+    min-width: auto;
 }
 .icon-box {
-    width: 45px;
-    height: 45px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
     background: var(--surface-dark);
     border-radius: 8px;
     display: flex;
@@ -333,39 +316,84 @@ input:focus, textarea:focus {
     transition: transform 0.2s;
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
-.daily-task-summary {
-    text-align: left;
-}
-.daily-task-summary h3 {
-    color: var(--primary-accent);
-    margin-bottom: 10px;
-    border-bottom: 1px solid #3a3a3c;
-    padding-bottom: 7px;
-}
+
+/* --- TASKS SCREEN STYLES (was daily-quest-card) --- */
 .daily-quest-card {
     background-color: var(--surface-dark);
-    padding: 10px;
+    padding: 8px 10px;
     border-radius: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 7px;
-    font-family: 'Cairo', sans-serif; /* Ensure Cairo font is used for general text */
 }
-.daily-quest-card .progress-bar {
-    width: 70px;
+.quest-details {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+.quest-details h4 {
+    margin: 0 0 3px 0;
+    font-size: 0.9em;
+}
+.quest-details p {
+    font-size: 0.7em;
+    color: var(--text-secondary);
+    margin: 0 0 3px 0;
+}
+.quest-details .progress-bar {
+    width: 100%;
     height: 4px;
     background: #444;
     border-radius: 2px;
     overflow: hidden;
 }
-.daily-quest-card .progress-bar-inner {
-    height: 100%;
-    background: var(--success-color);
+.quest-action {
+    text-align: center;
+    flex-shrink: 0;
 }
-.daily-quest-card .reward {
+.quest-action .reward {
     color: var(--primary-accent);
     font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 3px;
+}
+
+/* --- ALBUM CATALOG --- */
+.album-list-item {
+    padding: 8px 10px;
+    margin-bottom: 7px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    background: var(--surface-dark);
+}
+.album-list-item .icon {
+    font-size: 20px;
+    margin-right: 10px;
+}
+.album-list-item .details {
+    flex-grow: 1;
+}
+.album-list-item .details h4 {
+    margin: 0 0 3px 0;
+}
+.album-list-item .progress-bar {
+    height: 5px;
+    border-radius: 3px;
+    background: #444;
+}
+.album-list-item .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+.album-list-item .count {
+    font-size: 0.7em;
+    margin-top: 3px;
+}
+.claim-btn {
+    padding: 5px 10px;
+    font-size: 0.8em;
 }
 
 
@@ -385,7 +413,6 @@ input:focus, textarea:focus {
     cursor: pointer;
     text-align: center;
     transition: transform 0.2s, border-color 0.2s;
-    font-family: 'Cairo', sans-serif;
 }
 .card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
 .card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
@@ -402,8 +429,8 @@ input:focus, textarea:focus {
 }
 
 .card-stack h4, .building-card h4 {
-    margin: 3px 0;
-    font-size: 12px;
+    margin: 2px 0;
+    font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -421,8 +448,6 @@ input:focus, textarea:focus {
     color: var(--primary-accent);
 }
 .burn-btn {
-    background-color: var(--danger-color);
-    color: white;
     padding: 3px;
     margin-top: 3px;
     font-size: 0.7em;
@@ -431,179 +456,40 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Economy Hub (Production/Stockpile) --- */
-.production-section {
-    margin-bottom: 28px;
-}
+/* --- ECONOMY HUB CARD FORMATTING --- */
 .building-card .level {
-    font-size: 0.7em;
-    color: var(--primary-accent);
-    font-weight: bold;
+    font-size: 0.6em;
 }
 .building-card .status {
-    font-size: 0.7em;
-    color: var(--success-color);
-    margin-top: 3px;
-    min-height: 1em;
-}
-.stock-tabs-container {
-    display: flex;
-    justify-content: space-around;
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 10px;
-}
-.stock-tab-btn {
-    padding: 7px 10px;
-    border: none;
-    background: none;
-    color: var(--text-secondary);
-    font-size: 0.8em;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: 'Cairo', sans-serif;
-}
-.stock-tab-btn.active {
-    color: var(--primary-accent);
-    border-bottom: 1px solid var(--primary-accent);
-}
-.stock-content-tab { display: none; }
-.stock-content-tab.active { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; }
-
-.stock-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: var(--surface-dark);
-    padding: 7px;
-    border-radius: 6px;
-    text-align: center;
-    border: 1px solid #3a3a3c;
-    font-family: 'Cairo', sans-serif;
+    font-size: 0.6em;
+    margin-top: 2px;
 }
 .stock-item img {
-    width: 45px;
-    height: 45px;
-    margin-bottom: 3px;
+    width: 40px;
+    height: 40px;
 }
-.stock-item .details h4 { margin: 0 0 3px 0; font-size: 0.9em;}
-.stock-item .quantity { font-size: 0.9em; font-weight: bold; color: var(--ankh-premium-color); }
+.stock-item .details h4 {
+    margin: 0 0 2px 0;
+    font-size: 0.8em;
+}
+.stock-item .quantity {
+    font-size: 0.8em;
+}
 
-/* Production Modal */
+/* --- Production Modal --- */
 .prod-modal-header { text-align: center; }
 .prod-modal-header img { width: 60px; height: 60px; }
 .prod-modal-header h3 { color: var(--primary-accent); margin: 7px 0 3px 0; }
-
 .prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 10px; border-radius: 7px; }
 .prod-item { text-align: center; }
 .prod-item img { width: 35px; height: 35px; }
 .prod-item p { margin: 3px 0 0 0; }
 .prod-item .label { font-size: 0.7em; color: var(--text-secondary); }
 .arrow { font-size: 1.5em; color: var(--primary-accent); }
-
 .prod-timer { text-align: center; margin-top: 14px; }
 .prod-timer .time-left { font-size: 1.3em; font-weight: bold; letter-spacing: 1px; }
 .progress-bar { background-color: #444; border-radius: 3px; height: 7px; overflow: hidden; margin-top: 7px; }
 .progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
-
-
-/* --- Contracts Screen --- */
-.contracts-section {
-    margin-bottom: 28px;
-}
-.contracts-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.contracts-list {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-}
-.contract-card {
-    background-color: var(--surface-dark);
-    border-radius: 8px;
-    padding: 10px;
-    border-left: 3px solid var(--primary-accent);
-    cursor: pointer;
-    font-family: 'Cairo', sans-serif;
-}
-.contract-rewards {
-    display: flex;
-    gap: 14px;
-    font-size: 0.8em;
-    color: var(--text-secondary);
-}
-.contract-rewards span {
-    font-weight: bold;
-    color: var(--primary-accent);
-}
-.req-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #121212;
-    padding: 7px;
-    border-radius: 6px;
-    margin-bottom: 5px;
-}
-.req-item-name {
-    display: flex;
-    align-items: center;
-}
-.req-item-name img {
-    width: 20px;
-    height: 20px;
-    margin-right: 7px;
-}
-.req-item-progress.met {
-    color: var(--success-color);
-}
-
-
-/* --- Upgrade Screen --- */
-.upgrade-select-area {
-    margin-bottom: 28px;
-}
-.upgrade-detail-area {
-    background-color: var(--surface-dark);
-    padding: 14px;
-    border-radius: 8px;
-    margin-top: 14px;
-    text-align: center;
-    border: 1px solid var(--primary-accent);
-    font-family: 'Cairo', sans-serif;
-}
-.upgrade-card-target {
-    width: 110px;
-    margin: 0 auto 14px auto;
-}
-.upgrade-cost-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-    gap: 7px;
-    margin-bottom: 14px;
-}
-.cost-item {
-    background-color: #1a1a1a;
-    padding: 7px;
-    border-radius: 6px;
-    font-size: 0.8em;
-    color: var(--text-secondary);
-    text-align: center;
-    font-family: 'Cairo', sans-serif;
-}
-.cost-item img {
-    width: 20px;
-    height: 20px;
-    margin-bottom: 3px;
-}
-.cost-item .value {
-    font-weight: bold;
-    display: block;
-    margin-top: 3px;
-    color: var(--text-primary);
-}
 
 
 /* --- Games Screen (Slots / KV) --- */
@@ -612,7 +498,6 @@ input:focus, textarea:focus {
     padding: 14px;
     border-radius: 8px;
     text-align: center;
-    font-family: 'Cairo', sans-serif;
 }
 .balance-info {
     font-weight: bold;
@@ -651,13 +536,50 @@ input:focus, textarea:focus {
     font-weight: bold;
     margin-bottom: 10px;
     color: var(--success-color);
-    font-family: 'Cairo', sans-serif;
 }
 .game-status-message.lose {
     color: var(--danger-color);
 }
 
-/* KV Game */
+/* --- Upgrade Modal --- */
+.upgrade-modal-content {
+    text-align: center;
+}
+.upgrade-card-target {
+    width: 110px;
+    margin: 0 auto 14px auto;
+}
+.upgrade-cost-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 7px;
+    margin-bottom: 14px;
+}
+.cost-item {
+    background-color: #1a1a1a;
+    padding: 7px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    text-align: center;
+}
+.cost-item img {
+    width: 20px;
+    height: 20px;
+    margin-bottom: 3px;
+}
+.cost-item .value {
+    font-weight: bold;
+    display: block;
+    margin-top: 3px;
+    color: var(--text-primary);
+}
+.cost-item .icon {
+    font-size: 1.2em;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+}
+
+/* --- KV Game --- */
 #kv-game-content h3 {
     color: var(--kv-gate-color);
     margin-top: 0;
@@ -671,7 +593,6 @@ input:focus, textarea:focus {
     font-size: 0.8em;
     margin-bottom: 5px;
     text-align: left;
-    font-family: 'Cairo', sans-serif;
 }
 .kv-hint-item span {
     font-weight: bold;
@@ -698,7 +619,6 @@ input:focus, textarea:focus {
     font-weight: bold;
     color: var(--primary-accent);
     margin-bottom: 10px;
-    font-family: 'Cairo', sans-serif;
 }
 #kv-use-item-button-container {
     display: flex;
@@ -727,7 +647,6 @@ input:focus, textarea:focus {
     max-width: 80%;
     line-height: 1.3;
     word-wrap: break-word;
-    font-family: 'Cairo', sans-serif;
 }
 .eve-bubble {
     background-color: var(--chat-eve-color);
@@ -751,66 +670,66 @@ input:focus, textarea:focus {
 }
 
 /* --- SWAP/EXCHANGE UI (DEX Style) --- */
-.swap-box { 
-    background: var(--surface-dark); 
+.swap-box {
+    background: var(--surface-dark);
     padding: 10px;
     border-radius: 8px;
-    border: 1px solid #3a3a3c; 
+    border: 1px solid #3a3a3c;
     margin-bottom: 7px;
 }
-.swap-header { 
-    display: flex; 
-    justify-content: space-between; 
+.swap-header {
+    display: flex;
+    justify-content: space-between;
     font-size: 0.8em;
-    color: var(--text-secondary); 
+    color: var(--text-secondary);
     margin-bottom: 7px;
 }
-.swap-input-row { 
-    display: flex; 
-    align-items: center; 
+.swap-input-row {
+    display: flex;
+    align-items: center;
     gap: 7px;
 }
-.swap-input-row input { 
-    flex-grow: 1; 
+.swap-input-row input {
+    flex-grow: 1;
     font-size: 0.9em;
     padding: 3px;
-    border: none; 
-    background: transparent; 
-    color: var(--text-primary); 
-    margin: 0; 
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    margin: 0;
 }
-.swap-input-row select { 
+.swap-input-row select {
     padding: 3px;
     border-radius: 6px;
-    background: var(--input-bg); 
-    color: var(--text-primary); 
+    background: var(--input-bg);
+    color: var(--text-primary);
 }
-.swap-percent-row { 
-    display: flex; 
+.swap-percent-row {
+    display: flex;
     gap: 5px;
     margin-top: 7px;
 }
-.swap-percent-row button { 
+.swap-percent-row button {
     padding: 3px 7px;
     font-size: 0.7em;
 }
-.swap-icon-container { 
-    text-align: center; 
+.swap-icon-container {
+    text-align: center;
     margin: -7px 0;
-    z-index: 10; 
-    position: relative; 
+    z-index: 10;
+    position: relative;
 }
-#swap-icon-btn { 
-    background: var(--primary-accent); 
+#swap-icon-btn {
+    background: var(--primary-accent);
     border: 3px solid var(--background-dark);
-    border-radius: 50%; 
+    border-radius: 50%;
     width: 28px;
     height: 28px;
-    margin: 0; 
-    padding: 0; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 #swap-icon-btn:active { transform: rotate(180deg); }
 #continue-swap-btn:disabled { opacity: 0.5; }
@@ -831,7 +750,6 @@ input:focus, textarea:focus {
     font-size: 0.8em;
     font-weight: bold;
     cursor: pointer;
-    font-family: 'Cairo', sans-serif;
 }
 .shop-tab-btn.active {
     color: var(--primary-accent);
@@ -850,7 +768,6 @@ input:focus, textarea:focus {
     padding: 10px;
     border-radius: 8px;
     margin-bottom: 10px;
-    font-family: 'Cairo', sans-serif;
 }
 .shop-item .icon { font-size: 28px; margin-right: 14px; }
 .shop-item .details { flex-grow: 1; }
@@ -887,7 +804,6 @@ input:focus, textarea:focus {
     border-radius: 8px;
     text-align: center;
     width: 100%;
-    font-family: 'Cairo', sans-serif;
 }
 .profile-power .label {
     font-size: 0.8em;
@@ -911,7 +827,6 @@ input:focus, textarea:focus {
     padding: 10px;
     border-radius: 8px;
     text-align: center;
-    font-family: 'Cairo', sans-serif;
 }
 .stat-box .value {
     font-size: 1.1em;
@@ -933,7 +848,6 @@ input:focus, textarea:focus {
     cursor: pointer;
     text-decoration: none;
     color: var(--text-primary);
-    font-family: 'Cairo', sans-serif;
 }
 .more-menu .more-menu-item:last-child {
     border-bottom: none;
@@ -970,11 +884,44 @@ input:focus, textarea:focus {
     box-shadow: 0 3px 10px rgba(0,0,0,0.5);
     font-size: 0.8em;
     border-left: 3px solid;
-    font-family: 'Cairo', sans-serif;
 }
 .toast.success { border-color: var(--success-color); }
 .toast.error { border-color: var(--danger-color); }
 .toast.info { border-color: var(--ankh-premium-color); }
+
+
+/* --- Specialization Choice Modal --- */
+.specialization-choice-container {
+    text-align: center;
+}
+.specialization-card {
+    background-color: var(--surface-dark);
+    border: 1px solid var(--primary-accent);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+.specialization-card:hover {
+    background-color: #2a2a2e;
+    transform: translateY(-2px);
+}
+.specialization-card h3 {
+    color: var(--primary-accent);
+    margin-top: 0;
+    margin-bottom: 7px;
+}
+.specialization-card p {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin: 0;
+}
+.specialization-card .costs {
+    margin-top: 10px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
 
 
 /* =================================================================================
@@ -985,7 +932,6 @@ input:focus, textarea:focus {
     text-align: right;
 }
 
-/* General Overrides */
 [dir="rtl"] .currency-display .icon {
     margin-right: 0;
     margin-left: 3px;
@@ -1001,61 +947,48 @@ input:focus, textarea:focus {
     border-bottom: 1px solid #3a3a3c;
 }
 [dir="rtl"] .text-button {
-    text-align: left; 
+    text-align: left;
 }
-
-/* Chat Overrides */
 [dir="rtl"] #chat-messages {
-    align-items: flex-end; 
+    align-items: flex-end;
 }
-
 [dir="rtl"] .user-bubble {
-    align-self: flex-start; 
+    align-self: flex-start;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 3px;
 }
-
 [dir="rtl"] .eve-bubble {
-    align-self: flex-end; 
+    align-self: flex-end;
     border-bottom-right-radius: 10px;
     border-bottom-left-radius: 3px;
 }
-
 [dir="rtl"] #chat-input-area {
-    flex-direction: row-reverse; 
+    flex-direction: row-reverse;
 }
 [dir="rtl"] #chat-input-field {
     margin-right: 0;
     margin-left: 7px;
     text-align: right;
 }
-
-/* Card Overrides */
 [dir="rtl"] .card-stack .card-details {
-    flex-direction: row-reverse; 
+    flex-direction: row-reverse;
 }
-
-/* Economy/Production Overrides */
 [dir="rtl"] .prod-io {
-    flex-direction: row-reverse; 
+    flex-direction: row-reverse;
 }
 [dir="rtl"] .prod-modal-header {
     text-align: center;
 }
-
-/* Contracts/Quests Overrides */
 [dir="rtl"] .contracts-header {
-    flex-direction: row-reverse; 
+    flex-direction: row-reverse;
 }
 [dir="rtl"] .contract-card {
     border-left: none;
     border-right: 3px solid var(--primary-accent);
 }
-
 [dir="rtl"] .req-item {
-    flex-direction: row-reverse; 
+    flex-direction: row-reverse;
 }
-
 [dir="rtl"] .req-item-name {
     flex-direction: row-reverse;
 }
@@ -1063,33 +996,26 @@ input:focus, textarea:focus {
     margin-right: 0;
     margin-left: 7px;
 }
-
-/* Game Overrides */
 [dir="rtl"] #kv-game-content {
     text-align: right;
 }
 [dir="rtl"] .kv-hint-item {
     text-align: right;
 }
-
-/* Input/Textarea Overrides */
-[dir="rtl"] input[type="text"], 
-[dir="rtl"] input[type="email"], 
-[dir="rtl"] input[type="password"], 
-[dir="rtl"] input[type="number"], 
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="number"],
 [dir="rtl"] textarea {
     text-align: right;
 }
-/* More Modal Overrides */
 [dir="rtl"] .more-menu .more-menu-item .icon {
     margin-right: 0;
     margin-left: 14px;
 }
-
-/* Profile Overrides */
 [dir="rtl"] .profile-stats-grid {
-    direction: ltr; 
+    direction: ltr;
 }
 [dir="rtl"] .stat-box {
-    direction: rtl; 
+    direction: rtl;
 }
