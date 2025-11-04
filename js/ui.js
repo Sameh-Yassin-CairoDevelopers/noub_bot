@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.8 (UI Controller - FINAL HOME LAYOUT FIX)
+ * Version: NOUB 0.0.7 (UI Controller - FINAL EXPORT FIX)
  * Description: UI Controller Module. Handles all UI logic and navigation.
- * FIXED: Event listeners for the new professional home screen layout.
+ * FIXED: Restored 'showToast' as a named export while keeping it globally available.
 */
 
 // --- CORE IMPORTS ---
@@ -53,15 +53,6 @@ window.closeModal = function(modalId) {
     }
 }
 
-window.showToast = function(message, type = 'info') {
-    const toastContainer = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-
 const contentContainer = document.getElementById('content-container');
 const navItems = document.querySelectorAll('.nav-item');
 
@@ -101,13 +92,6 @@ export function navigateTo(targetId) {
         case 'tasks-screen':
             tasksModule.renderTasks();
             break;
-        case 'contracts-screen':
-            renderActiveContracts();
-            renderAvailableContracts();
-            break;
-        case 'card-upgrade-screen':
-            upgradeModule.renderUpgrade();
-            break;
         case 'slot-game-screen':
             renderSlotGame();
             break;
@@ -138,6 +122,9 @@ export function navigateTo(targetId) {
         case 'activity-screen':
             activityModule.renderActivity();
             break;
+        case 'card-upgrade-screen':
+             upgradeModule.renderUpgrade();
+             break;
     }
 }
 
@@ -165,14 +152,25 @@ export function updateHeaderUI(profile) {
     }
 }
 
+// FIXED: Define showToast as a named export
+export function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Also make it globally available for HTML onclick attributes
+window.showToast = showToast;
+
 function setupNavEvents() {
-    // Bottom navigation bar links
     document.querySelectorAll('.bottom-nav a[data-target]').forEach(item => {
         item.addEventListener('click', () => navigateTo(item.dataset.target));
     });
 
-    // FIXED: Event listeners for the new home screen icon layout
-    document.querySelectorAll('.home-layout a[data-target]').forEach(link => {
+    document.querySelectorAll('.home-action-icons a[data-target]').forEach(link => {
         link.addEventListener('click', (e) => {
              e.preventDefault();
              const targetId = link.dataset.target;
@@ -180,11 +178,9 @@ function setupNavEvents() {
         });
     });
 
-    // New shop button in the bottom navigation bar
-    const bottomShopBtn = document.getElementById('bottom-shop-btn');
-    if (bottomShopBtn) bottomShopBtn.addEventListener('click', () => openShopModal());
+    const shopBtn = document.getElementById('shop-nav-btn');
+    if (shopBtn) shopBtn.addEventListener('click', () => openShopModal());
 
-    // Hamburger menu button
     const moreBtn = document.getElementById('more-nav-btn');
     if (moreBtn) moreBtn.addEventListener('click', () => openModal('more-modal'));
 }
@@ -209,7 +205,14 @@ export function setupEventListeners() {
     setupNavEvents();
     setupMoreMenuEvents();
 
-    // Stockpile tabs in economy screen
+    const homeShopBtn = document.getElementById('home-shop-btn');
+    if(homeShopBtn) {
+        homeShopBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openShopModal();
+        });
+    }
+
     const stockTabs = document.querySelectorAll('.stock-tab-btn');
     stockTabs.forEach(tab => {
         tab.addEventListener('click', () => {
