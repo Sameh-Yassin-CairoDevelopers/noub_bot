@@ -1,24 +1,17 @@
 /*
  * Filename: js/screens/shop.js
- * Version: NOUB 0.0.2 (FINAL TON FIX - COMPLETE)
- * Description: Implements the multi-tabbed Shop interface for buying Card Packs, Game Items, and Ankh via TON.
- * Corrected TON transaction payload error.
+ * Version: NOUB 0.0.8 (SHOP OVERHAUL - FINAL FIX)
+ * Description: Implements the multi-tabbed Shop interface.
+ * FIXED: All purchase logic now correctly uses 'noub_score' for NOUB and 'ankh_premium' for Ankh Premium.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
+import { showToast, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { trackDailyActivity } from './contracts.js'; 
+import { trackDailyActivity } from './contracts.js';
 
 const shopModal = document.getElementById('shop-modal');
-const shopContentCards = document.getElementById('shop-content-cards');
-const shopContentGameItems = document.getElementById('shop-content-game_items');
-const shopContentTonExchange = document.getElementById('shop-content-ton_exchange');
-const shopItemsCardsContainer = document.getElementById('shop-items-cards-container');
-const shopItemsGameItemsContainer = document.getElementById('shop-items-game_items-container');
-const shopItemsTonExchangeContainer = document.getElementById('shop-items-ton_exchange-container');
-
 
 // --- Shop Item Data ---
 
@@ -29,40 +22,35 @@ const CARD_PACKS = [
 ];
 
 const GAME_ITEMS = [
-    { key: 'hint_scroll', name: 'Hint Scroll (KV Game)', cost_ankh: 50, cost_blessing: 0, quantity: 1, desc: 'Reveals the last digit of the current KV code.', icon: '💡' },
-    { key: 'time_amulet_45s', name: 'Time Amulet (+45s)', cost_ankh: 150, cost_blessing: 0, quantity: 1, desc: 'Adds 45 seconds to the KV game timer.', icon: '⏱️' },
-    { key: 'hint_bundle', name: 'Bundle of 5 Hints', cost_ankh: 0, cost_blessing: 1, quantity: 5, desc: '5 Hint Scrolls for 1 Blessing (Premium Value).', icon: '✨' },
-    { key: 'instant_prod', name: 'Instant Production Scroll', cost_ankh: 0, cost_blessing: 5, quantity: 1, desc: 'Instantly completes a single running factory production.', icon: '⚡' }
+    { key: 'hint_scroll', name: 'Hint Scroll (KV Game)', costNoub: 150, costAnkhPremium: 0, quantity: 1, desc: 'Reveals the last digit of the current KV code.', icon: '💡' },
+    { key: 'time_amulet_45s', name: 'Time Amulet (+45s)', costNoub: 250, costAnkhPremium: 0, quantity: 1, desc: 'Adds 45 seconds to the KV game timer.', icon: '⏱️' },
+    { key: 'hint_bundle', name: 'Bundle of 5 Hints', costNoub: 0, costAnkhPremium: 5, quantity: 5, desc: '5 Hint Scrolls for 5 Ankh Premium (Premium Value).', icon: '✨' },
+    { key: 'instant_prod', name: 'Instant Production Scroll', costNoub: 0, costAnkhPremium: 10, quantity: 1, desc: 'Instantly completes a single running factory production.', icon: '⚡' }
 ];
 
 const TON_PACKAGES = [
-    { name: 'Minor Ankh Deposit', ton_amount: 0.0011, ankh_amount: 2000 },
-    { name: 'Major Ankh Deposit', ton_amount: 0.0022, ankh_amount: 10000 },
-    { name: 'Pharaoh\'s Treasury', ton_amount: 1.0, ankh_amount: 20000 }
+    { name: 'Minor Ankh Deposit', ton_amount: 0.5, ankh_amount: 100 },
+    { name: 'Major Ankh Deposit', ton_amount: 2.0, ankh_amount: 500 },
+    { name: 'Pharaoh\'s Treasury', ton_amount: 5.0, ankh_amount: 1500 }
 ];
 
 
 // --- Core Transaction Handlers ---
 
-/**
- * Handles the purchase of a Card Pack (using Ankh).
- */
 async function handleBuyCardPack(packCost, packId) {
-    if (!state.currentUser || (state.playerProfile.score || 0) < packCost) {
-        showToast("Not enough Ankh (☥)!", 'error');
+    if (!state.currentUser || (state.playerProfile.noub_score || 0) < packCost) {
+        showToast("Not enough NOUB (🪙)!", 'error');
         return;
     }
 
-    // 1. Deduct cost
-    const newScore = (state.playerProfile.score || 0) - packCost;
-    const { error: scoreError } = await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
+    const newNoubScore = (state.playerProfile.noub_score || 0) - packCost;
+    const { error: scoreError } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
 
     if (scoreError) {
         showToast("Error updating balance.", 'error');
         return;
     }
 
-    // 2. Grant card(s) (Simplified: Grant random cards based on reward_count)
     const { data: masterCards } = await api.fetchAllMasterCards();
     if (!masterCards || masterCards.length === 0) return;
 
@@ -75,90 +63,71 @@ async function handleBuyCardPack(packCost, packId) {
     }
     await Promise.all(insertPromises);
 
-
-    // 3. Success and Refresh
     showToast(`Purchased ${rewardCount} card(s)! Check your collection.`, 'success');
     await refreshPlayerState();
-    // Re-render only if the modal is open
-    if (!shopModal.classList.contains('hidden')) renderCardPacks(); 
+    if (!shopModal.classList.contains('hidden')) renderCardPacks();
 }
 
-/**
- * Handles the purchase of a Game Consumable item.
- */
-async function handleBuyGameItem(itemKey, costAnkh, costBlessing, quantity) {
-    const currentAnkh = state.playerProfile.score || 0;
-    const currentBlessing = state.playerProfile.blessing || 0;
+async function handleBuyGameItem(itemKey, costNoub, costAnkhPremium, quantity) {
+    const currentNoub = state.playerProfile.noub_score || 0;
+    const currentAnkhPremium = state.playerProfile.ankh_premium || 0;
 
-    if (currentAnkh < costAnkh || currentBlessing < costBlessing) {
+    if (currentNoub < costNoub || currentAnkhPremium < costAnkhPremium) {
         showToast("Missing currency!", 'error');
         return;
     }
 
-    // 1. Deduct costs
     const profileUpdate = {
-        score: currentAnkh - costAnkh,
-        blessing: currentBlessing - costBlessing
+        noub_score: currentNoub - costNoub,
+        ankh_premium: currentAnkhPremium - costAnkhPremium
     };
     await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
 
-    // 2. Add item to Consumables table
     const currentConsumableQty = state.consumables.get(itemKey) || 0;
     const newConsumableQty = currentConsumableQty + quantity;
     await api.updateConsumableQuantity(state.currentUser.id, itemKey, newConsumableQty);
 
-    // 3. Success and Refresh
-    showToast(`Acquired ${quantity} x ${itemKey.toUpperCase()}!`, 'success');
+    showToast(`Acquired ${quantity} x ${itemKey.replace(/_/g, ' ').toUpperCase()}!`, 'success');
     await refreshPlayerState();
-    if (!shopModal.classList.contains('hidden')) renderGameItems(); 
+    if (!shopModal.classList.contains('hidden')) renderGameItems();
 }
 
 
 // --- TON EXCHANGE Logic ---
 
-/**
- * Initiates a TON transaction to purchase Ankh.
- */
 async function handleTonExchange(tonAmount, ankhAmount) {
     if (!window.TonConnectUI || !window.TonConnectUI.connected) {
         showToast("Please connect your TON wallet first!", 'error');
         return;
     }
 
-    // CRITICAL FIX: Ensure this is your actual, correct TON wallet address (UQ or EQ format)
-    // The previous error was due to an invalid placeholder address format.
-    // YOU MUST REPLACE THIS LINE WITH YOUR REAL WALLET ADDRESS
-    const gameWalletAddress = "UQDYpGLl1efwDOSJb_vFnbAZ5Rz5z-AmSzrbRwM5IcNN_erF"; 
+    // IMPORTANT: Replace this with your actual TON wallet address
+    const gameWalletAddress = "YOUR_TON_WALLET_ADDRESS_HERE"; 
 
     const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 60,
         messages: [{
             address: gameWalletAddress,
-            amount: (tonAmount * 1e9).toString(), 
-            // CRITICAL FIX: Removed payload to prevent 'Invalid Payload' error, relying on basic transfer.
+            amount: (tonAmount * 1e9).toString(),
         }]
     };
 
     try {
         showToast("Waiting for TON wallet confirmation...", 'info');
         const result = await TonConnectUI.sendTransaction(transaction);
-        const txId = result.boc.substring(0, 10); 
+        const txId = result.boc.substring(0, 10);
 
-        // 1. Record transaction (Mocked API call)
         await api.saveTonTransaction(state.currentUser.id, txId, tonAmount, ankhAmount);
         
-        // 2. Grant Ankh immediately (Since we mock successful validation)
-        const newScore = (state.playerProfile.score || 0) + ankhAmount;
-        await api.updatePlayerProfile(state.currentUser.id, { score: newScore });
+        const newAnkhPremium = (state.playerProfile.ankh_premium || 0) + ankhAmount;
+        await api.updatePlayerProfile(state.currentUser.id, { ankh_premium: newAnkhPremium });
 
-        showToast(`TON Transaction successful! Granted ${ankhAmount} ☥ Ankh.`, 'success');
+        showToast(`TON Transaction successful! Granted ${ankhAmount} ☥ Ankh Premium.`, 'success');
         await refreshPlayerState();
-        if (!shopModal.classList.contains('hidden')) renderTonExchange(); 
+        if (!shopModal.classList.contains('hidden')) renderTonExchange();
 
     } catch (error) {
-        // Log the full error to the console for debugging
         console.error("TON Transaction Failed:", error);
-        // Show a friendlier message to the user
         showToast("TON transaction cancelled or failed.", 'error');
     }
 }
@@ -167,7 +136,7 @@ async function handleTonExchange(tonAmount, ankhAmount) {
 // --- Rendering Functions ---
 
 function renderCardPacks() {
-    shopItemsCardsContainer.innerHTML = CARD_PACKS.map(pack => `
+    document.getElementById('shop-items-cards-container').innerHTML = CARD_PACKS.map(pack => `
         <div class="shop-item">
             <div class="icon">${pack.icon}</div>
             <div class="details">
@@ -175,15 +144,15 @@ function renderCardPacks() {
                 <p>${pack.desc}</p>
             </div>
             <button class="buy-btn" onclick="window.handleBuyCardPack(${pack.cost}, '${pack.id}')">
-                ${pack.cost} ☥
+                ${pack.cost} 🪙
             </button>
         </div>
     `).join('');
 }
 
 function renderGameItems() {
-    shopItemsGameItemsContainer.innerHTML = GAME_ITEMS.map(item => {
-        const costDisplay = item.cost_ankh > 0 ? `${item.cost_ankh} ☥` : `${item.cost_blessing} 🗡️`;
+    document.getElementById('shop-items-game_items-container').innerHTML = GAME_ITEMS.map(item => {
+        const costDisplay = item.costNoub > 0 ? `${item.costNoub} 🪙` : `${item.costAnkhPremium} ☥`;
         return `
             <div class="shop-item">
                 <div class="icon">${item.icon}</div>
@@ -192,7 +161,7 @@ function renderGameItems() {
                     <p>${item.desc} (Own: ${state.consumables.get(item.key) || 0})</p>
                 </div>
                 <button class="buy-btn" 
-                    onclick="window.handleBuyGameItem('${item.key}', ${item.cost_ankh}, ${item.cost_blessing}, ${item.quantity})"
+                    onclick="window.handleBuyGameItem('${item.key}', ${item.costNoub}, ${item.costAnkhPremium}, ${item.quantity})"
                 >
                     ${costDisplay}
                 </button>
@@ -202,19 +171,19 @@ function renderGameItems() {
 }
 
 function renderTonExchange() {
+     const container = document.getElementById('shop-items-ton_exchange-container');
      const isConnected = window.TonConnectUI && window.TonConnectUI.connected;
      
      if (!isConnected) {
-         shopItemsTonExchangeContainer.innerHTML = `
+         container.innerHTML = `
              <p style="text-align: center; color: var(--danger-color); margin-bottom: 20px;">
-                 You must connect your TON wallet to purchase Ankh.
+                 You must connect your TON wallet to purchase Ankh Premium.
              </p>
              <div id="connectButtonTonExchange" style="margin: 0 auto; width: 250px;"></div>
              <p style="margin-top: 15px; font-size: 0.9em; color: var(--text-secondary); text-align: center;">
                  *Use the 'Connect' button above or in the header.
              </p>
          `;
-         // Initialize TonConnect UI specifically for this area if needed (optional optimization)
          if (window.TonConnectUI) {
              window.TonConnectUI.uiOptions = {
                  ...window.TonConnectUI.uiOptions,
@@ -224,14 +193,14 @@ function renderTonExchange() {
          return;
      }
 
-     shopItemsTonExchangeContainer.innerHTML = TON_PACKAGES.map(pkg => `
+     container.innerHTML = TON_PACKAGES.map(pkg => `
          <div class="shop-item">
              <div class="icon">💎</div>
              <div class="details">
                  <h4>${pkg.name}</h4>
-                 <p>Get ${pkg.ankh_amount} ☥ Ankhs instantly.</p>
+                 <p>Get ${pkg.ankh_amount} ☥ Ankh Premium instantly.</p>
              </div>
-             <button class="buy-btn" style="background-color: var(--ankh-color); color: var(--background-dark);"
+             <button class="buy-btn" style="background-color: var(--ankh-premium-color); color: var(--background-dark);"
                  onclick="window.handleTonExchange(${pkg.ton_amount}, ${pkg.ankh_amount})"
              >
                  BUY ${pkg.ton_amount} TON
@@ -247,40 +216,29 @@ function handleTabSwitch(tabName) {
     document.getElementById(`shop-content-${tabName}`).classList.add('active');
     document.querySelector(`button[data-shop-tab="${tabName}"]`).classList.add('active');
     
-    // Refresh content when switching to ensure currency is correct
     if (tabName === 'cards') renderCardPacks();
     else if (tabName === 'game_items') renderGameItems();
     else if (tabName === 'ton_exchange') renderTonExchange();
 }
 
 
-/**
- * Main function to open the modal and initialize content.
- */
 export async function openShopModal() {
-    // 1. Ensure latest state is loaded
     await refreshPlayerState();
 
-    // 2. Render all dynamic content
     renderCardPacks();
     renderGameItems();
-    renderTonExchange(); // Renders state based on connection
+    renderTonExchange();
 
-    // 3. Attach Tab Switch Listeners (Critical for usability)
     document.querySelectorAll('.shop-tab-btn').forEach(btn => {
-        // Ensure listeners are only attached once if possible, or reattached safely
         btn.onclick = () => handleTabSwitch(btn.dataset.shopTab);
     });
     
-    // 4. Track daily quest for visiting the shop
     trackDailyActivity('visits', 1);
 
-    // 5. Open the modal
     openModal('shop-modal');
 }
 
-// CRITICAL: Attach global handlers required by onclick attributes in the rendered HTML
+// Attach global handlers
 window.handleBuyCardPack = handleBuyCardPack;
 window.handleBuyGameItem = handleBuyGameItem;
 window.handleTonExchange = handleTonExchange;
-
