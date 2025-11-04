@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.7 (UI Controller - UI Rework)
+ * Version: NOUB 0.0.7 (UI Controller - FINAL EXPORT FIX)
  * Description: UI Controller Module. Handles all UI logic and navigation.
- * UPDATED: Added navigation for new 'tasks' screen and removed 'card-upgrade-screen'.
+ * FIXED: Restored 'showToast' as a named export while keeping it globally available.
 */
 
 // --- CORE IMPORTS ---
@@ -19,7 +19,7 @@ import * as albumsModule from './screens/albums.js';
 import * as wheelModule from './screens/wheel.js';           
 import * as exchangeModule from './screens/exchange.js';       
 import * as activityModule from './screens/activity.js';     
-import * as tasksModule from './screens/tasks.js'; // NEW import for tasks screen
+import * as tasksModule from './screens/tasks.js';
 
 // Other screen imports
 import { renderProfile } from './screens/profile.js';
@@ -42,7 +42,7 @@ export const renderAlbums = albumsModule.renderAlbums;
 export const renderWheel = wheelModule.renderWheel;
 export const renderActivity = activityModule.renderActivity; 
 export const renderExchange = exchangeModule.renderExchange; 
-export const renderTasks = tasksModule.renderTasks; // NEW export for tasks
+export const renderTasks = tasksModule.renderTasks;
 
 
 // Make utility functions globally available for onclick attributes in HTML
@@ -51,15 +51,6 @@ window.closeModal = function(modalId) {
     if (modal) {
         modal.classList.add('hidden');
     }
-}
-
-window.showToast = function(message, type = 'info') {
-    const toastContainer = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
 }
 
 const contentContainer = document.getElementById('content-container');
@@ -92,13 +83,13 @@ export function navigateTo(targetId) {
         case 'collection-screen':
             collectionModule.renderCollection(); 
             break;
-        case 'economy-screen': // UPDATED from production-screen to match index.html
+        case 'economy-screen':
             renderProduction(); 
             break;
         case 'albums-screen':
             albumsModule.renderAlbums(); 
             break;
-        case 'tasks-screen': // NEW case for the tasks screen
+        case 'tasks-screen':
             tasksModule.renderTasks();
             break;
         case 'slot-game-screen':
@@ -131,8 +122,9 @@ export function navigateTo(targetId) {
         case 'activity-screen': 
             activityModule.renderActivity();
             break;
-        // REMOVED 'card-upgrade-screen' as it's now a modal in collection.js
-        // REMOVED 'contracts-screen' as it's now part of the 'tasks' screen logic, but we might keep it if it has other functions
+        case 'card-upgrade-screen':
+             upgradeModule.renderUpgrade(); 
+             break;
     }
 }
 
@@ -159,6 +151,19 @@ export function updateHeaderUI(profile) {
         spinDisplay.textContent = profile.spin_tickets || 0;
     }
 }
+
+// FIXED: Define showToast as a named export
+export function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Also make it globally available for HTML onclick attributes
+window.showToast = showToast;
 
 function setupNavEvents() {
     document.querySelectorAll('.bottom-nav a[data-target]').forEach(item => {
