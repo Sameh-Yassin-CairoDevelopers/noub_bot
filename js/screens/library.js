@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/library.js
- * Version: NOUB 0.0.2 (LIBRARY MODULE - FINAL CODE)
+ * Version: NOUB 0.0.10 (LIBRARY MODULE - FIX: Unlocks linked to KV Progress)
  * Description: View Logic Module for the Tomb Encyclopedia (Library) screen. 
- * Integrates data structure from 'noub original game.html' with Supabase status.
+ * Now correctly links unlock status to the player's current highest KV Gate cleared.
 */
 
 import { state } from '../state.js';
@@ -12,6 +12,7 @@ import { showToast } from '../ui.js';
 const libraryContainer = document.getElementById('library-screen');
 
 // --- MASTER LIBRARY DATA (Reference Data - Should match Supabase logic) ---
+// unlockLevel refers to the KV Gate number (1-based index) required to open it.
 const MASTER_LIBRARY_DATA = {
     'valley_intro': { id: 'valley_intro', title: "Valley of the Kings", content: "The principal burial place of the major royal figures of the Egyptian New Kingdom...", unlockCondition: { type: 'initial', level: 0} },
     'kv1_info': { id: 'kv1_info', title: "KV1: Ramses VII", content: "The tomb of Ramses VII, a pharaoh of the 20th Dynasty. It's relatively small and unfinished compared to others.", unlockCondition: { type: 'kv_completion', level: 1 } },
@@ -19,6 +20,44 @@ const MASTER_LIBRARY_DATA = {
     'kv62_tut': { id: 'kv62_tut', title: "KV62: Tutankhamun's Tomb", content: "The legendary, nearly intact tomb of the Boy King. Unlocking this requires solving the final gate!", unlockCondition: { type: 'kv_completion', level: 62 } },
     'egyptian_gods': { id: 'egyptian_gods', title: "Major Egyptian Gods (Poster)", content: "Ra, Osiris, Isis, Horus, Anubis, Thoth - the most potent forces in the Egyptian cosmos.", unlockCondition: { type: 'item_purchase', itemId: 'lore_egypt'} }
 };
+
+/**
+ * Checks the KV completion status and updates player library in DB if a new entry is unlocked.
+ */
+async function checkAndUnlockLibrary(kvLevelCompleted) {
+    if (!state.currentUser) return;
+    
+    // Fetch player's current library entries
+    const { data: unlockedData } = await api.fetchPlayerLibrary(state.currentUser.id);
+    const unlockedKeys = new Set(unlockedData.map(entry => entry.entry_key));
+    
+    const unlockPromises = [];
+    let newUnlockCount = 0;
+
+    for (const key in MASTER_LIBRARY_DATA) {
+        const entry = MASTER_LIBRARY_DATA[key];
+        const condition = entry.unlockCondition;
+
+        // Check only KV completion conditions and if not already unlocked
+        if (condition.type === 'kv_completion' && condition.level <= kvLevelCompleted && !unlockedKeys.has(key)) {
+            unlockPromises.push(
+                api.supabaseClient.from('player_library').insert({
+                    player_id: state.currentUser.id,
+                    entry_key: key
+                })
+            );
+            newUnlockCount++;
+            unlockedKeys.add(key); // Add to set for immediate check if another entry has the same level
+        }
+    }
+
+    if (newUnlockCount > 0) {
+        await Promise.all(unlockPromises);
+        showToast(`New knowledge unearthed! ${newUnlockCount} Encyclopedia entries unlocked.`, 'info');
+    }
+}
+// Exported to be called from kvgame.js after a win.
+export { checkAndUnlockLibrary };
 
 /**
  * Renders the Tomb Encyclopedia based on unlocked entries from Supabase.
@@ -36,14 +75,17 @@ export async function renderLibrary() {
     const listContainer = document.getElementById('library-list-container');
     
     // 1. Fetch Unlocked Entries from Supabase
-    const { data: unlockedData, error } = await api.fetchPlayerLibrary(state.currentUser.id);
-
-    if (error || !unlockedData) {
+    const [{ data: unlockedData, error }, { data: kvProgress }] = await Promise.all([
+        api.fetchPlayerLibrary(state.currentUser.id),
+        api.fetchKVProgress(state.currentUser.id)
+    ]);
+    
+    if (error) {
         listContainer.innerHTML = '<p class="error-message">Error loading Encyclopedia data.</p>';
         return;
     }
-
-    // Convert unlocked data to a set for fast lookup
+    
+    const currentKVLevel = kvProgress?.current_kv_level || 1;
     const unlockedKeys = new Set(unlockedData.map(entry => entry.entry_key));
     
     // 2. Determine sorted order (by unlock level/condition)
@@ -61,15 +103,25 @@ export async function renderLibrary() {
     // 3. Render List
     const libraryListHTML = sortedEntryKeys.map(key => {
         const entry = MASTER_LIBRARY_DATA[key];
-        const isUnlocked = unlockedKeys.has(key);
         
+        // Determine unlock status dynamically
+        let isUnlocked = unlockedKeys.has(key) || entry.unlockCondition.type === 'initial';
+        if (entry.unlockCondition.type === 'kv_completion' && currentKVLevel > entry.unlockCondition.level) {
+             // Unlock logic: If player's highest cleared level is past the requirement, it is available.
+             isUnlocked = true; 
+             // IMPORTANT: We call checkAndUnlockLibrary from kvgame.js upon winning to commit this to DB.
+        } else if (entry.unlockCondition.type === 'item_purchase') {
+            // Need a more robust check here if we implemented item unlocking in shop.js
+             isUnlocked = unlockedKeys.has(key);
+        }
+
         let unlockText = 'Unlock condition unknown.';
         const unlockType = entry.unlockCondition.type;
         
         if (isUnlocked) {
              unlockText = 'Entry unlocked.';
         } else if (unlockType === 'kv_completion') {
-            unlockText = `Requires completing KV Gate ${entry.unlockCondition.level}.`;
+            unlockText = `Requires completing KV Gate ${entry.unlockCondition.level}. (Current Progress: KV${currentKVLevel - 1})`;
         } else if (unlockType === 'item_purchase') {
             unlockText = `Unlockable by purchasing a specific item from the Shop.`;
         }
