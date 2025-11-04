@@ -1,15 +1,16 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.9 (KV GAME LOGIC - FINAL FIX)
+ * Version: NOUB 0.0.10 (KV GAME LOGIC - FIX: Library Unlock Integration)
  * Description: Implements the full 62-level Valley of the Kings (Crack the Code) logic.
- * FIXED: 'secretCode is not defined' ReferenceError in endCurrentKVGame.
+ * NEW: Integrates with checkAndUnlockLibrary to save library progress upon a win.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, updateHeaderUI, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { trackDailyActivity } from './contracts.js';
+import { trackDailyActivity } from './contracts.js'; 
+import { checkAndUnlockLibrary } from './library.js'; // NEW: Import the unlock logic
 
 // --- KV Game Constants & State ---
 const LEVEL_COST = 100; // Cost is in NOUB (gold coin)
@@ -103,11 +104,18 @@ async function updateKVProgress(isWin) {
             last_game_result: null,
             unlocked_levels_json: '[]'
         };
-        await api.updateKVProgress(state.currentUser.id, progress);
+        // Attempt initial creation if it doesn't exist
+        const { error: insertError } = await api.updateKVProgress(state.currentUser.id, progress);
+        if (insertError) {
+             console.error("Failed to initialize KV progress:", insertError);
+             showToast("Error initializing game progress.", 'error');
+             return;
+        }
+        // Re-fetch to get any default values/structure
         ({ data: progress } = await api.fetchKVProgress(state.currentUser.id));
         if (!progress) {
             console.error("Failed to initialize or fetch KV progress after initial upsert.");
-            showToast("Error initializing game progress.", 'error');
+            showToast("Error retrieving game progress.", 'error');
             return;
         }
     }
@@ -125,12 +133,15 @@ async function updateKVProgress(isWin) {
         player_id: state.currentUser.id,
         current_kv_level: progress.current_kv_level,
         last_game_result: isWin ? 'Win' : 'Loss',
-        unlocked_levels_json: JSON.stringify(unlockedLevels)
+        unlocked_levels_json: progress.unlocked_levels_json // Keep old JSON unless updated
     };
 
     if (isWin) {
         const nextLevel = currentLevel + 1;
-        updateObject.current_kv_level = nextLevel;
+        // Only update current_kv_level if the player is moving beyond their highest achieved level
+        if (nextLevel > progress.current_kv_level) {
+            updateObject.current_kv_level = nextLevel;
+        }
 
         if (!unlockedLevels.includes(currentLevel)) {
             unlockedLevels.push(currentLevel);
@@ -169,6 +180,7 @@ function updateHintDisplay() {
     hintDisplayDiv.innerHTML += `<li class="kv-hint-item">Hint 2 (Product): <span>${hints.product}</span>. (Free)</li>`;
     hintDisplayDiv.innerHTML += `<li class="kv-hint-item">Hint 3 (Even/Odd): <span>${hints.odds} odd / ${hints.evens} even</span>. (Free)</li>`;
 
+    // Only render purchase options if the last hint isn't revealed
     if (kvGameState.hintsRevealed[3]) {
         hintDisplayDiv.innerHTML += `<li class="kv-hint-item" style="border-left-color: var(--success-color);">Hint 4: Last digit is <span>${hints.lastDigit}</span>. (Used)</li>`;
     } else {
@@ -248,29 +260,29 @@ async function endCurrentKVGame(result) {
 
     const gateInfo = kvGatesData[kvGameState.levelIndex];
     let isWin = (result === 'win');
+    const timeSpent = getLevelConfig(kvGameState.levelIndex).time - kvGameState.timeLeft;
 
+    // 1. Log Game History (Assumed working based on user feedback)
     const gameDetails = {
         player_id: state.currentUser.id,
         game_type: 'KV Game',
         level_kv: gateInfo.kv,
-        result_status: 'Unknown',
-        time_taken: getLevelConfig(kvGameState.levelIndex).time - kvGameState.timeLeft,
-        // FIXED: Access secretCode from the global kvGameState object
+        result_status: isWin ? 'Win' : ((result === 'manual') ? 'Loss (Manual)' : 'Loss (Time)'),
+        time_taken: timeSpent < 0 ? 0 : timeSpent, // Ensure time is non-negative
         code: kvGameState.code,
         date: new Date().toISOString()
     };
-
-    if (isWin) {
-        gameDetails.result_status = 'Win';
-    } else {
-        gameDetails.result_status = (result === 'manual') ? 'Loss (Manual)' : 'Loss (Time)';
-    }
-
     await api.insertGameHistory(gameDetails);
 
+    // 2. Update KV Progress (Highest level achieved)
     await updateKVProgress(isWin);
 
     if (isWin) {
+        // 3. NEW: Check and Unlock Library Entries
+        // The current level (kvGameState.levelIndex + 1) is the one just completed.
+        await checkAndUnlockLibrary(kvGameState.levelIndex + 1); 
+
+        // 4. Grant Reward
         const reward = WIN_REWARD_BASE + (kvGameState.levelIndex * 50);
         const newNoubScore = (state.playerProfile.noub_score || 0) + reward;
         await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
@@ -300,8 +312,10 @@ function handleSubmitGuess() {
     if (guess === kvGameState.code) {
         endCurrentKVGame('win');
     } else if (kvGameState.attemptsLeft <= 0) {
-        endCurrentKVGame('lose_attempts');
+        // CRITICAL FIX CHECK: Ensure game ends on 0 attempts left
+        endCurrentKVGame('lose_attempts'); 
     } else {
+        // TODO: Implement Bull & Cow feedback logic here for NOUB v0.11
         showToast("Incorrect code. Keep trying!", 'info');
         guessInputEl.value = '';
         guessInputEl.focus();
@@ -327,6 +341,7 @@ async function startNewKVGame() {
         }
     }
 
+    // Set levelIndex to the current_kv_level stored (which is the next level to attempt)
     kvGameState.levelIndex = (progress.current_kv_level || 1) - 1;
 
     if (kvGameState.levelIndex >= kvGatesData.length) {
@@ -413,6 +428,7 @@ async function updateKVProgressInfo() {
 
     let { data: progress } = await api.fetchKVProgress(state.currentUser.id);
     if (!progress) {
+        // Attempt initial creation if it doesn't exist
         await api.updateKVProgress(state.currentUser.id, {
             player_id: state.currentUser.id,
             current_kv_level: 1,
@@ -426,6 +442,7 @@ async function updateKVProgressInfo() {
         }
     }
 
+    // Use current_kv_level to determine the next gate number
     kvGameState.levelIndex = (progress.current_kv_level || 1) - 1;
     const nextGate = kvGatesData[kvGameState.levelIndex];
 
@@ -440,6 +457,7 @@ async function updateKVProgressInfo() {
     } else {
         startBtn.textContent = `All Gates Conquered!`;
         startBtn.disabled = true;
+        if (levelNameEl) levelNameEl.textContent = `Valley of the Kings - Fully Explored!`;
     }
 }
 
