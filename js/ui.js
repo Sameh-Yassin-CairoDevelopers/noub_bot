@@ -1,24 +1,24 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.8 (UI Controller - Nav & Shop Rework)
+ * Version: NOUB 0.0.7 (UI Controller - FINAL EXPORT FIX)
  * Description: UI Controller Module. Handles all UI logic and navigation.
- * UPDATED: Handles new home screen layout and bottom nav structure.
+ * FIXED: Restored 'showToast' as a named export while keeping it globally available.
 */
 
 // --- CORE IMPORTS ---
-import { state } from './state.js'; 
+import { state } from './state.js';
 import { ASSET_PATHS } from './config.js';
 
 // --- SCREEN MODULES IMPORTS ---
-import * as collectionModule from './screens/collection.js'; 
-import * as upgradeModule from './screens/upgrade.js';       
-import * as historyModule from './screens/history.js';       
-import * as libraryModule from './screens/library.js';       
-import * as settingsModule from './screens/settings.js';     
-import * as albumsModule from './screens/albums.js';         
-import * as wheelModule from './screens/wheel.js';           
-import * as exchangeModule from './screens/exchange.js';       
-import * as activityModule from './screens/activity.js';     
+import * as collectionModule from './screens/collection.js';
+import * as upgradeModule from './screens/upgrade.js';
+import * as historyModule from './screens/history.js';
+import * as libraryModule from './screens/library.js';
+import * as settingsModule from './screens/settings.js';
+import * as albumsModule from './screens/albums.js';
+import * as wheelModule from './screens/wheel.js';
+import * as exchangeModule from './screens/exchange.js';
+import * as activityModule from './screens/activity.js';
 import * as tasksModule from './screens/tasks.js';
 
 // Other screen imports
@@ -26,10 +26,10 @@ import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction, renderStock } from './screens/economy.js';
 import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
-import { renderSlotGame } from './screens/slotgame.js'; 
-import { renderKVGame } from './screens/kvgame.js'; 
-import { renderChat } from './screens/chat.js'; 
-import { renderHome } from './screens/home.js'; 
+import { renderSlotGame } from './screens/slotgame.js';
+import { renderKVGame } from './screens/kvgame.js';
+import { renderChat } from './screens/chat.js';
+import { renderHome } from './screens/home.js';
 
 
 // --- EXPORTS ---
@@ -40,8 +40,8 @@ export const renderLibrary = libraryModule.renderLibrary;
 export const renderSettings = settingsModule.renderSettings;
 export const renderAlbums = albumsModule.renderAlbums;
 export const renderWheel = wheelModule.renderWheel;
-export const renderActivity = activityModule.renderActivity; 
-export const renderExchange = exchangeModule.renderExchange; 
+export const renderActivity = activityModule.renderActivity;
+export const renderExchange = exchangeModule.renderExchange;
 export const renderTasks = tasksModule.renderTasks;
 
 
@@ -51,15 +51,6 @@ window.closeModal = function(modalId) {
     if (modal) {
         modal.classList.add('hidden');
     }
-}
-
-window.showToast = function(message, type = 'info') {
-    const toastContainer = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
 }
 
 const contentContainer = document.getElementById('content-container');
@@ -86,64 +77,60 @@ export function navigateTo(targetId) {
 
     // Call the appropriate render function for the target screen
     switch (targetId) {
-        case 'home-screen': 
+        case 'home-screen':
             renderHome();
             break;
         case 'collection-screen':
-            collectionModule.renderCollection(); 
+            collectionModule.renderCollection();
             break;
         case 'economy-screen':
-            renderProduction(); 
+            renderProduction();
             break;
         case 'albums-screen':
-            albumsModule.renderAlbums(); 
+            albumsModule.renderAlbums();
             break;
         case 'tasks-screen':
             tasksModule.renderTasks();
             break;
-        case 'contracts-screen': // Added case for the contracts icon on the home screen
-            renderActiveContracts();
-            renderAvailableContracts();
-            break;
-        case 'card-upgrade-screen':
-            upgradeModule.renderUpgrade(); 
-            break;
         case 'slot-game-screen':
-            renderSlotGame(); 
+            renderSlotGame();
             break;
         case 'kv-game-screen':
-            renderKVGame(); 
+            renderKVGame();
             break;
         case 'profile-screen':
             renderProfile();
             break;
         case 'chat-screen':
-            renderChat(); 
+            renderChat();
             break;
         case 'history-screen':
-            historyModule.renderHistory(); 
+            historyModule.renderHistory();
             break;
         case 'library-screen':
-            libraryModule.renderLibrary(); 
+            libraryModule.renderLibrary();
             break;
         case 'settings-screen':
-            settingsModule.renderSettings(); 
+            settingsModule.renderSettings();
             break;
         case 'wheel-screen':
-            wheelModule.renderWheel(); 
+            wheelModule.renderWheel();
             break;
-        case 'exchange-screen': 
+        case 'exchange-screen':
             exchangeModule.renderExchange();
             break;
-        case 'activity-screen': 
+        case 'activity-screen':
             activityModule.renderActivity();
             break;
+        case 'card-upgrade-screen':
+             upgradeModule.renderUpgrade();
+             break;
     }
 }
 
 export function updateHeaderUI(profile) {
     if (!profile) return;
-    
+
     const noubDisplay = document.getElementById('noub-display');
     if(noubDisplay) {
         noubDisplay.textContent = profile.noub_score || 0;
@@ -153,46 +140,55 @@ export function updateHeaderUI(profile) {
     if(prestigeDisplay) {
         prestigeDisplay.textContent = profile.prestige || 0;
     }
-    
+
     const ankhPremiumDisplay = document.getElementById('ankh-premium-display');
     if(ankhPremiumDisplay) {
         ankhPremiumDisplay.textContent = profile.ankh_premium || 0;
     }
-    
+
     const spinDisplay = document.getElementById('spin-ticket-display');
     if(spinDisplay) {
         spinDisplay.textContent = profile.spin_tickets || 0;
     }
 }
 
+// FIXED: Define showToast as a named export
+export function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Also make it globally available for HTML onclick attributes
+window.showToast = showToast;
+
 function setupNavEvents() {
-    // Bottom navigation bar links
     document.querySelectorAll('.bottom-nav a[data-target]').forEach(item => {
         item.addEventListener('click', () => navigateTo(item.dataset.target));
     });
 
-    // Home screen icon links (for both featured and secondary actions)
-    document.querySelectorAll('.home-layout a[data-target]').forEach(link => {
+    document.querySelectorAll('.home-action-icons a[data-target]').forEach(link => {
         link.addEventListener('click', (e) => {
              e.preventDefault();
              const targetId = link.dataset.target;
              navigateTo(targetId);
         });
     });
-    
-    // New shop button in the bottom navigation bar
-    const bottomShopBtn = document.getElementById('bottom-shop-btn');
-    if (bottomShopBtn) bottomShopBtn.addEventListener('click', () => openShopModal());
-    
-    // Hamburger menu button
+
+    const shopBtn = document.getElementById('shop-nav-btn');
+    if (shopBtn) shopBtn.addEventListener('click', () => openShopModal());
+
     const moreBtn = document.getElementById('more-nav-btn');
     if (moreBtn) moreBtn.addEventListener('click', () => openModal('more-modal'));
 }
 
 function setupMoreMenuEvents() {
     const handleMoreClick = (event) => {
-        event.preventDefault(); 
-        const targetId = event.currentTarget.dataset.target; 
+        event.preventDefault();
+        const targetId = event.currentTarget.dataset.target;
         window.closeModal('more-modal');
         navigateTo(targetId);
     };
@@ -208,8 +204,15 @@ function setupMoreMenuEvents() {
 export function setupEventListeners() {
     setupNavEvents();
     setupMoreMenuEvents();
-    
-    // Stockpile tabs in economy screen
+
+    const homeShopBtn = document.getElementById('home-shop-btn');
+    if(homeShopBtn) {
+        homeShopBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openShopModal();
+        });
+    }
+
     const stockTabs = document.querySelectorAll('.stock-tab-btn');
     stockTabs.forEach(tab => {
         tab.addEventListener('click', () => {
