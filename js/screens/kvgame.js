@@ -1,10 +1,8 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.7 (KV GAME LOGIC - Game History & Syntax Fix)
+ * Version: NOUB 0.0.9 (KV GAME LOGIC - FINAL FIX)
  * Description: Implements the full 62-level Valley of the Kings (Crack the Code) logic.
- * FIXED: Game results are now correctly written to the 'game_history' table.
- * FIXED: Syntax error in kvGatesData array.
- * FIXED: JSON parse error for unlocked_levels_json and PATCH 400 for kv_game_progress initialization.
+ * FIXED: 'timeLeft is not defined' ReferenceError in endCurrentKVGame.
 */
 
 import { state } from '../state.js';
@@ -256,7 +254,8 @@ async function endCurrentKVGame(result) {
         game_type: 'KV Game',
         level_kv: gateInfo.kv,
         result_status: 'Unknown',
-        time_taken: getLevelConfig(kvGameState.levelIndex).time - timeLeft,
+        // FIXED: Access timeLeft from the global kvGameState object
+        time_taken: getLevelConfig(kvGameState.levelIndex).time - kvGameState.timeLeft,
         code: secretCode,
         date: new Date().toISOString()
     };
