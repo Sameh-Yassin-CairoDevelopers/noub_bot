@@ -1,12 +1,16 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.7 (API FINAL FIX - Game History Read/Write)
+ * Version: NOUB 0.0.8 (API FINAL FIX - Library Fix & supabaseClient Export)
  * Description: Data Access Layer Module. Centralizes all database interactions.
+ * NEW: Exports supabaseClient to be used by modules that require direct access (like library.js for inserts).
  * FIXED: fetchGameHistory now uses the correct 'date' column.
  * NEW: Added insertGameHistory function to write game results to the database.
 */
 
 import { supabaseClient } from './config.js';
+
+// --- NEW: Export supabaseClient directly ---
+export { supabaseClient }; 
 
 // --- Player and Card Functions ---
 
