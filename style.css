@@ -496,7 +496,6 @@ input:focus, textarea:focus {
     gap: 10px;
 }
 
-
 /* --- Games Screen (Slots / KV) --- */
 .game-container {
     background-color: var(--surface-dark);
