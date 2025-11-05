@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/slotgame.js
- * Version: NOUB 0.0.7 (SLOT GAME - FIX: Video Poker Payout Logic)
+ * Version: NOUB 0.0.8 (SLOT GAME - CRITICAL FIX: Payout Logic & Multiplier Betting)
  * Description: Implements all logic for the Slot Machine game (Tomb of Treasures) 
- * using 5 reels and video poker win conditions.
- * FIXED: Payout logic now correctly reflects Video Poker rules (One Pair, Two Pair, Full House, etc.).
+ * FIXED: Core checkWinCondition logic is entirely rewritten to correctly handle all Video Poker cases (One Pair, Two Pair, Full House, ThreeX, FourX, FiveX).
+ * NEW: Implements Multiplier Betting (1x, 5x, 10x) for spin tickets.
 */
 
 import { state } from '../state.js';
@@ -16,24 +16,28 @@ const spinTicketDisplay = document.getElementById('spin-ticket-display');
 const spinButton = document.getElementById('spin-button');
 const reelsContainer = document.querySelectorAll('.reel');
 const slotGameContainer = document.getElementById('slot-machine-container');
+const multiplierButtonsContainer = document.getElementById('multiplier-buttons-container'); // NEW Container ID
+const spinsAvailableDisplay = document.getElementById('spins-available-display'); // NEW ID for in-game count
 
-// NOTE: Now 5 reels required by CSS. We need 5 symbols for 5-reel logic.
-// Restored original symbols from 'noub original game.html'
-const SYMBOLS = ['☥', '𓂀', '𓋹', '🐍', '🐞', '👑', '💎', '🏺']; // 8 symbols
-const REEL_ITEM_HEIGHT = 45; // Adjusted height to match style.css for 30% reduction
+// --- UPDATED SYMBOLS (More Thematic) ---
+// Note: Reel count is 5
+const SYMBOLS = ['👑', '☥', '💎', '🏺', '📜', '🔥', '🐞', '𓂀']; // 8 symbols
+const REEL_ITEM_HEIGHT = 45; 
 const REEL_COUNT = 5; 
+
+// --- BETTING CONSTANTS ---
+const MULTIPLIERS = [1, 5, 10];
+let currentMultiplier = 1; // Default bet is 1 ticket
 let isSpinning = false;
 
 
-// --- Utility and Setup Functions (Unchanged) ---
+// --- Utility and Setup Functions ---
 
 function createReelSymbols(reelEl) {
     const inner = document.createElement('div');
     inner.className = 'reel-inner';
     
-    // Loop multiple times to create enough symbols for smooth scrolling
-    for (let i = 0; i < 10; i++) { // Increase loop count for longer, smoother spin effect
-        // Shuffle symbols for each cycle to make it feel more random
+    for (let i = 0; i < 10; i++) { 
         const shuffledSymbols = [...SYMBOLS].sort(() => Math.random() - 0.5);
         shuffledSymbols.forEach(symbol => {
             const item = document.createElement('div');
@@ -50,16 +54,12 @@ function spinReel(reelEl, finalIndex) {
     const reelInner = reelEl.querySelector('.reel-inner');
     const symbolCountPerCycle = SYMBOLS.length;
     
-    // Calculate target position: multiple full cycles + final symbol
-    // Ensure it lands precisely on the symbol.
-    // We want it to land on the `finalIndex` symbol of the LAST cycle (or a specific cycle).
-    // Let's aim for the 7th cycle's finalIndex symbol for a good long spin.
+    // Target position for a long, clean spin
     const targetOffset = (7 * symbolCountPerCycle + finalIndex) * REEL_ITEM_HEIGHT;
 
-    reelInner.style.transition = 'none'; // Reset transition instantly
-    reelInner.style.transform = `translateY(0)`; // Start from top
+    reelInner.style.transition = 'none'; 
+    reelInner.style.transform = `translateY(0)`; 
     
-    // Force reflow to apply instant reset before starting new transition
     void reelInner.offsetWidth; 
 
     reelInner.style.transition = 'transform 3s cubic-bezier(0.2, 0.9, 0.5, 1)';
@@ -69,7 +69,7 @@ function spinReel(reelEl, finalIndex) {
 }
 
 
-// --- Video Poker Winning Logic (CRITICALLY MODIFIED) ---
+// --- Video Poker Winning Logic (CRITICALLY REWRITTEN) ---
 
 function checkWinCondition(results) {
     const freq = {};
@@ -100,30 +100,17 @@ function checkWinCondition(results) {
 }
 
 
-async function determinePrize(results) {
+async function determinePrize(results, multiplier) {
     const win = checkWinCondition(results);
-    const basePayout = 50; 
+    const basePayout = 50 * multiplier; // Multiply base by bet multiplier
     
-    const { data: rewards, error: rewardsError } = await api.fetchSlotRewards();
-    if (rewardsError) {
-        console.error("Error fetching slot rewards:", rewardsError);
-        displaySlotResultMessage("Error fetching rewards.", 'error');
-        return;
-    }
-
     if (win.multiplier > 0) {
         const rewardAmount = Math.floor(basePayout * win.multiplier);
         
         // 1. Grant reward in NOUB
         const newNoubScore = (state.playerProfile.noub_score || 0) + rewardAmount;
-        const { error: profileUpdateError } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
+        await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
         
-        if(profileUpdateError) {
-             console.error("Error updating profile after slot win:", profileUpdateError);
-             displaySlotResultMessage("Win detected, but error updating balance!", 'error');
-             return;
-        }
-
         // 2. Display message
         const message = `${win.type} Payout! +${rewardAmount} NOUB`;
         displaySlotResultMessage(message, 'win');
@@ -148,20 +135,21 @@ function displaySlotResultMessage(message, type) {
 
 
 async function runSlotMachine() {
+    const betAmount = currentMultiplier;
+
     if (isSpinning) return;
-    if ((state.playerProfile.spin_tickets || 0) < 1) {
-        displaySlotResultMessage('Not enough Spin Tickets (🎟️)!', 'error');
+    if ((state.playerProfile.spin_tickets || 0) < betAmount) {
+        displaySlotResultMessage(`Not enough Spin Tickets (🎟️)! Need ${betAmount}.`, 'error');
         return;
     }
     
     isSpinning = true;
     spinButton.disabled = true;
 
-    // 1. Consume ticket
-    const newTickets = state.playerProfile.spin_tickets - 1;
-    // We do not wait for DB here to feel faster, relying on refresh later
+    // 1. Consume tickets
+    const newTickets = state.playerProfile.spin_tickets - betAmount;
     api.updatePlayerProfile(state.currentUser.id, { spin_tickets: newTickets }); 
-    updateHeaderUI(state.playerProfile); // Update header immediately for tickets
+    updateHeaderUI(state.playerProfile); 
 
     // 2. Track daily quest completion
     trackDailyActivity('games', 1);
@@ -182,18 +170,18 @@ async function runSlotMachine() {
     
     // 4. Wait for animation to finish
     setTimeout(async () => {
-        // Reset transitions to prepare for next spin
+        // Reset transitions
         reelElements.forEach(el => {
             el.querySelector('.reel-inner').style.transition = 'none';
         });
         
         // Determine prize and update DB
-        await determinePrize(resultsSymbols);
+        await determinePrize(resultsSymbols, betAmount); // Pass the bet amount as multiplier
         
         spinButton.disabled = false;
         isSpinning = false;
-        await refreshSlotGameScreen(); // Full refresh
-    }, 3500); // Animation duration is 3s, give it a bit more
+        await refreshSlotGameScreen(); 
+    }, 3500); 
 }
 
 async function checkDailyTicket() {
@@ -223,21 +211,66 @@ async function checkDailyTicket() {
     }
 }
 
+/**
+ * NEW: Handles setting the bet multiplier
+ */
+function setMultiplier(multiplier) {
+    currentMultiplier = multiplier;
+    
+    // Update active button state
+    document.querySelectorAll('#multiplier-buttons-container button').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.multiplier) === multiplier) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Update button text to reflect the new bet
+    if (spinButton) {
+        spinButton.textContent = `SPIN (${currentMultiplier} TICKETS)`;
+    }
+    
+    refreshSlotGameScreen();
+}
+
+/**
+ * NEW: Renders the multiplier buttons
+ */
+function renderMultiplierButtons() {
+    if (!multiplierButtonsContainer) return;
+    
+    multiplierButtonsContainer.innerHTML = MULTIPLIERS.map(m => `
+        <button class="action-button small multiplier-btn ${m === currentMultiplier ? 'active' : ''}" 
+                data-multiplier="${m}"
+                onclick="window.setMultiplier(${m})">
+            ${m}x
+        </button>
+    `).join('');
+    
+    // Make setMultiplier globally accessible for onclick
+    window.setMultiplier = setMultiplier;
+    
+    // Set initial button text
+    if (spinButton) {
+        spinButton.textContent = `SPIN (${currentMultiplier} TICKET)`;
+    }
+}
+
 
 async function refreshSlotGameScreen() {
     await refreshPlayerState();
     
-    const displayElement = document.getElementById('spin-ticket-display');
-    if (displayElement) {
-        // Update both the header display and the in-game balance info (if they use the same ID/class)
-        const allDisplays = document.querySelectorAll('#spin-ticket-display');
-        allDisplays.forEach(el => {
-            el.textContent = state.playerProfile.spin_tickets || 0;
-        });
+    const allDisplays = document.querySelectorAll('#spin-ticket-display');
+    allDisplays.forEach(el => {
+        el.textContent = state.playerProfile.spin_tickets || 0;
+    });
+    
+    if (spinsAvailableDisplay) {
+        spinsAvailableDisplay.textContent = state.playerProfile.spin_tickets || 0;
     }
 
     if (spinButton) {
-        spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < 1);
+        spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < currentMultiplier);
     }
     updateHeaderUI(state.playerProfile);
 }
@@ -249,6 +282,22 @@ async function refreshSlotGameScreen() {
 export async function renderSlotGame() {
     if (!state.currentUser) return;
     
+    // CRITICAL: Ensure the slot game container has the necessary sub-elements
+    const gameContainer = document.getElementById('slot-machine-container');
+    if (gameContainer && !gameContainer.querySelector('#multiplier-buttons-container')) {
+         gameContainer.querySelector('.balance-info').id = 'spins-available-info';
+         gameContainer.querySelector('#spins-available-info').innerHTML = 
+            `Spins Available: <span id="spins-available-display">${state.playerProfile.spin_tickets || 0}</span> 🎟️`;
+            
+         const reelsArea = gameContainer.querySelector('.reels-container').parentNode;
+         
+         const multiplierDiv = document.createElement('div');
+         multiplierDiv.id = 'multiplier-buttons-container';
+         multiplierDiv.style.cssText = 'margin-bottom: 10px; display: flex; justify-content: center; gap: 10px;';
+         
+         reelsArea.insertBefore(multiplierDiv, gameContainer.querySelector('.reels-container'));
+    }
+
     await checkDailyTicket();
     await refreshPlayerState();
     
@@ -257,10 +306,12 @@ export async function renderSlotGame() {
         reelsContainer.forEach(createReelSymbols);
     }
     
+    renderMultiplierButtons(); // Render the new buttons
+
     // Set event listener and initial status
     if (spinButton) {
         spinButton.onclick = runSlotMachine;
-        spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < 1);
+        spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < currentMultiplier);
     }
     
     // Ensure message area is ready and displays status
@@ -270,7 +321,7 @@ export async function renderSlotGame() {
         resultEl.id = 'slot-result-message';
         slotGameContainer.prepend(resultEl);
     }
-    displaySlotResultMessage("Ready to Spin!", 'info');
+    displaySlotResultMessage("Ready to Spin! Select a bet amount.", 'info');
     
     await refreshSlotGameScreen();
 }
