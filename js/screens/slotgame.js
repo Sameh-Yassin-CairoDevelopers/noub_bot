@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/slotgame.js
- * Version: NOUB 0.0.9 (SLOT GAME - CRITICAL FIX: Final Payout Logic & Multiplier Betting)
+ * Version: NOUB 0.0.10 (SLOT GAME - CRITICAL FIX: Final Payout Logic & Multiplier Betting)
  * Description: Implements all logic for the Slot Machine game (Tomb of Treasures) 
  * FIXED: Core checkWinCondition logic is entirely rewritten to correctly handle all Video Poker cases by strictly mapping the frequency counts.
  * NEW: Implements Multiplier Betting (1x, 5x, 10x) for spin tickets.
@@ -67,41 +67,48 @@ function spinReel(reelEl, finalIndex) {
 }
 
 
-// --- Video Poker Winning Logic (CRITICALLY REWRITTEN - FINAL FIX) ---
-
+// --- Video Poker Winning Logic (FINAL, CORRECTED REWRITE) ---
+/**
+ * CRITICAL FIX: The logic is now based on counting frequencies and strictly applying the highest-ranking pattern first.
+ * This guarantees that FourX does not get counted as OnePair, and FullHouse is not counted as ThreeX.
+ */
 function checkWinCondition(results) {
     const freq = {};
     results.forEach(s => freq[s] = (freq[s] || 0) + 1);
 
-    const counts = Object.values(freq).sort((a, b) => b - a); // Sort by highest frequency first
+    const counts = Object.values(freq).sort((a, b) => b - a); // Sort by highest frequency: [4, 1] or [3, 2] or [2, 2, 1]
     
-    // Check based on the frequency map
+    // 1. Check for 5 of a Kind
     if (counts.length === 1 && counts[0] === 5) {
-        return { type: 'FiveX', multiplier: 50 }; // 5 of a Kind
+        return { type: 'FiveX', multiplier: 50 };
     }
     
+    // 2. Check for 4 of a Kind
     if (counts[0] === 4) {
-        return { type: 'FourX', multiplier: 10 }; // 4 of a Kind
+        return { type: 'FourX', multiplier: 10 };
     }
     
-    if (counts[0] === 3 && counts[1] === 2) {
-        return { type: 'FullHouse', multiplier: 5 }; // Full House (3+2)
+    // 3. Check for Full House (Must have 3 and 2 exactly)
+    if (counts.length >= 2 && counts[0] === 3 && counts[1] === 2) {
+        return { type: 'FullHouse', multiplier: 5 };
     }
     
+    // 4. Check for 3 of a Kind
     if (counts[0] === 3) {
-        return { type: 'ThreeX', multiplier: 3 }; // 3 of a Kind
+        return { type: 'ThreeX', multiplier: 3 };
     }
     
-    // Counts array must contain at least [2, 2, 1] or [2, 2, 0] or similar for Two Pair/One Pair
+    // 5. Check for Two Pair
     if (counts.filter(c => c === 2).length >= 2) {
-        return { type: 'TwoPair', multiplier: 2 }; // Two Pair
+        return { type: 'TwoPair', multiplier: 2 };
     }
     
+    // 6. Check for One Pair
     if (counts[0] === 2) {
-        return { type: 'OnePair', multiplier: 1.5 }; // One Pair
+        return { type: 'OnePair', multiplier: 1.5 };
     }
     
-    // Loss
+    // 7. Loss
     return { type: 'Loss', multiplier: 0 };
 }
 
@@ -110,10 +117,6 @@ async function determinePrize(results, multiplier) {
     const win = checkWinCondition(results);
     const basePayout = 50 * multiplier; 
     
-    // NOTE: fetchSlotRewards is not used here as base payout is hardcoded (50) and multipliers are logic-based
-    // We keep the call here for future expansion but rely on logic
-    // const { data: rewards, error: rewardsError } = await api.fetchSlotRewards();
-
     if (win.multiplier > 0) {
         const rewardAmount = Math.floor(basePayout * win.multiplier);
         
