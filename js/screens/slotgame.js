@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/slotgame.js
- * Version: NOUB 0.0.6 (SLOT GAME - FINAL FIX)
+ * Version: NOUB 0.0.7 (SLOT GAME - FIX: Video Poker Payout Logic)
  * Description: Implements all logic for the Slot Machine game (Tomb of Treasures) 
  * using 5 reels and video poker win conditions.
- * FIXED: Restored original symbols and ensured proper display.
+ * FIXED: Payout logic now correctly reflects Video Poker rules (One Pair, Two Pair, Full House, etc.).
 */
 
 import { state } from '../state.js';
@@ -25,7 +25,7 @@ const REEL_COUNT = 5;
 let isSpinning = false;
 
 
-// --- Utility and Setup Functions ---
+// --- Utility and Setup Functions (Unchanged) ---
 
 function createReelSymbols(reelEl) {
     const inner = document.createElement('div');
@@ -69,22 +69,33 @@ function spinReel(reelEl, finalIndex) {
 }
 
 
-// --- Video Poker Winning Logic ---
+// --- Video Poker Winning Logic (CRITICALLY MODIFIED) ---
 
 function checkWinCondition(results) {
     const freq = {};
     results.forEach(s => freq[s] = (freq[s] || 0) + 1);
 
     const counts = Object.values(freq);
-    const uniqueSymbols = counts.length;
     
+    // 5 of a Kind
     if (counts.includes(5)) return { type: 'FiveX', multiplier: 50 };
+    
+    // 4 of a Kind
     if (counts.includes(4)) return { type: 'FourX', multiplier: 10 };
+    
+    // Full House (3 of one kind, 2 of another)
     if (counts.includes(3) && counts.includes(2)) return { type: 'FullHouse', multiplier: 5 };
+    
+    // 3 of a Kind
     if (counts.includes(3)) return { type: 'ThreeX', multiplier: 3 };
-    if (uniqueSymbols === 3 && counts.filter(c => c === 2).length === 2) return { type: 'TwoPair', multiplier: 2 };
+    
+    // Two Pair (two instances of '2')
+    if (counts.filter(c => c === 2).length === 2) return { type: 'TwoPair', multiplier: 2 };
+    
+    // One Pair
     if (counts.includes(2)) return { type: 'OnePair', multiplier: 1.5 };
     
+    // Loss
     return { type: 'Loss', multiplier: 0 };
 }
 
@@ -100,18 +111,23 @@ async function determinePrize(results) {
         return;
     }
 
-    const noubRewardData = rewards.find(r => r.prize_type === 'NOUB' && r.prize_name.includes('Minor')) || { value: 50 }; // Assuming reward_type NOUB
-
     if (win.multiplier > 0) {
         const rewardAmount = Math.floor(basePayout * win.multiplier);
         
         // 1. Grant reward in NOUB
         const newNoubScore = (state.playerProfile.noub_score || 0) + rewardAmount;
-        await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
+        const { error: profileUpdateError } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
         
+        if(profileUpdateError) {
+             console.error("Error updating profile after slot win:", profileUpdateError);
+             displaySlotResultMessage("Win detected, but error updating balance!", 'error');
+             return;
+        }
+
         // 2. Display message
         const message = `${win.type} Payout! +${rewardAmount} NOUB`;
-        displaySlotResultMessage(message, win.type.includes('Loss') ? 'lose' : 'win');
+        displaySlotResultMessage(message, 'win');
+
     } else {
         displaySlotResultMessage("No Match. Try Again!", 'lose');
     }
@@ -143,7 +159,8 @@ async function runSlotMachine() {
 
     // 1. Consume ticket
     const newTickets = state.playerProfile.spin_tickets - 1;
-    await api.updatePlayerProfile(state.currentUser.id, { spin_tickets: newTickets });
+    // We do not wait for DB here to feel faster, relying on refresh later
+    api.updatePlayerProfile(state.currentUser.id, { spin_tickets: newTickets }); 
     updateHeaderUI(state.playerProfile); // Update header immediately for tickets
 
     // 2. Track daily quest completion
@@ -180,10 +197,21 @@ async function runSlotMachine() {
 }
 
 async function checkDailyTicket() {
-    const { available } = await api.getDailySpinTickets(state.currentUser.id); 
+    const { data: profileData, error } = await api.getDailySpinTickets(state.currentUser.id);
+
+    if (error || !profileData) {
+        console.error("Error fetching daily spin data:", error);
+        return;
+    }
+
+    const lastSpinTime = new Date(profileData.last_daily_spin).getTime();
+    const now = Date.now();
+    const twentyFourHours = 24 * 60 * 60 * 1000;
     
+    const available = (now - lastSpinTime) > twentyFourHours;
+
     if (available) {
-        const currentTickets = state.playerProfile.spin_tickets || 0;
+        const currentTickets = profileData.spin_tickets || 0;
         const newTickets = currentTickets + 5; // Grant 5 tickets daily
         
         await api.updatePlayerProfile(state.currentUser.id, { 
@@ -199,9 +227,15 @@ async function checkDailyTicket() {
 async function refreshSlotGameScreen() {
     await refreshPlayerState();
     
-    if (spinTicketDisplay) {
-        spinTicketDisplay.textContent = state.playerProfile.spin_tickets || 0;
+    const displayElement = document.getElementById('spin-ticket-display');
+    if (displayElement) {
+        // Update both the header display and the in-game balance info (if they use the same ID/class)
+        const allDisplays = document.querySelectorAll('#spin-ticket-display');
+        allDisplays.forEach(el => {
+            el.textContent = state.playerProfile.spin_tickets || 0;
+        });
     }
+
     if (spinButton) {
         spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < 1);
     }
@@ -229,7 +263,7 @@ export async function renderSlotGame() {
         spinButton.disabled = isSpinning || ((state.playerProfile.spin_tickets || 0) < 1);
     }
     
-    // Ensure message area is ready
+    // Ensure message area is ready and displays status
     let resultEl = document.getElementById('slot-result-message');
     if (!resultEl) {
         resultEl = document.createElement('div');
@@ -237,4 +271,6 @@ export async function renderSlotGame() {
         slotGameContainer.prepend(resultEl);
     }
     displaySlotResultMessage("Ready to Spin!", 'info');
+    
+    await refreshSlotGameScreen();
 }
