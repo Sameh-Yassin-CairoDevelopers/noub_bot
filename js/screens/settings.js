@@ -1,9 +1,8 @@
 /*
  * Filename: js/screens/settings.js
- * Version: NOUB 0.0.6 (SETTINGS MODULE - FINAL FIX)
+ * Version: NOUB 0.0.8 (SETTINGS MODULE - FIX: Avatar Selection & Saving)
  * Description: View Logic Module for the Player Settings screen.
- * Handles username update. Avatar selection is simplified due to DB schema.
- * FIXED: Removed avatar_url assumptions for saving/loading avatar as it's not in DB schema.
+ * NEW: Implements functional avatar selection and saving to 'avatar_url' column.
 */
 
 import { state } from '../state.js';
@@ -14,32 +13,93 @@ import { refreshPlayerState } from '../auth.js';
 const settingsContainer = document.getElementById('settings-screen');
 
 // --- MASTER AVATAR DATA (Reference list) ---
-// NOTE: These avatars are now local references, not stored in DB's profiles table directly
 const MASTER_AVATARS = [
-    { id: 'default_explorer', name: 'Default Explorer', image_url: 'images/user_avatar.png', is_unlocked: true },
-    { id: 'pharaoh_mask', name: 'Pharaoh Mask', image_url: 'images/pharaoh_mask.png', is_unlocked: false, unlock_condition: { type: 'card_count', value: 10 } },
-    { id: 'eve_guide', name: 'Eve Guide (Premium)', image_url: 'images/eve_avatar.png', is_unlocked: false, unlock_condition: { type: 'item_purchase', itemId: 'premium_avatar' } },
-    { id: 'anubis_icon', name: 'Anubis Icon', image_url: 'images/anubis_icon.png', is_unlocked: false, unlock_condition: { type: 'kv_completion', level: 62 } },
+    { id: 'default_explorer', name: 'Default Explorer', image_url: 'images/user_avatar.png', is_unlocked: true, level_req: 0 },
+    { id: 'pharaoh_mask', name: 'Pharaoh Mask', image_url: 'images/pharaoh_mask.png', is_unlocked: false, level_req: 10 },
+    { id: 'eve_guide', name: 'Eve Guide (Premium)', image_url: 'images/eve_avatar.png', is_unlocked: false, ankh_cost: 50 },
+    { id: 'anubis_icon', name: 'Anubis Icon', image_url: 'images/anubis_icon.png', is_unlocked: false, level_req: 62 },
 ];
 
 let selectedAvatarUrl = 'images/user_avatar.png'; // Track selected avatar locally
 
 /**
- * Renders the Settings screen, populating current data and unlocked options.
+ * Handles the click event for selecting an avatar.
  */
-export async function renderSettings() {
-    if (!state.currentUser) return;
+function handleAvatarSelect(event) {
+    const avatarItem = event.currentTarget;
+    const isUnlocked = avatarItem.dataset.unlocked === 'true';
 
-    if (!settingsContainer) {
-        console.error("Settings container not found in DOM.");
+    if (!isUnlocked) {
+        const cost = avatarItem.dataset.cost;
+        showToast(`This avatar is locked! Requires ${cost}.`, 'error');
         return;
     }
 
-    // Since avatar_url is not in profiles table, we'll simplify avatar handling.
-    // For now, it will always show the default explorer avatar in the UI.
-    // To enable dynamic avatars, avatar_url column must be added to 'profiles' table.
-    const currentDisplayedAvatar = 'images/user_avatar.png'; // Always display default from HTML
-    selectedAvatarUrl = currentDisplayedAvatar; // Default selected to what's displayed
+    // Deselect all and select the current one
+    document.querySelectorAll('.avatar-item').forEach(item => item.classList.remove('selected'));
+    avatarItem.classList.add('selected');
+    selectedAvatarUrl = avatarItem.dataset.imageUrl;
+
+    document.getElementById('save-avatar-btn').disabled = false;
+    showToast(`Selected: ${avatarItem.dataset.name}`, 'info');
+}
+
+/**
+ * Renders the Avatar Selection Grid based on player status.
+ */
+function renderAvatarSelection(playerLevel, playerAnkhPremium, currentAvatarUrl) {
+    const avatarGrid = document.getElementById('avatar-selection-grid');
+    if (!avatarGrid) return;
+    avatarGrid.innerHTML = '';
+
+    MASTER_AVATARS.forEach(avatar => {
+        let isUnlocked = avatar.is_unlocked || (avatar.level_req && playerLevel >= avatar.level_req);
+        let statusText = isUnlocked ? 'UNLOCKED' : (avatar.level_req ? `LVL ${avatar.level_req} Req.` : `${avatar.ankh_cost} ☥`);
+        let cost = avatar.ankh_cost ? `${avatar.ankh_cost} Ankh` : (avatar.level_req ? `Level ${avatar.level_req}` : 'N/A');
+        
+        // This is simplified. In a real app, you'd check a separate 'player_avatars' table.
+        // For now, only check level/cost and assume unlocked ones are always available.
+        
+        const isCurrentlySelected = currentAvatarUrl === avatar.image_url;
+
+        const avatarElement = document.createElement('div');
+        avatarElement.className = `card-stack avatar-item ${isCurrentlySelected ? 'selected' : ''}`;
+        avatarElement.setAttribute('data-avatar-id', avatar.id);
+        avatarElement.setAttribute('data-image-url', avatar.image_url);
+        avatarElement.setAttribute('data-unlocked', isUnlocked);
+        avatarElement.setAttribute('data-name', avatar.name);
+        avatarElement.setAttribute('data-cost', cost);
+        
+        avatarElement.innerHTML = `
+            <img src="${avatar.image_url || 'images/user_avatar.png'}" alt="${avatar.name}" class="card-image">
+            <h4>${avatar.name}</h4>
+            <p style="font-size: 0.7em; margin: 0; color: ${isUnlocked ? 'var(--success-color)' : 'var(--danger-color)'};">${statusText}</p>
+        `;
+        
+        if (isUnlocked) {
+            avatarElement.addEventListener('click', handleAvatarSelect);
+        } else if (avatar.ankh_cost) {
+            // Purchase logic for premium avatars could go here
+            avatarElement.addEventListener('click', () => {
+                showToast(`Unlock ${avatar.name} for ${avatar.ankh_cost} Ankh Premium!`, 'info');
+            });
+        }
+
+        avatarGrid.appendChild(avatarElement);
+        
+        if (isCurrentlySelected) selectedAvatarUrl = avatar.image_url;
+    });
+}
+
+
+/**
+ * Renders the Settings screen, populating current data and unlocked options.
+ */
+export async function renderSettings() {
+    if (!state.currentUser || !state.playerProfile) return;
+
+    // Use current avatar URL from the profile (assuming column exists and is fetched)
+    const currentAvatar = state.playerProfile.avatar_url || MASTER_AVATARS[0].image_url;
 
     settingsContainer.innerHTML = `
         <h2>Settings & Preferences</h2>
@@ -51,35 +111,21 @@ export async function renderSettings() {
             <input type="text" id="username-input" value="${state.playerProfile.username || ''}" placeholder="Enter new username" required>
             <button id="save-username-btn" class="action-button small upgrade-button">Save Name</button>
             
-            <h3 style="margin-top: 20px;">Avatar Selection (Currently Not Supported via DB)</h3>
-            <p style="color: var(--text-secondary); font-size:0.8em;">To enable dynamic avatar selection, please add 'avatar_url' column to your 'profiles' table in Supabase.</p>
-            <div id="avatar-selection-grid" class="card-grid" style="opacity: 0.5; pointer-events: none;">
-                <!-- Avatar items will be rendered here, but disabled -->
-                <div class="card-stack avatar-item selected" 
-                     data-avatar-id="default_explorer" 
-                     data-image-url="images/user_avatar.png"
-                     style="border-color: var(--success-color);"
-                >
-                    <img src="images/user_avatar.png" alt="Default Explorer" class="card-image">
-                    <h4>Default Explorer</h4>
-                    <p style="color: var(--success-color); font-size: 0.8em; margin: 0;">ACTIVE</p>
-                </div>
+            <h3 style="margin-top: 20px;">Avatar Selection</h3>
+            <p style="color: var(--text-secondary); font-size:0.8em;">Select your avatar. Avatar is saved automatically upon selection.</p>
+            <div id="avatar-selection-grid" class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));">
+                <!-- Avatars will be rendered here -->
             </div>
-            <button id="save-avatar-btn" class="action-button small upgrade-button" style="margin-top: 10px; opacity: 0.5; pointer-events: none;" disabled>Apply Selected Avatar</button>
+            <button id="save-avatar-btn" class="action-button small upgrade-button" style="margin-top: 10px;" disabled>Apply Selected Avatar</button>
         </div>
     `;
 
-    // 1. Render Avatar Selection Grid (mostly disabled)
-    const avatarGrid = document.getElementById('avatar-selection-grid');
-    if (avatarGrid) {
-        // We'll only render the default as active and others as locked/disabled for now.
-        // If avatar_url is added to DB, this logic needs full re-implementation.
-    }
+    // 1. Render Avatar Selection Grid
+    renderAvatarSelection(state.playerProfile.level, state.playerProfile.ankh_premium, currentAvatar);
 
-
-    // 3. Attach Action Listeners
+    // 2. Attach Action Listeners
     document.getElementById('save-username-btn')?.addEventListener('click', handleSaveUsername);
-    // document.getElementById('save-avatar-btn')?.addEventListener('click', handleSaveAvatar); // Disabled for now
+    document.getElementById('save-avatar-btn')?.addEventListener('click', handleSaveAvatar);
 }
 
 
@@ -99,6 +145,8 @@ async function handleSaveUsername() {
 
     showToast(`Attempting to save name to ${newUsername}...`, 'info');
     
+    // Check if the username is taken (API function would be needed here, omitted for simplicity)
+    
     const { error } = await api.updatePlayerProfile(state.currentUser.id, { username: newUsername });
 
     if (error) {
@@ -111,11 +159,29 @@ async function handleSaveUsername() {
     }
 }
 
-// handleSaveAvatar function is commented out/disabled because avatar_url is not in DB.
-/*
 async function handleSaveAvatar() {
-    // This function requires 'avatar_url' to be a column in your 'profiles' table.
-    // Re-enable and re-implement once 'avatar_url' is added to Supabase.
-    showToast("Avatar saving is currently disabled. Add 'avatar_url' column to profiles table.", 'error');
+    if (selectedAvatarUrl === state.playerProfile.avatar_url) {
+        showToast("Avatar is already set to the selected image.", 'info');
+        document.getElementById('save-avatar-btn').disabled = true;
+        return;
+    }
+    
+    showToast(`Applying new avatar...`, 'info');
+    
+    const { error } = await api.updatePlayerProfile(state.currentUser.id, { avatar_url: selectedAvatarUrl });
+
+    if (error) {
+        showToast(`Error: Failed to update avatar!`, 'error');
+        console.error('Update Avatar Error:', error);
+    } else {
+        await refreshPlayerState();
+        showToast(`Avatar updated successfully!`, 'success');
+        document.getElementById('save-avatar-btn').disabled = true;
+        
+        // Refresh profile screen to see the change immediately
+        import('./profile.js').then(({ renderProfile }) => renderProfile()); 
+        
+        // Update header UI if it shows the avatar (currently it doesn't, but for completeness)
+        updateHeaderUI(state.playerProfile);
+    }
 }
-*/
