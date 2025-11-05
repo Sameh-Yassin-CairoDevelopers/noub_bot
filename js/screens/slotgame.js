@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/slotgame.js
- * Version: NOUB 0.0.8 (SLOT GAME - CRITICAL FIX: Payout Logic & Multiplier Betting)
+ * Version: NOUB 0.0.9 (SLOT GAME - CRITICAL FIX: Final Payout Logic & Multiplier Betting)
  * Description: Implements all logic for the Slot Machine game (Tomb of Treasures) 
- * FIXED: Core checkWinCondition logic is entirely rewritten to correctly handle all Video Poker cases (One Pair, Two Pair, Full House, ThreeX, FourX, FiveX).
+ * FIXED: Core checkWinCondition logic is entirely rewritten to correctly handle all Video Poker cases by strictly mapping the frequency counts.
  * NEW: Implements Multiplier Betting (1x, 5x, 10x) for spin tickets.
 */
 
@@ -16,22 +16,21 @@ const spinTicketDisplay = document.getElementById('spin-ticket-display');
 const spinButton = document.getElementById('spin-button');
 const reelsContainer = document.querySelectorAll('.reel');
 const slotGameContainer = document.getElementById('slot-machine-container');
-const multiplierButtonsContainer = document.getElementById('multiplier-buttons-container'); // NEW Container ID
-const spinsAvailableDisplay = document.getElementById('spins-available-display'); // NEW ID for in-game count
+const multiplierButtonsContainer = document.getElementById('multiplier-buttons-container'); 
+const spinsAvailableDisplay = document.getElementById('spins-available-display'); 
 
 // --- UPDATED SYMBOLS (More Thematic) ---
-// Note: Reel count is 5
 const SYMBOLS = ['👑', '☥', '💎', '🏺', '📜', '🔥', '🐞', '𓂀']; // 8 symbols
 const REEL_ITEM_HEIGHT = 45; 
 const REEL_COUNT = 5; 
 
 // --- BETTING CONSTANTS ---
 const MULTIPLIERS = [1, 5, 10];
-let currentMultiplier = 1; // Default bet is 1 ticket
+let currentMultiplier = 1; 
 let isSpinning = false;
 
 
-// --- Utility and Setup Functions ---
+// --- Utility and Setup Functions (Unchanged) ---
 
 function createReelSymbols(reelEl) {
     const inner = document.createElement('div');
@@ -54,7 +53,6 @@ function spinReel(reelEl, finalIndex) {
     const reelInner = reelEl.querySelector('.reel-inner');
     const symbolCountPerCycle = SYMBOLS.length;
     
-    // Target position for a long, clean spin
     const targetOffset = (7 * symbolCountPerCycle + finalIndex) * REEL_ITEM_HEIGHT;
 
     reelInner.style.transition = 'none'; 
@@ -69,31 +67,39 @@ function spinReel(reelEl, finalIndex) {
 }
 
 
-// --- Video Poker Winning Logic (CRITICALLY REWRITTEN) ---
+// --- Video Poker Winning Logic (CRITICALLY REWRITTEN - FINAL FIX) ---
 
 function checkWinCondition(results) {
     const freq = {};
     results.forEach(s => freq[s] = (freq[s] || 0) + 1);
 
-    const counts = Object.values(freq);
+    const counts = Object.values(freq).sort((a, b) => b - a); // Sort by highest frequency first
     
-    // 5 of a Kind
-    if (counts.includes(5)) return { type: 'FiveX', multiplier: 50 };
+    // Check based on the frequency map
+    if (counts.length === 1 && counts[0] === 5) {
+        return { type: 'FiveX', multiplier: 50 }; // 5 of a Kind
+    }
     
-    // 4 of a Kind
-    if (counts.includes(4)) return { type: 'FourX', multiplier: 10 };
+    if (counts[0] === 4) {
+        return { type: 'FourX', multiplier: 10 }; // 4 of a Kind
+    }
     
-    // Full House (3 of one kind, 2 of another)
-    if (counts.includes(3) && counts.includes(2)) return { type: 'FullHouse', multiplier: 5 };
+    if (counts[0] === 3 && counts[1] === 2) {
+        return { type: 'FullHouse', multiplier: 5 }; // Full House (3+2)
+    }
     
-    // 3 of a Kind
-    if (counts.includes(3)) return { type: 'ThreeX', multiplier: 3 };
+    if (counts[0] === 3) {
+        return { type: 'ThreeX', multiplier: 3 }; // 3 of a Kind
+    }
     
-    // Two Pair (two instances of '2')
-    if (counts.filter(c => c === 2).length === 2) return { type: 'TwoPair', multiplier: 2 };
+    // Counts array must contain at least [2, 2, 1] or [2, 2, 0] or similar for Two Pair/One Pair
+    if (counts.filter(c => c === 2).length >= 2) {
+        return { type: 'TwoPair', multiplier: 2 }; // Two Pair
+    }
     
-    // One Pair
-    if (counts.includes(2)) return { type: 'OnePair', multiplier: 1.5 };
+    if (counts[0] === 2) {
+        return { type: 'OnePair', multiplier: 1.5 }; // One Pair
+    }
     
     // Loss
     return { type: 'Loss', multiplier: 0 };
@@ -102,8 +108,12 @@ function checkWinCondition(results) {
 
 async function determinePrize(results, multiplier) {
     const win = checkWinCondition(results);
-    const basePayout = 50 * multiplier; // Multiply base by bet multiplier
+    const basePayout = 50 * multiplier; 
     
+    // NOTE: fetchSlotRewards is not used here as base payout is hardcoded (50) and multipliers are logic-based
+    // We keep the call here for future expansion but rely on logic
+    // const { data: rewards, error: rewardsError } = await api.fetchSlotRewards();
+
     if (win.multiplier > 0) {
         const rewardAmount = Math.floor(basePayout * win.multiplier);
         
@@ -176,7 +186,7 @@ async function runSlotMachine() {
         });
         
         // Determine prize and update DB
-        await determinePrize(resultsSymbols, betAmount); // Pass the bet amount as multiplier
+        await determinePrize(resultsSymbols, betAmount); 
         
         spinButton.disabled = false;
         isSpinning = false;
@@ -227,7 +237,7 @@ function setMultiplier(multiplier) {
     
     // Update button text to reflect the new bet
     if (spinButton) {
-        spinButton.textContent = `SPIN (${currentMultiplier} TICKETS)`;
+        spinButton.textContent = `SPIN (${currentMultiplier} TICKET${currentMultiplier > 1 ? 'S' : ''})`;
     }
     
     refreshSlotGameScreen();
@@ -237,9 +247,11 @@ function setMultiplier(multiplier) {
  * NEW: Renders the multiplier buttons
  */
 function renderMultiplierButtons() {
-    if (!multiplierButtonsContainer) return;
+    // Check if the container element exists in the DOM after the new HTML is created
+    const container = document.getElementById('multiplier-buttons-container');
+    if (!container) return;
     
-    multiplierButtonsContainer.innerHTML = MULTIPLIERS.map(m => `
+    container.innerHTML = MULTIPLIERS.map(m => `
         <button class="action-button small multiplier-btn ${m === currentMultiplier ? 'active' : ''}" 
                 data-multiplier="${m}"
                 onclick="window.setMultiplier(${m})">
@@ -252,7 +264,7 @@ function renderMultiplierButtons() {
     
     // Set initial button text
     if (spinButton) {
-        spinButton.textContent = `SPIN (${currentMultiplier} TICKET)`;
+        spinButton.textContent = `SPIN (${currentMultiplier} TICKET${currentMultiplier > 1 ? 'S' : ''})`;
     }
 }
 
@@ -265,8 +277,9 @@ async function refreshSlotGameScreen() {
         el.textContent = state.playerProfile.spin_tickets || 0;
     });
     
-    if (spinsAvailableDisplay) {
-        spinsAvailableDisplay.textContent = state.playerProfile.spin_tickets || 0;
+    const spinsDisplayElement = document.getElementById('spins-available-display');
+    if (spinsDisplayElement) {
+        spinsDisplayElement.textContent = state.playerProfile.spin_tickets || 0;
     }
 
     if (spinButton) {
@@ -285,17 +298,22 @@ export async function renderSlotGame() {
     // CRITICAL: Ensure the slot game container has the necessary sub-elements
     const gameContainer = document.getElementById('slot-machine-container');
     if (gameContainer && !gameContainer.querySelector('#multiplier-buttons-container')) {
-         gameContainer.querySelector('.balance-info').id = 'spins-available-info';
-         gameContainer.querySelector('#spins-available-info').innerHTML = 
-            `Spins Available: <span id="spins-available-display">${state.playerProfile.spin_tickets || 0}</span> 🎟️`;
-            
-         const reelsArea = gameContainer.querySelector('.reels-container').parentNode;
          
-         const multiplierDiv = document.createElement('div');
-         multiplierDiv.id = 'multiplier-buttons-container';
-         multiplierDiv.style.cssText = 'margin-bottom: 10px; display: flex; justify-content: center; gap: 10px;';
+         // 1. Change the Spin display area to use the new ID for easy access
+         const spinInfoDiv = gameContainer.querySelector('.balance-info');
+         if (spinInfoDiv) {
+              spinInfoDiv.innerHTML = `Spins Available: <span id="spins-available-display">${state.playerProfile.spin_tickets || 0}</span> 🎟️`;
+         }
          
-         reelsArea.insertBefore(multiplierDiv, gameContainer.querySelector('.reels-container'));
+         // 2. Create and insert the multiplier button container
+         const reelsArea = gameContainer.querySelector('.reels-container');
+         if (reelsArea) {
+             const multiplierDiv = document.createElement('div');
+             multiplierDiv.id = 'multiplier-buttons-container';
+             multiplierDiv.style.cssText = 'margin-bottom: 10px; display: flex; justify-content: center; gap: 10px;';
+             
+             reelsArea.parentNode.insertBefore(multiplierDiv, reelsArea);
+         }
     }
 
     await checkDailyTicket();
