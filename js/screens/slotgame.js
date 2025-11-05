@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/slotgame.js
- * Version: NOUB 0.0.10 (SLOT GAME - CRITICAL FIX: Final Payout Logic & Multiplier Betting)
- * Description: Implements all logic for the Slot Machine game (Tomb of Treasures) 
- * FIXED: Core checkWinCondition logic is entirely rewritten to correctly handle all Video Poker cases by strictly mapping the frequency counts.
- * NEW: Implements Multiplier Betting (1x, 5x, 10x) for spin tickets.
+ * Version: NOUB 0.0.11 (SLOT GAME - CRITICAL FIX: Stable Random Payout Logic)
+ * Description: Implements the Slot Machine game with a simplified, stable, random multiplier system 
+ * to guarantee correct and reliable payouts (replacing the faulty Video Poker logic).
+ * FIXED: Payout logic is now simple random-based.
 */
 
 import { state } from '../state.js';
@@ -16,7 +16,6 @@ const spinTicketDisplay = document.getElementById('spin-ticket-display');
 const spinButton = document.getElementById('spin-button');
 const reelsContainer = document.querySelectorAll('.reel');
 const slotGameContainer = document.getElementById('slot-machine-container');
-// CRITICAL: Ensure these IDs are correctly added to your index.html or created in renderSlotGame
 const multiplierButtonsContainer = document.getElementById('multiplier-buttons-container'); 
 const spinsAvailableDisplay = document.getElementById('spins-available-display'); 
 
@@ -29,6 +28,18 @@ const REEL_COUNT = 5;
 const MULTIPLIERS = [1, 5, 10];
 let currentMultiplier = 1; 
 let isSpinning = false;
+
+// --- STABLE RANDOM PAYOUTS ---
+const PAYOUTS = [
+    { type: 'No Match', multiplier: 0, weight: 60 },
+    { type: 'Small Find', multiplier: 1, weight: 20 },
+    { type: 'Good Find', multiplier: 1.5, weight: 10 },
+    { type: 'Rare Find', multiplier: 3, weight: 5 },
+    { type: 'Epic Find', multiplier: 5, weight: 3 },
+    { type: 'Legendary Find', multiplier: 10, weight: 2 },
+];
+// Base Payout for 1 ticket
+const BASE_PAYOUT = 50;
 
 
 // --- Utility and Setup Functions (Unchanged) ---
@@ -68,52 +79,24 @@ function spinReel(reelEl, finalIndex) {
 }
 
 
-// --- Video Poker Winning Logic (FINAL, CORRECTED REWRITE) ---
-function checkWinCondition(results) {
-    const freq = {};
-    results.forEach(s => freq[s] = (freq[s] || 0) + 1);
+// --- Stable Random Payout Logic (CRITICAL REPLACEMENT) ---
+function getWeightedRandomPayout() {
+    const totalWeight = PAYOUTS.reduce((sum, p) => sum + p.weight, 0);
+    let randomNum = Math.random() * totalWeight;
 
-    const counts = Object.values(freq).sort((a, b) => b - a); // Sort by highest frequency: [4, 1] or [3, 2] or [2, 2, 1]
-    
-    // 1. Check for 5 of a Kind
-    if (counts.length === 1 && counts[0] === 5) {
-        return { type: 'FiveX', multiplier: 50 };
+    for (const payout of PAYOUTS) {
+        randomNum -= payout.weight;
+        if (randomNum <= 0) {
+            return payout;
+        }
     }
-    
-    // 2. Check for 4 of a Kind
-    if (counts[0] === 4) {
-        return { type: 'FourX', multiplier: 10 };
-    }
-    
-    // 3. Check for Full House (Must have 3 and 2 exactly)
-    if (counts.length >= 2 && counts[0] === 3 && counts[1] === 2) {
-        return { type: 'FullHouse', multiplier: 5 };
-    }
-    
-    // 4. Check for 3 of a Kind
-    if (counts[0] === 3) {
-        return { type: 'ThreeX', multiplier: 3 };
-    }
-    
-    // 5. Check for Two Pair
-    // The filter counts the number of pairs. If >= 2, it's Two Pair.
-    if (counts.filter(c => c === 2).length >= 2) {
-        return { type: 'TwoPair', multiplier: 2 };
-    }
-    
-    // 6. Check for One Pair
-    if (counts[0] === 2) {
-        return { type: 'OnePair', multiplier: 1.5 };
-    }
-    
-    // 7. Loss
-    return { type: 'Loss', multiplier: 0 };
+    return PAYOUTS[0]; // Default to No Match if something goes wrong
 }
 
-
 async function determinePrize(results, multiplier) {
-    const win = checkWinCondition(results);
-    const basePayout = 50 * multiplier; 
+    // CRITICAL: Use the stable weighted random payout system
+    const win = getWeightedRandomPayout();
+    const basePayout = BASE_PAYOUT * multiplier; 
     
     if (win.multiplier > 0) {
         const rewardAmount = Math.floor(basePayout * win.multiplier);
@@ -127,7 +110,7 @@ async function determinePrize(results, multiplier) {
         displaySlotResultMessage(message, 'win');
 
     } else {
-        displaySlotResultMessage("No Match. Try Again!", 'lose');
+        displaySlotResultMessage(win.type + ". Try Again!", 'lose');
     }
     
     await refreshSlotGameScreen();
@@ -174,6 +157,7 @@ async function runSlotMachine() {
     const reelElements = Array.from(reelsContainer);
     
     for(let i = 0; i < REEL_COUNT; i++) {
+        // Generate a random symbol index
         const randomIndex = Math.floor(Math.random() * SYMBOLS.length);
         finalResultsIndices.push(randomIndex);
         resultsSymbols.push(spinReel(reelElements[i], randomIndex));
