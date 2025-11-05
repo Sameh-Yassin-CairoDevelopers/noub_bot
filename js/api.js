@@ -1,10 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.8 (API FINAL FIX - Library Fix & supabaseClient Export)
+ * Version: NOUB 0.0.9 (API FINAL FIX - Profile Select Update)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * NEW: Exports supabaseClient to be used by modules that require direct access (like library.js for inserts).
- * FIXED: fetchGameHistory now uses the correct 'date' column.
- * NEW: Added insertGameHistory function to write game results to the database.
+ * CRITICAL FIX: Added 'completed_contracts_count' to fetchProfile select list.
 */
 
 import { supabaseClient } from './config.js';
@@ -15,7 +13,8 @@ export { supabaseClient };
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address, level').eq('id', userId).single();
+    // CRITICAL FIX: Add completed_contracts_count to the select statement to ensure it is loaded into state
+    return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address, level, completed_contracts_count').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
@@ -200,6 +199,7 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
+    // NOTE: newTotals only contains standard contract rewards. The Completion Bonus logic is handled in contracts.js.
     return await supabaseClient
         .from('profiles')
         .update({ noub_score: newTotals.noub_score, prestige: newTotals.prestige })
@@ -221,23 +221,10 @@ export async function fetchSlotRewards() {
 }
 
 export async function getDailySpinTickets(playerId) {
-    const { data: profileData, error } = await supabaseClient.from('profiles')
+    return await supabaseClient.from('profiles')
         .select('spin_tickets, last_daily_spin, noub_score, ankh_premium')
         .eq('id', playerId)
         .single();
-    
-    if (error || !profileData) {
-        console.error("Error fetching daily spin tickets profile data:", error);
-        return { available: false, profileData: null };
-    }
-
-    const lastSpinTime = new Date(profileData.last_daily_spin).getTime();
-    const now = Date.now();
-    const twentyFourHours = 24 * 60 * 60 * 1000;
-    
-    const available = (now - lastSpinTime) > twentyFourHours;
-
-    return { available, profileData };
 }
 
 export async function fetchKVGameConsumables(playerId) {
