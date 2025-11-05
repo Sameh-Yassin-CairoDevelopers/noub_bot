@@ -1,9 +1,8 @@
 /*
  * Filename: js/screens/upgrade.js
- * Version: NOUB 0.0.7 (UPGRADE MODULE - UI Rework)
+ * Version: NOUB 0.0.8 (UPGRADE MODULE - FIX: Export Factory Upgrade Logic)
  * Description: View Logic Module for the Card & Factory Upgrade screen.
- * NOTE: The primary card upgrade UI has been moved to a modal in collection.js.
- * This file is kept for Factory Upgrade logic and as a potential future hub for all upgrades.
+ * NEW: The core factory upgrade logic is now exported for direct call from economy.js modal.
 */
 
 import { state } from '../state.js';
@@ -14,66 +13,84 @@ import { refreshPlayerState } from '../auth.js';
 const upgradeSelectionContainer = document.getElementById('upgrade-card-selection-container');
 const upgradeDetailArea = document.getElementById('upgrade-detail-area');
 
-let selectedInstance = null; // The specific card instance the player wants to upgrade
-
-// --- Factory Upgrade Constants ---
+// --- Factory Upgrade Constants (Can be moved to config.js later if needed) ---
 const FACTORY_UPGRADE_COST = 500; 
 const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
 const FACTORY_UPGRADE_QTY = 10; 
+const FACTORY_UPGRADE_LEVEL_CAP = 10; // Max level for factories
 
 // --- Factory Upgrade Logic ---
-async function executeFactoryUpgrade(playerFactory) { 
-    if (!playerFactory) return;
 
-    showToast('Processing factory upgrade...', 'info');
-    
-    // Check costs against player state
-    const playerNoub = state.playerProfile.noub_score || 0;
-    
-    // Find the item ID for the required material
-    const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => item.details.name === FACTORY_UPGRADE_ITEM_NAME);
-    const materialId = requiredMaterialEntry?.details.id;
-    const playerMaterialQty = requiredMaterialEntry?.qty || 0;
+/**
+ * Executes the factory upgrade transaction.
+ * NOTE: playerFactory argument must be the object from the factory fetch (playerFactory.factories for details).
+ * @param {object} playerFactory - The player_factories object (id, level, factory_id, etc.).
+ */
+export async function executeFactoryUpgrade(playerFactory) { 
+    if (!state.currentUser || !playerFactory) return;
 
-    if (!materialId || playerNoub < FACTORY_UPGRADE_COST || playerMaterialQty < FACTORY_UPGRADE_QTY) {
-        showToast('Error: Missing resources for upgrade.', 'error');
+    if (playerFactory.level >= FACTORY_UPGRADE_LEVEL_CAP) {
+        showToast('Factory has reached its maximum level.', 'error');
         return;
     }
 
-    // 1. Consume Currencies and Materials
+    showToast('Processing factory upgrade...', 'info');
+    
+    // 1. Find the required material in player's inventory
+    const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => 
+        item.details.name === FACTORY_UPGRADE_ITEM_NAME
+    );
+    
+    const materialId = requiredMaterialEntry?.details.id;
+    const playerMaterialQty = requiredMaterialEntry?.qty || 0;
+    const playerNoub = state.playerProfile.noub_score || 0;
+
+    // Check costs against player state
+    if (!materialId || playerNoub < FACTORY_UPGRADE_COST || playerMaterialQty < FACTORY_UPGRADE_QTY) {
+        showToast(`Error: Missing ${FACTORY_UPGRADE_ITEM_NAME} or ${FACTORY_UPGRADE_COST} NOUB for upgrade.`, 'error');
+        return;
+    }
+
+    // 2. Consume Currencies and Materials
     const newNoub = playerNoub - FACTORY_UPGRADE_COST;
     const newMaterialQty = playerMaterialQty - FACTORY_UPGRADE_QTY;
     
-    // Update profile
+    // Update profile (NOUB)
     const profileUpdate = { noub_score: newNoub };
-    await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
+    const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
     
-    // Update inventory
-    await api.updateItemQuantity(state.currentUser.id, materialId, newMaterialQty);
+    // Update inventory (Material)
+    const { error: inventoryError } = await api.updateItemQuantity(state.currentUser.id, materialId, newMaterialQty);
+
+    if (profileError || inventoryError) {
+        showToast('Error consuming resources for upgrade!', 'error');
+        return;
+    }
     
-    // 2. Update Factory Level
+    // 3. Update Factory Level
     const newLevel = playerFactory.level + 1;
-    const { error } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); 
+    const { error: factoryError } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); 
     
-    if (error) {
+    if (factoryError) {
         showToast('Error updating factory level!', 'error');
         return;
     }
 
-    // 3. Success & Refresh
-    showToast(`Factory Upgraded! LVL ${playerFactory.level} → LVL ${newLevel}`, 'success');
+    // 4. Success & Refresh
+    showToast(`Factory Upgraded! ${playerFactory.factories.name} LVL ${playerFactory.level} → LVL ${newLevel}`, 'success');
     
     await refreshPlayerState(); 
     
-    // Redirect back to the economy screen to show new level
-    navigateTo('economy-screen');
+    // Stay on economy screen or navigate back
+    if (document.getElementById('economy-screen').classList.contains('hidden')) {
+        navigateTo('economy-screen');
+    }
 }
 
 
 /**
- * Renders the main upgrade screen. 
- * For now, it focuses on displaying cards as a secondary way to access upgrade info,
- * though the primary upgrade action is now in the collection modal.
+ * Renders the main upgrade screen (mostly for Card Upgrade Selection).
+ * This screen is now a hub, not the primary factory upgrade executor.
  */
 export async function renderUpgrade() { 
     if (!state.currentUser) return;
@@ -119,10 +136,9 @@ export async function renderUpgrade() {
             </div>
         `;
         
-        // This onclick handler can be used to show a simple info toast or navigate back to the collection
         cardElement.onclick = () => {
-            showToast('Upgrade cards from the "My Cards" screen.', 'info');
-            navigateTo('collection-screen');
+            showToast('Upgrade cards is done from the "My Cards" screen.', 'info');
+            navigateTo('collection-screen'); 
         };
         
         upgradeSelectionContainer.appendChild(cardElement);
