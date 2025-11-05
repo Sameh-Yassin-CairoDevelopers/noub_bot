@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB 0.0.7 (ECONOMY MODULE - Specializations Update)
+ * Version: NOUB 0.0.8 (ECONOMY MODULE - FIX: Factory Upgrade UI Implementation)
  * Description: View Logic Module for Production and Stockpile screens.
- * NEW: Implements the specialization choice logic for new players reaching the unlock level.
+ * NEW: Implements the factory upgrade detail and button within the production modal.
 */
 
 import { state } from '../state.js';
@@ -10,6 +10,7 @@ import * as api from '../api.js';
 import { showToast, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
+import { executeFactoryUpgrade } from './upgrade.js'; // NEW: Import the upgrade logic
 
 const resourcesContainer = document.getElementById('resources-container');
 const workshopsContainer = document.getElementById('workshops-container');
@@ -27,8 +28,13 @@ const ONE_SECOND = 1000;
 // NEW: Specialization Unlock Level
 const SPECIALIZATION_UNLOCK_LEVEL = 15;
 
+// --- Factory Upgrade Constants (Should match upgrade.js) ---
+const FACTORY_UPGRADE_COST = 500; 
+const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
+const FACTORY_UPGRADE_QTY = 10; 
+const FACTORY_UPGRADE_LEVEL_CAP = 10; 
 
-// --- NEW: Specialization Logic ---
+// --- NEW: Specialization Logic (Remains unchanged) ---
 
 /**
  * Handles the player's selection of a new specialization path.
@@ -36,9 +42,6 @@ const SPECIALIZATION_UNLOCK_LEVEL = 15;
 async function handleSelectSpecialization(pathId) {
     showToast('Unlocking specialization path...', 'info');
     
-    // Here you would add logic to deduct costs if applicable
-    // For now, we assume the first one is free or has a cost defined in the DB.
-
     const { error } = await api.unlockSpecialization(state.currentUser.id, pathId);
 
     if (error) {
@@ -94,7 +97,7 @@ async function renderSpecializationChoice() {
 }
 
 
-// --- Utility Functions ---
+// --- Utility Functions (Remains unchanged) ---
 
 function formatTime(ms) {
     if (ms < 0) return '00:00';
@@ -112,7 +115,7 @@ function formatTime(ms) {
 }
 
 
-// --- Production Logic ---
+// --- Production Logic (Remains unchanged) ---
 
 async function handleStartProduction(factoryId, recipes) {
     if (!state.currentUser) return;
@@ -191,7 +194,7 @@ async function handleClaimProduction(playerFactory, outputItem) {
 }
 
 
-// --- Production UI Render ---
+// --- Production UI Render (CRITICAL: openProductionModal is heavily modified) ---
 
 function updateProductionCard(factory, outputItem) {
     const cardId = `factory-card-${factory.id}`;
@@ -268,18 +271,47 @@ function openProductionModal(playerFactory, outputItem) {
     } else {
         buttonHTML = `<button id="start-prod-btn" class="action-button" ${canStart ? '' : 'disabled'}>Start Production</button>`;
     }
+    
+    // --- NEW: Factory Upgrade Details ---
+    const playerNoub = state.playerProfile.noub_score || 0;
+    const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => item.details.name === FACTORY_UPGRADE_ITEM_NAME);
+    const playerMaterialQty = requiredMaterialEntry?.qty || 0;
+    
+    const canUpgrade = playerFactory.level < FACTORY_UPGRADE_LEVEL_CAP && playerNoub >= FACTORY_UPGRADE_COST && playerMaterialQty >= FACTORY_UPGRADE_QTY;
+    const upgradeDisabledText = playerFactory.level >= FACTORY_UPGRADE_LEVEL_CAP ? 'MAX LEVEL' : (canUpgrade ? 'Upgrade' : 'Missing Resources');
+    const upgradeButtonColor = canUpgrade ? '#5dade2' : '#7f8c8d';
 
+    const upgradeCostHTML = `
+        <div style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;">
+            <h4 style="color:var(--primary-accent); margin-bottom: 5px;">Upgrade to Level ${playerFactory.level + 1}</h4>
+            <div class="upgrade-cost-grid" style="grid-template-columns: 1fr 1fr; max-width: 250px; margin: 0 auto;">
+                <div class="cost-item">
+                    <span class="icon">🪙</span>
+                    <div class="value" style="color: ${playerNoub >= FACTORY_UPGRADE_COST ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_COST}</div>
+                    <div class="label">NOUB</div>
+                </div>
+                <div class="cost-item">
+                    <span class="icon">🧱</span>
+                    <div class="value" style="color: ${playerMaterialQty >= FACTORY_UPGRADE_QTY ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_QTY}</div>
+                    <div class="label">${FACTORY_UPGRADE_ITEM_NAME}</div>
+                </div>
+            </div>
+            <button id="upgrade-factory-btn" class="action-button small" style="background-color: ${upgradeButtonColor}; width: 150px;" ${!canUpgrade ? 'disabled' : ''}>${upgradeDisabledText}</button>
+        </div>
+    `;
+
+    // Inject the modal HTML
     productionModal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeModal('production-modal')">&times;</button>
             <div class="prod-modal-header">
                 <img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}">
                 <h3>${factory.name}</h3>
-                <p class="level">Level: ${playerFactory.level}</p>
+                <p class="level">Current Level: ${playerFactory.level}</p>
             </div>
             
             <div class="prod-modal-body">
-                <h4 style="color:var(--text-secondary); text-align:center;">Input ➡️ Output</h4>
+                <h4 style="color:var(--text-secondary); text-align:center;">Input ➡️ Output (Time: ${formatTime(masterTime)})</h4>
                 <div class="prod-io">
                     ${requirementsHTML.length > 0 ? requirementsHTML : '<div class="prod-item"><p>None</p><div class="label">Input</div></div>'}
                     <span class="arrow">➡️</span>
@@ -291,19 +323,19 @@ function openProductionModal(playerFactory, outputItem) {
                 </div>
 
                 <div class="prod-timer">
-                    <p class="label">Production Time</p>
-                    <div class="time-left">${formatTime(masterTime)}</div>
-                    ${isRunning ? `<div class="progress-bar-modal"><div class="progress-bar-inner-modal" style="width: ${((timeElapsed || 0) / masterTime) * 100}%"></div></div>` : ''}
+                    ${isRunning ? `<div class="time-left">Time Left: ${formatTime(masterTime - timeElapsed)}</div><div class="progress-bar"><div class="progress-bar-inner" style="width: ${((timeElapsed || 0) / masterTime) * 100}%"></div></div>` : ''}
                 </div>
             </div>
             
             ${buttonHTML}
-            <button id="upgrade-factory-btn" class="action-button danger" style="background-color:#555; margin-top: 10px;">Upgrade Factory</button>
+            
+            ${upgradeCostHTML}
         </div>
     `;
 
     openModal('production-modal');
 
+    // Add event listeners
     if (document.getElementById('start-prod-btn')) {
         document.getElementById('start-prod-btn').onclick = () => handleStartProduction(playerFactory.id, factory.factory_recipes);
     } else if (document.getElementById('claim-prod-btn')) {
@@ -311,10 +343,11 @@ function openProductionModal(playerFactory, outputItem) {
     }
     
     const upgradeFactoryBtn = document.getElementById('upgrade-factory-btn');
-    if(upgradeFactoryBtn) {
+    if(upgradeFactoryBtn && canUpgrade) {
+        // Pass the playerFactory object (containing the player's specific factory data)
         upgradeFactoryBtn.onclick = () => {
-            window.closeModal('production-modal');
-            navigateTo('card-upgrade-screen');
+            window.closeModal('production-modal'); 
+            executeFactoryUpgrade(playerFactory); 
         };
     }
 }
@@ -376,7 +409,7 @@ export async function renderProduction() {
 }
 
 
-// --- Stockpile Logic ---
+// --- Stockpile Logic (Remains unchanged) ---
 
 export async function renderStock() {
     if (!state.currentUser) return;
