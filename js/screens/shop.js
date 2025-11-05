@@ -108,7 +108,7 @@ async function handleTonExchange(tonAmount, ankhAmount) {
 
     // CRITICAL: Replace this with your actual TON wallet address!
     // The previous error was due to an invalid placeholder address format or incorrect message structure.
-    const gameWalletAddress = "UQCF4vj_xM8m_K2sX8r_z8r_z8r_z8r_z8r_z8r_z8r_z8r_z8r_z8r_z8r_z8r_z8r_z8r"; // Placeholder address
+    const gameWalletAddress = "UQDYpGLl1efwDOSJb_vFnbAZ5Rz5z-AmSzrbRwM5IcNN_erF"; // Placeholder address
 
     // Convert TON to Nanos (1 TON = 10^9 Nanos)
     const amountNanos = (tonAmount * 1e9).toFixed(0); 
@@ -273,3 +273,4 @@ export async function openShopModal() {
 window.handleBuyCardPack = handleBuyCardPack;
 window.handleBuyGameItem = handleBuyGameItem;
 window.handleTonExchange = handleTonExchange;
+
