@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/shop.js
- * Version: NOUB 0.0.8 (SHOP OVERHAUL - FINAL FIX)
+ * Version: NOUB 0.0.9 (SHOP OVERHAUL - FIX: TON Transaction Setup)
  * Description: Implements the multi-tabbed Shop interface.
- * FIXED: All purchase logic now correctly uses 'noub_score' for NOUB and 'ankh_premium' for Ankh Premium.
+ * CRITICAL FIX: Ensures TON Transaction messages are correctly structured for TonConnectUI.
 */
 
 import { state } from '../state.js';
@@ -13,7 +13,7 @@ import { trackDailyActivity } from './contracts.js';
 
 const shopModal = document.getElementById('shop-modal');
 
-// --- Shop Item Data ---
+// --- Shop Item Data (Unchanged) ---
 
 const CARD_PACKS = [
     { id: 'papyrus', name: 'Papyrus Scroll Pack', cost: 250, reward_count: 1, desc: 'Contains 1 random card (Common guaranteed).', icon: '📜' },
@@ -35,7 +35,7 @@ const TON_PACKAGES = [
 ];
 
 
-// --- Core Transaction Handlers ---
+// --- Core Transaction Handlers (Unchanged) ---
 
 async function handleBuyCardPack(packCost, packId) {
     if (!state.currentUser || (state.playerProfile.noub_score || 0) < packCost) {
@@ -93,7 +93,7 @@ async function handleBuyGameItem(itemKey, costNoub, costAnkhPremium, quantity) {
 }
 
 
-// --- TON EXCHANGE Logic ---
+// --- TON EXCHANGE Logic (CRITICALLY MODIFIED) ---
 
 async function handleTonExchange(tonAmount, ankhAmount) {
     if (!window.TonConnectUI || !window.TonConnectUI.connected) {
@@ -101,24 +101,33 @@ async function handleTonExchange(tonAmount, ankhAmount) {
         return;
     }
 
-    // IMPORTANT: Replace this with your actual TON wallet address
-    const gameWalletAddress = "YOUR_TON_WALLET_ADDRESS_HERE"; 
+    // CRITICAL: Replace this with your actual TON wallet address!
+    // This is the address that receives the TON payment.
+    const gameWalletAddress = "UQDYpGLl1efwDOSJb_vFnbAZ5Rz5z-AmSzrbRwM5IcNN_erF"; // Placeholder address
+
+    // Convert TON to Nanos (1 TON = 10^9 Nanos)
+    const amountNanos = (tonAmount * 1e9).toFixed(0); 
 
     const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 60,
+        validUntil: Math.floor(Date.now() / 1000) + 60, // 60 seconds validity
         messages: [{
             address: gameWalletAddress,
-            amount: (tonAmount * 1e9).toString(),
+            amount: amountNanos,
+            payload: "te6ccgEBAQEAAgAAAQAAAQABAAAAAAAA" // Minimal payload for transfer
         }]
     };
 
     try {
         showToast("Waiting for TON wallet confirmation...", 'info');
         const result = await TonConnectUI.sendTransaction(transaction);
-        const txId = result.boc.substring(0, 10);
+        
+        // Use result.boc for transaction ID/logging
+        const txId = result.boc.substring(0, 10); 
 
+        // 1. Log the transaction on Supabase (Backend check would happen here in a real app)
         await api.saveTonTransaction(state.currentUser.id, txId, tonAmount, ankhAmount);
         
+        // 2. Grant Ankh Premium
         const newAnkhPremium = (state.playerProfile.ankh_premium || 0) + ankhAmount;
         await api.updatePlayerProfile(state.currentUser.id, { ankh_premium: newAnkhPremium });
 
@@ -128,12 +137,13 @@ async function handleTonExchange(tonAmount, ankhAmount) {
 
     } catch (error) {
         console.error("TON Transaction Failed:", error);
-        showToast("TON transaction cancelled or failed.", 'error');
+        // Show a filtered error message to the user
+        showToast("TON transaction cancelled or failed. Check console for details.", 'error');
     }
 }
 
 
-// --- Rendering Functions ---
+// --- Rendering Functions (Unchanged) ---
 
 function renderCardPacks() {
     document.getElementById('shop-items-cards-container').innerHTML = CARD_PACKS.map(pack => `
@@ -242,4 +252,3 @@ export async function openShopModal() {
 window.handleBuyCardPack = handleBuyCardPack;
 window.handleBuyGameItem = handleBuyGameItem;
 window.handleTonExchange = handleTonExchange;
-
