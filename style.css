@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: NOUB 0.0.8 - UI Rework & Home Desktop
+ * Version: NOUB 0.0.9 - FINAL UI FIX & SLOT MULTIPLIER
  * Description: Main stylesheet for the "Noub" game.
- * This is the complete and final version for this update, including the new professional home screen layout.
+ * FIXED: TON Connect button display and added styles for Slot Multiplier buttons.
 */
 
 
@@ -41,7 +41,6 @@ body {
     font-family: 'Cairo', sans-serif;
     background-color: var(--background-dark);
     color: var(--text-primary);
-    margin: 0;
     padding: 50px 10px 65px 10px;
     min-height: 100vh;
     font-size: 0.95em;
@@ -117,10 +116,18 @@ header {
     vertical-align: middle;
 }
 
+/* --- CRITICAL FIX: TON Connect Button Display --- */
 .ton-connect-btn {
     flex-shrink: 0;
-    width: 28px;
-    height: 28px;
+    width: auto; /* Allow button to take natural width */
+    min-width: 30px; 
+    height: 30px; /* Ensure button fits nicely */
+    overflow: hidden;
+    margin-left: 5px;
+}
+/* Ensure the inner TonConnect-UI button fits */
+.ton-connect-btn > button {
+    height: 100%;
 }
 
 .bottom-nav {
@@ -143,7 +150,7 @@ header {
     user-select: none;
     flex-grow: 1;
     flex-shrink: 0;
-    padding: 0 5px; /* Adjusted padding for 6 items */
+    padding: 0 5px; 
 }
 
 .nav-item.active {
@@ -235,7 +242,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- MODAL STYLES --- */
+/* --- MODAL STYLES (Unchanged) --- */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -282,11 +289,11 @@ input:focus, textarea:focus {
 }
 
 
-/* --- NEW HOME SCREEN STYLES (Professional Desktop Layout) --- */
+/* --- NEW HOME SCREEN STYLES (Unchanged) --- */
 .home-layout {
     display: flex;
     flex-direction: column;
-    gap: 25px; /* Space between sections */
+    gap: 25px; 
 }
 
 .home-section h3 {
@@ -375,7 +382,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- TASKS SCREEN STYLES --- */
+/* --- TASKS SCREEN STYLES (Unchanged) --- */
 .daily-quest-card {
     background-color: var(--surface-dark);
     padding: 8px 10px;
@@ -416,7 +423,7 @@ input:focus, textarea:focus {
     margin-bottom: 3px;
 }
 
-/* --- ALBUM CATALOG --- */
+/* --- ALBUM CATALOG (Unchanged) --- */
 .album-list-item {
     padding: 8px 10px;
     margin-bottom: 7px;
@@ -455,7 +462,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Cards & Grids --- */
+/* --- Cards & Grids (Unchanged) --- */
 .card-grid, .buildings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -514,7 +521,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- ECONOMY HUB CARD FORMATTING --- */
+/* --- ECONOMY HUB CARD FORMATTING (Unchanged) --- */
 .building-card .level {
     font-size: 0.6em;
 }
@@ -576,7 +583,7 @@ input:focus, textarea:focus {
     color: var(--ankh-premium-color);
 }
 
-/* --- Production Modal --- */
+/* --- Production Modal (Unchanged) --- */
 .prod-modal-header { text-align: center; }
 .prod-modal-header img { width: 60px; height: 60px; }
 .prod-modal-header h3 { color: var(--primary-accent); margin: 7px 0 3px 0; }
@@ -631,6 +638,22 @@ input:focus, textarea:focus {
     color: var(--primary-accent);
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
+/* NEW: Slot Multiplier Buttons */
+.multiplier-btn {
+    background-color: var(--input-bg);
+    color: var(--text-secondary);
+    border: 1px solid #3a3a3c;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.8em;
+}
+.multiplier-btn.active {
+    background-color: var(--primary-accent);
+    color: var(--background-dark);
+    border-color: var(--primary-accent);
+}
+
 .game-status-message {
     font-size: 0.9em;
     font-weight: bold;
@@ -641,7 +664,7 @@ input:focus, textarea:focus {
     color: var(--danger-color);
 }
 
-/* --- Upgrade Modal --- */
+/* --- Upgrade Modal (Unchanged) --- */
 .upgrade-modal-content {
     text-align: center;
 }
@@ -679,7 +702,7 @@ input:focus, textarea:focus {
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 
-/* --- KV Game --- */
+/* --- KV Game (Unchanged) --- */
 #kv-game-content h3 {
     color: var(--kv-gate-color);
     margin-top: 0;
@@ -729,7 +752,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Chat Screen Styles --- */
+/* --- Chat Screen Styles (Unchanged) --- */
 #chat-messages {
     background-color: var(--surface-dark);
     border-radius: 8px;
@@ -769,7 +792,7 @@ input:focus, textarea:focus {
     flex-grow: 1;
 }
 
-/* --- SWAP/EXCHANGE UI (DEX Style) --- */
+/* --- SWAP/EXCHANGE UI (DEX Style) (Unchanged) --- */
 .swap-box {
     background: var(--surface-dark);
     padding: 10px;
@@ -835,7 +858,7 @@ input:focus, textarea:focus {
 #continue-swap-btn:disabled { opacity: 0.5; }
 
 
-/* --- Shop Tabs Styles --- */
+/* --- Shop Tabs Styles (Unchanged) --- */
 .shop-tabs-container {
     display: flex;
     justify-content: space-around;
@@ -885,7 +908,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Profile Screen --- */
+/* --- Profile Screen (Unchanged) --- */
 .profile-container, .profile-header {
     display: flex;
     flex-direction: column;
@@ -939,7 +962,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- More Modal (Hamburger Menu) --- */
+/* --- More Modal (Hamburger Menu) (Unchanged) --- */
 .more-menu .more-menu-item {
     display: flex;
     align-items: center;
@@ -967,7 +990,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Toast Notifications --- */
+/* --- Toast Notifications (Unchanged) --- */
 #toast-container {
     position: fixed;
     bottom: 70px;
@@ -990,7 +1013,7 @@ input:focus, textarea:focus {
 .toast.info { border-color: var(--ankh-premium-color); }
 
 
-/* --- Specialization Choice Modal --- */
+/* --- Specialization Choice Modal (Unchanged) --- */
 .specialization-choice-container {
     text-align: center;
 }
@@ -1025,7 +1048,7 @@ input:focus, textarea:focus {
 
 
 /* =================================================================================
-   --- RTL OVERRIDES ---
+   --- RTL OVERRIDES (Unchanged) ---
    ================================================================================= */
 [dir="rtl"] body {
     direction: rtl;
@@ -1082,7 +1105,7 @@ input:focus, textarea:focus {
 [dir="rtl"] .contracts-header {
     flex-direction: row-reverse;
 }
-[dir="rtl"] .contract-card {
+.contract-card {
     border-left: none;
     border-right: 3px solid var(--primary-accent);
 }
