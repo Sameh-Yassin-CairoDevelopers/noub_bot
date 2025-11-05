@@ -16,6 +16,7 @@ const spinTicketDisplay = document.getElementById('spin-ticket-display');
 const spinButton = document.getElementById('spin-button');
 const reelsContainer = document.querySelectorAll('.reel');
 const slotGameContainer = document.getElementById('slot-machine-container');
+// CRITICAL: Ensure these IDs are correctly added to your index.html or created in renderSlotGame
 const multiplierButtonsContainer = document.getElementById('multiplier-buttons-container'); 
 const spinsAvailableDisplay = document.getElementById('spins-available-display'); 
 
@@ -68,10 +69,6 @@ function spinReel(reelEl, finalIndex) {
 
 
 // --- Video Poker Winning Logic (FINAL, CORRECTED REWRITE) ---
-/**
- * CRITICAL FIX: The logic is now based on counting frequencies and strictly applying the highest-ranking pattern first.
- * This guarantees that FourX does not get counted as OnePair, and FullHouse is not counted as ThreeX.
- */
 function checkWinCondition(results) {
     const freq = {};
     results.forEach(s => freq[s] = (freq[s] || 0) + 1);
@@ -99,6 +96,7 @@ function checkWinCondition(results) {
     }
     
     // 5. Check for Two Pair
+    // The filter counts the number of pairs. If >= 2, it's Two Pair.
     if (counts.filter(c => c === 2).length >= 2) {
         return { type: 'TwoPair', multiplier: 2 };
     }
