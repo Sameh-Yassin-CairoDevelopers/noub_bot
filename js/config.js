@@ -1,8 +1,9 @@
+
 /*
  * Filename: js/config.js
- * Version: NOUB 0.0.6 (CORE CONFIG & TOKENOMICS - NOUB & ANKH Rework)
+ * Version: NOUB 0.0.7 (CORE CONFIG & TOKENOMICS - FIX: Contract Completion Bonus)
  * Description: Contains application configuration, Supabase initialization, and core economic constants.
- * All internal exchange rates and costs are centralized here.
+ * FIXED: Ensures CONTRACT_COMPLETION_BONUS_COUNT is defined for contracts.js logic.
 */
 
 // --- SUPABASE CONFIGURATION (You MUST replace these with your actual keys) ---
@@ -23,7 +24,9 @@ const TOKEN_RATES = {
     
     // CONTRACTS & REWARDS
     CONTRACT_MAX_LEVEL: 10,
+    // CRITICAL: Define the bonus count and the bonus reward (Example: 500 NOUB)
     CONTRACT_COMPLETION_BONUS_COUNT: 10, // Max 10 contracts for a bonus
+    CONTRACT_COMPLETION_BONUS_NOUB: 500, // New constant for the bonus reward
 };
 
 // --- GAME ASSETS PATHS ---
@@ -46,5 +49,3 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Export all constants and the client
 export { supabaseClient, TOKEN_RATES, ASSET_PATHS, SUPABASE_URL };
-
-
