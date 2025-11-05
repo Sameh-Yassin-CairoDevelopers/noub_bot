@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: NOUB 0.0.6 (Daily Quests & Contracts - NOUB Rework)
+ * Version: NOUB 0.0.7 (Daily Quests & Contracts - FIX: Implement Completion Bonus)
  * Description: View Logic Module for the contracts screen. 
- * Contains all logic for managing daily quests and royal decrees, including tracking player activity.
+ * NEW: Implements the logic to track and grant a NOUB bonus after completing 10 contracts.
  * UPDATED: Currency usage for NOUB.
 */
 
@@ -10,12 +10,13 @@ import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, updateHeaderUI, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
+import { TOKEN_RATES } from '../config.js'; // Import TOKEN_RATES for constants
 
 const activeContractsContainer = document.getElementById('active-contracts-container');
 const availableContractsContainer = document.getElementById('available-contracts-container');
 const contractDetailModal = document.getElementById('contract-detail-modal');
 
-// --- Daily Quest Logic (NEW) ---
+// --- Daily Quest Logic (Unchanged) ---
 
 const MASTER_DAILY_QUESTS = [
     { id: 'visit_shop', title: 'Visit the Market', target: 1, reward: 50, type: 'visits' },
@@ -124,6 +125,33 @@ async function handleAcceptContract(contractId) {
     }
 }
 
+/**
+ * NEW: Updates the contract completion count in player profile.
+ */
+async function updateContractCompletionCount(playerId) {
+    // 1. Fetch current contracts count
+    let count = state.playerProfile.completed_contracts_count || 0;
+    count++;
+
+    // 2. Check for Bonus
+    let bonusNoub = 0;
+    if (count % TOKEN_RATES.CONTRACT_COMPLETION_BONUS_COUNT === 0) {
+        bonusNoub = TOKEN_RATES.CONTRACT_COMPLETION_BONUS_NOUB;
+        showToast(`Contract Bonus! +${bonusNoub} NOUB for completing ${TOKEN_RATES.CONTRACT_COMPLETION_BONUS_COUNT} contracts!`, 'success');
+    }
+
+    // 3. Update the profile with new count and potential bonus
+    const newNoubScore = (state.playerProfile.noub_score || 0) + bonusNoub;
+
+    await api.updatePlayerProfile(playerId, { 
+        completed_contracts_count: count,
+        noub_score: newNoubScore
+    });
+
+    return { count, bonusNoub };
+}
+
+
 async function handleDeliverContract(playerContract, requirements) {
     showToast('Delivering goods...');
 
@@ -136,23 +164,32 @@ async function handleDeliverContract(playerContract, requirements) {
     await Promise.all(consumePromises);
 
     const contractDetails = playerContract.contracts;
-    // Use reward_score from contractDetails for NOUB
+    
+    // 1. Calculate Standard Rewards
+    let totalNoubReward = contractDetails.reward_score;
     const newTotals = {
-        noub_score: (state.playerProfile.noub_score || 0) + contractDetails.reward_score, // Use reward_score for NOUB
+        noub_score: (state.playerProfile.noub_score || 0) + totalNoubReward, // Use reward_score for NOUB
         prestige: (state.playerProfile.prestige || 0) + contractDetails.reward_prestige
     };
 
-    const { error } = await api.completeContract(state.currentUser.id, playerContract.id, newTotals);
-
-    if (error) {
-        showToast('Error completing contract!', 'error');
-        console.error(error);
-    } else {
-        await refreshPlayerState();
-        showToast('Contract Completed! Rewards received.', 'success');
-        window.closeModal('contract-detail-modal');
-        renderActiveContracts();
+    // 2. Complete Contract in DB
+    const { error: contractError } = await api.completeContract(state.currentUser.id, playerContract.id, newTotals);
+        
+    if (contractError) {
+         showToast('Error completing contract!', 'error');
+         console.error(contractError);
+         return;
     }
+
+    // 3. Update Completion Count & Check for Bonus
+    const { bonusNoub } = await updateContractCompletionCount(state.currentUser.id);
+    totalNoubReward += bonusNoub;
+
+    // 4. Final Refresh and Toast
+    await refreshPlayerState();
+    showToast(`Contract Completed! Rewards: +${totalNoubReward} 🪙, +${contractDetails.reward_prestige} 🐞`, 'success');
+    window.closeModal('contract-detail-modal');
+    renderActiveContracts();
 }
 
 async function openContractModal(contractId, playerContract = null) {
@@ -296,7 +333,9 @@ async function handleRefreshContracts() {
     refreshBtn.disabled = true;
     showToast('Refreshing available contracts...');
     
-    const { error } = await api.refreshAvailableContracts(state.currentUser.id);
+    // NOTE: This currently deletes all player contracts to refresh. 
+    // In a final version, this should only fetch new contracts or generate them on the backend.
+    const { error } = await api.refreshAvailableContracts(state.currentUser.id); 
 
     if (error) {
         showToast('Error refreshing contracts!', 'error');
