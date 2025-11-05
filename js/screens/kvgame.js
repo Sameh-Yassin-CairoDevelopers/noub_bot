@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.10 (KV GAME LOGIC - FIX: Library Unlock Integration)
+ * Version: NOUB 0.0.11 (KV GAME LOGIC - FIX: Consumables UI & NEW: Bull & Cow Feedback)
  * Description: Implements the full 62-level Valley of the Kings (Crack the Code) logic.
- * NEW: Integrates with checkAndUnlockLibrary to save library progress upon a win.
+ * FIXED: UI now correctly displays Time Amulet and Hint Scroll buttons after Hint 4 is revealed.
+ * NEW: Implements basic Bull & Cow logic for enhanced gameplay feedback.
 */
 
 import { state } from '../state.js';
@@ -10,7 +11,7 @@ import * as api from '../api.js';
 import { showToast, updateHeaderUI, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
-import { checkAndUnlockLibrary } from './library.js'; // NEW: Import the unlock logic
+import { checkAndUnlockLibrary } from './library.js'; 
 
 // --- KV Game Constants & State ---
 const LEVEL_COST = 100; // Cost is in NOUB (gold coin)
@@ -30,7 +31,7 @@ let kvGameState = {
     hintsRevealed: [true, true, true, false],
 };
 
-// --- CRITICAL DATA: Full 62 KV Gates Data ---
+// --- CRITICAL DATA: Full 62 KV Gates Data (Unchanged) ---
 const kvGatesData = [
     { kv: 1, name: "Ramses VII" }, { kv: 2, name: "Ramses IV" }, { kv: 3, name: "Sons of Ramses II" },
     { kv: 4, name: "Ramses XI" }, { kv: 5, name: "Sons of Ramses II" }, { kv: 6, name: "Ramses IX" },
@@ -92,6 +93,45 @@ function calculateCodeHints(code) {
     return { sum, product, evens, odds, lastDigit };
 }
 
+/**
+ * NEW: Implements the Bull & Cow logic for code cracking.
+ * @param {string} secret - The secret code.
+ * @param {string} guess - The player's guess.
+ * @returns {{bulls: number, cows: number}}
+ */
+function getBullAndCowFeedback(secret, guess) {
+    let bulls = 0;
+    let cows = 0;
+    const secretArr = secret.split('');
+    const guessArr = guess.split('');
+    const secretMap = new Map();
+
+    // 1. Check for Bulls (correct digit in correct place)
+    for (let i = 0; i < secretArr.length; i++) {
+        if (secretArr[i] === guessArr[i]) {
+            bulls++;
+            // Mark the position so it's not counted as a Cow
+            secretArr[i] = '#'; 
+            guessArr[i] = '@';
+        } else {
+            // Build a map of remaining secret digits
+            secretMap.set(secretArr[i], (secretMap.get(secretArr[i]) || 0) + 1);
+        }
+    }
+
+    // 2. Check for Cows (correct digit in wrong place)
+    for (let i = 0; i < guessArr.length; i++) {
+        const digit = guessArr[i];
+        if (digit !== '@' && secretMap.has(digit) && secretMap.get(digit) > 0) {
+            cows++;
+            // Decrement count in map to handle duplicates (e.g., secret 112, guess 221)
+            secretMap.set(digit, secretMap.get(digit) - 1);
+        }
+    }
+
+    return { bulls, cows };
+}
+
 async function updateKVProgress(isWin) {
     if (!state.currentUser) return;
 
@@ -104,17 +144,15 @@ async function updateKVProgress(isWin) {
             last_game_result: null,
             unlocked_levels_json: '[]'
         };
-        // Attempt initial creation if it doesn't exist
         const { error: insertError } = await api.updateKVProgress(state.currentUser.id, progress);
         if (insertError) {
              console.error("Failed to initialize KV progress:", insertError);
              showToast("Error initializing game progress.", 'error');
              return;
         }
-        // Re-fetch to get any default values/structure
         ({ data: progress } = await api.fetchKVProgress(state.currentUser.id));
         if (!progress) {
-            console.error("Failed to initialize or fetch KV progress after initial upsert.");
+            console.error("Failed to retrieve game progress.");
             showToast("Error retrieving game progress.", 'error');
             return;
         }
@@ -133,12 +171,11 @@ async function updateKVProgress(isWin) {
         player_id: state.currentUser.id,
         current_kv_level: progress.current_kv_level,
         last_game_result: isWin ? 'Win' : 'Loss',
-        unlocked_levels_json: progress.unlocked_levels_json // Keep old JSON unless updated
+        unlocked_levels_json: progress.unlocked_levels_json
     };
 
     if (isWin) {
         const nextLevel = currentLevel + 1;
-        // Only update current_kv_level if the player is moving beyond their highest achieved level
         if (nextLevel > progress.current_kv_level) {
             updateObject.current_kv_level = nextLevel;
         }
@@ -170,22 +207,28 @@ function timerTick() {
     }
 }
 
+/**
+ * FIXED: Now correctly displays all consumable buttons regardless of Hint 4 status.
+ */
 function updateHintDisplay() {
     if (!hintDisplayDiv || !kvGameState.code) return;
 
     hintDisplayDiv.innerHTML = '';
     const hints = calculateCodeHints(kvGameState.code);
+    const buttonContainer = document.createElement('div');
+    buttonContainer.id = 'kv-use-item-button-container';
+    buttonContainer.style.cssText = 'display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; margin-top: 10px;';
 
+    // --- Fixed Free Hints Display ---
     hintDisplayDiv.innerHTML += `<li class="kv-hint-item">Hint 1 (Sum): <span>${hints.sum}</span>. (Free)</li>`;
     hintDisplayDiv.innerHTML += `<li class="kv-hint-item">Hint 2 (Product): <span>${hints.product}</span>. (Free)</li>`;
     hintDisplayDiv.innerHTML += `<li class="kv-hint-item">Hint 3 (Even/Odd): <span>${hints.odds} odd / ${hints.evens} even</span>. (Free)</li>`;
 
-    // Only render purchase options if the last hint isn't revealed
+    // --- Hint 4 Button Logic (Always display if not revealed) ---
     if (kvGameState.hintsRevealed[3]) {
         hintDisplayDiv.innerHTML += `<li class="kv-hint-item" style="border-left-color: var(--success-color);">Hint 4: Last digit is <span>${hints.lastDigit}</span>. (Used)</li>`;
     } else {
         const scrollCount = state.consumables.get(HINT_SCROLL_ITEM_KEY) || 0;
-
         const hintBtn = document.createElement('button');
         hintBtn.className = 'action-button small';
         hintBtn.style.backgroundColor = 'var(--kv-gate-color)';
@@ -195,24 +238,23 @@ function updateHintDisplay() {
 
         hintBtn.disabled = !kvGameState.active;
         hintBtn.onclick = () => handlePurchaseAndUseItem(HINT_SCROLL_ITEM_KEY, HINT_SCROLL_COST_ANKH_PREMIUM, 'hint');
-
-        const amuletCount = state.consumables.get(TIME_AMULET_ITEM_KEY) || 0;
-        const timeBtn = document.createElement('button');
-        timeBtn.className = 'action-button small';
-        timeBtn.style.backgroundColor = '#95a5a6';
-        timeBtn.textContent = (amuletCount > 0)
-            ? `Use Time Amulet (${amuletCount})`
-            : `Buy Time (+45s) (${TIME_AMULET_COST_ANKH_PREMIUM} ☥)`;
-
-        timeBtn.disabled = !kvGameState.active;
-        timeBtn.onclick = () => handlePurchaseAndUseItem(TIME_AMULET_ITEM_KEY, TIME_AMULET_COST_ANKH_PREMIUM, 'time');
-
-        const buttonContainer = document.createElement('div');
-        buttonContainer.id = 'kv-use-item-button-container';
         buttonContainer.appendChild(hintBtn);
-        buttonContainer.appendChild(timeBtn);
-        hintDisplayDiv.appendChild(buttonContainer);
     }
+    
+    // --- Time Amulet Button Logic (Always display) ---
+    const amuletCount = state.consumables.get(TIME_AMULET_ITEM_KEY) || 0;
+    const timeBtn = document.createElement('button');
+    timeBtn.className = 'action-button small';
+    timeBtn.style.backgroundColor = '#95a5a6';
+    timeBtn.textContent = (amuletCount > 0)
+        ? `Use Time Amulet (${amuletCount})`
+        : `Buy Time (+45s) (${TIME_AMULET_COST_ANKH_PREMIUM} ☥)`;
+
+    timeBtn.disabled = !kvGameState.active;
+    timeBtn.onclick = () => handlePurchaseAndUseItem(TIME_AMULET_ITEM_KEY, TIME_AMULET_COST_ANKH_PREMIUM, 'time');
+    buttonContainer.appendChild(timeBtn);
+
+    hintDisplayDiv.appendChild(buttonContainer);
 }
 
 async function handlePurchaseAndUseItem(itemKey, ankhPremiumCost, itemType) {
@@ -262,13 +304,13 @@ async function endCurrentKVGame(result) {
     let isWin = (result === 'win');
     const timeSpent = getLevelConfig(kvGameState.levelIndex).time - kvGameState.timeLeft;
 
-    // 1. Log Game History (Assumed working based on user feedback)
+    // 1. Log Game History 
     const gameDetails = {
         player_id: state.currentUser.id,
         game_type: 'KV Game',
         level_kv: gateInfo.kv,
         result_status: isWin ? 'Win' : ((result === 'manual') ? 'Loss (Manual)' : 'Loss (Time)'),
-        time_taken: timeSpent < 0 ? 0 : timeSpent, // Ensure time is non-negative
+        time_taken: timeSpent < 0 ? 0 : timeSpent, 
         code: kvGameState.code,
         date: new Date().toISOString()
     };
@@ -278,8 +320,7 @@ async function endCurrentKVGame(result) {
     await updateKVProgress(isWin);
 
     if (isWin) {
-        // 3. NEW: Check and Unlock Library Entries
-        // The current level (kvGameState.levelIndex + 1) is the one just completed.
+        // 3. Check and Unlock Library Entries 
         await checkAndUnlockLibrary(kvGameState.levelIndex + 1); 
 
         // 4. Grant Reward
@@ -312,11 +353,11 @@ function handleSubmitGuess() {
     if (guess === kvGameState.code) {
         endCurrentKVGame('win');
     } else if (kvGameState.attemptsLeft <= 0) {
-        // CRITICAL FIX CHECK: Ensure game ends on 0 attempts left
         endCurrentKVGame('lose_attempts'); 
     } else {
-        // TODO: Implement Bull & Cow feedback logic here for NOUB v0.11
-        showToast("Incorrect code. Keep trying!", 'info');
+        // NEW: Provide Bull & Cow feedback
+        const feedback = getBullAndCowFeedback(kvGameState.code, guess);
+        showToast(`Incorrect! ${feedback.bulls} Bulls (Right Place), ${feedback.cows} Cows (Wrong Place).`, 'info');
         guessInputEl.value = '';
         guessInputEl.focus();
     }
@@ -341,7 +382,6 @@ async function startNewKVGame() {
         }
     }
 
-    // Set levelIndex to the current_kv_level stored (which is the next level to attempt)
     kvGameState.levelIndex = (progress.current_kv_level || 1) - 1;
 
     if (kvGameState.levelIndex >= kvGatesData.length) {
@@ -380,7 +420,8 @@ async function startNewKVGame() {
 
     kvGameControlsEl.classList.remove('hidden');
     progressInfoDiv.classList.remove('hidden');
-    hintDisplayDiv.classList.remove('hidden');
+    if (hintDisplayDiv) hintDisplayDiv.classList.remove('hidden');
+
     if (newGameBtn) newGameBtn.disabled = true;
 
     if (kvGameState.interval) clearInterval(kvGameState.interval);
@@ -428,7 +469,6 @@ async function updateKVProgressInfo() {
 
     let { data: progress } = await api.fetchKVProgress(state.currentUser.id);
     if (!progress) {
-        // Attempt initial creation if it doesn't exist
         await api.updateKVProgress(state.currentUser.id, {
             player_id: state.currentUser.id,
             current_kv_level: 1,
@@ -442,7 +482,6 @@ async function updateKVProgressInfo() {
         }
     }
 
-    // Use current_kv_level to determine the next gate number
     kvGameState.levelIndex = (progress.current_kv_level || 1) - 1;
     const nextGate = kvGatesData[kvGameState.levelIndex];
 
