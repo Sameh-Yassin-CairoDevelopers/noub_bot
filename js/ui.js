@@ -1,9 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.9 (UI Controller - FINAL HOME LAYOUT FIX)
+ * Version: NOUB 0.0.10 (UI Controller - FIX: Header Display)
  * Description: UI Controller Module. Handles all UI logic and navigation.
- * FIXED: Event listeners for the new professional home screen layout.
- * CONFIRMED: All pages are accessible via nav, home screen, or more menu.
+ * FIXED: Removed Spin Ticket display logic from the main header UI for a cleaner interface.
 */
 
 // --- CORE IMPORTS ---
@@ -162,11 +161,8 @@ export function updateHeaderUI(profile) {
     if(ankhPremiumDisplay) {
         ankhPremiumDisplay.textContent = profile.ankh_premium || 0;
     }
-
-    const spinDisplay = document.getElementById('spin-ticket-display');
-    if(spinDisplay) {
-        spinDisplay.textContent = profile.spin_tickets || 0;
-    }
+    
+    // CRITICAL: Removed the logic that updates spin-ticket-display in the main header
 }
 
 function setupNavEvents() {
