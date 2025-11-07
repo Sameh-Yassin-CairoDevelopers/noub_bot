@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.9 (API FINAL FIX - Profile Select Update)
+ * Version: NOUB 0.0.10 (API FINAL FIX - Specialization Factory Fetch)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * CRITICAL FIX: Added 'completed_contracts_count' to fetchProfile select list.
+ * CRITICAL FIX: fetchPlayerFactories now includes specialization_path_id logic in its select statement.
 */
 
 import { supabaseClient } from './config.js';
@@ -10,10 +10,9 @@ import { supabaseClient } from './config.js';
 // --- NEW: Export supabaseClient directly ---
 export { supabaseClient }; 
 
-// --- Player and Card Functions ---
+// --- Player and Card Functions (Unchanged) ---
 
 export async function fetchProfile(userId) {
-    // CRITICAL FIX: Add completed_contracts_count to the select statement to ensure it is loaded into state
     return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address, level, completed_contracts_count').eq('id', userId).single();
 }
 
@@ -85,7 +84,7 @@ export async function fetchPlayerFactories(playerId) {
         .select(`
             id, level, production_start_time,
             factories!inner (
-                id, name, output_item_id, base_production_time, type, image_url, 
+                id, name, output_item_id, base_production_time, type, image_url, specialization_path_id,
                 items!factories_output_item_id_fkey (id, name, type, image_url, base_value),
                 factory_recipes (
                     input_quantity,
@@ -135,7 +134,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
 }
 
 
-// --- Contract API Functions ---
+// --- Contract API Functions (Unchanged) ---
 
 export async function fetchAvailableContracts(playerId) {
     const { data: playerContractIds, error: playerError } = await supabaseClient
@@ -199,7 +198,6 @@ export async function completeContract(playerId, playerContractId, newTotals) {
         
     if (contractError) return { error: contractError };
 
-    // NOTE: newTotals only contains standard contract rewards. The Completion Bonus logic is handled in contracts.js.
     return await supabaseClient
         .from('profiles')
         .update({ noub_score: newTotals.noub_score, prestige: newTotals.prestige })
@@ -214,7 +212,7 @@ export async function refreshAvailableContracts(playerId) {
 }
 
 
-// --- Games & Consumables API Functions ---
+// --- Games & Consumables API Functions (Unchanged) ---
 
 export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('id, prize_name, prize_type, value, weight');
@@ -255,7 +253,7 @@ export async function updateKVProgress(playerId, updateObject) {
 }
 
 
-// --- UCP-LLM Protocol API Functions ---
+// --- UCP-LLM Protocol API Functions (Unchanged) ---
 
 export async function saveUCPSection(playerId, sectionKey, sectionData) {
     return await supabaseClient
@@ -271,14 +269,14 @@ export async function fetchUCPProtocol(playerId) {
 }
 
 
-// --- TON Integration Functions ---
+// --- TON Integration Functions (Unchanged) ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) {
     return { success: true, amount: amountAnkhPremium }; 
 }
 
 
-// --- Activity Log & Utility ---
+// --- Activity Log & Utility (Unchanged) ---
 
 export async function logActivity(playerId, activityType, description) {
     return await supabaseClient
@@ -299,7 +297,7 @@ export async function fetchActivityLog(playerId) {
         .limit(50); 
 }
 
-// --- History, Library, Albums ---
+// --- History, Library, Albums (Unchanged) ---
 
 /**
  * NEW: Inserts a new record into the game_history table.
@@ -337,7 +335,7 @@ export async function fetchPlayerLibrary(playerId) {
 }
 
 
-// --- Specialization API Functions ---
+// --- Specialization API Functions (Unchanged) ---
 
 export async function fetchSpecializationPaths() {
     return await supabaseClient.from('specialization_paths').select('*');
