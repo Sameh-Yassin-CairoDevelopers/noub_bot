@@ -1,10 +1,9 @@
 
-
 /*
  * Filename: js/screens/shop.js
- * Version: NOUB 0.0.12 (SHOP OVERHAUL - FIX: Library Item Unlock)
+ * Version: NOUB 0.0.13 (SHOP OVERHAUL - CRITICAL FIX: Library Item Unlock & Completeness)
  * Description: Implements the multi-tabbed Shop interface.
- * NEW: Logic added to handle purchasing a library item (Egyptian Gods Poster) and saving its unlock status.
+ * CRITICAL FIX: handleBuyGameItem now correctly unlocks library entries and prevents re-purchase.
 */
 
 import { state } from '../state.js';
@@ -24,12 +23,21 @@ const CARD_PACKS = [
 ];
 
 const GAME_ITEMS = [
-    { key: 'hint_scroll', name: 'Hint Scroll (KV Game)', costNoub: 150, costAnkhPremium: 0, quantity: 1, desc: 'Reveals the last digit of the current KV code.', icon: '💡' },
-    { key: 'time_amulet_45s', name: 'Time Amulet (+45s)', costNoub: 250, costAnkhPremium: 0, quantity: 1, desc: 'Adds 45 seconds to the KV game timer.', icon: '⏱️' },
-    { key: 'hint_bundle', name: 'Bundle of 5 Hints', costNoub: 0, costAnkhPremium: 5, quantity: 5, desc: '5 Hint Scrolls for 5 Ankh Premium (Premium Value).', icon: '✨' },
-    { key: 'instant_prod', name: 'Instant Production Scroll', costNoub: 0, costAnkhPremium: 10, quantity: 1, desc: 'Instantly completes a single running factory production.', icon: '⚡' },
-    // NEW: Library Unlock Item
-    { key: 'lore_egypt', name: 'Egyptian Gods Poster', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the Major Egyptian Gods entry in the Tomb Encyclopedia.', icon: '📚', type: 'library_unlock' } 
+    { key: 'hint_scroll', name: 'Hint Scroll (KV Game)', costNoub: 150, costAnkhPremium: 0, quantity: 1, desc: 'Reveals the last digit of the current KV code.', icon: '💡', type: 'consumable' },
+    { key: 'time_amulet_45s', name: 'Time Amulet (+45s)', costNoub: 250, costAnkhPremium: 0, quantity: 1, desc: 'Adds 45 seconds to the KV game timer.', icon: '⏱️', type: 'consumable' },
+    { key: 'hint_bundle', name: 'Bundle of 5 Hints', costNoub: 0, costAnkhPremium: 5, quantity: 5, desc: '5 Hint Scrolls for 5 Ankh Premium.', icon: '✨', type: 'consumable' },
+    { key: 'instant_prod', name: 'Instant Production Scroll', costNoub: 0, costAnkhPremium: 10, quantity: 1, desc: 'Instantly completes a single running factory production.', icon: '⚡', type: 'consumable' },
+    // The Great Ennead Scrolls
+    { key: 'god_ra', name: 'Scroll of Ra', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Ra" entry in the Encyclopedia.', icon: '📚', type: 'library_unlock' },
+    { key: 'god_shu', name: 'Scroll of Shu', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Shu" entry (Requires Ra).', icon: '📚', type: 'library_unlock' },
+    { key: 'god_tefnut', name: 'Scroll of Tefnut', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Tefnut" entry.', icon: '📚', type: 'library_unlock' },
+    { key: 'god_geb', name: 'Scroll of Geb', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Geb" entry.', icon: '📚', type: 'library_unlock' },
+    { key: 'god_nut', name: 'Scroll of Nut', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Nut" entry.', icon: '📚', type: 'library_unlock' },
+    { key: 'god_osiris', name: 'Scroll of Osiris', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Osiris" entry.', icon: '📚', type: 'library_unlock' },
+    { key: 'god_isis', name: 'Scroll of Isis', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Isis" entry.', icon: '📚', type: 'library_unlock' },
+    { key: 'god_set', name: 'Scroll of Set', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Set" entry.', icon: '📚', type: 'library_unlock' },
+    { key: 'god_nephthys', name: 'Scroll of Nephthys', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Nephthys" entry.', icon: '📚', type: 'library_unlock' },
+    { key: 'god_horus', name: 'Scroll of Horus', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Horus" entry.', icon: '📚', type: 'library_unlock' },
 ];
 
 const TON_PACKAGES = [
@@ -72,15 +80,18 @@ async function handleBuyCardPack(packCost, packId) {
     if (!shopModal.classList.contains('hidden')) renderCardPacks();
 }
 
-async function handleBuyGameItem(itemKey, costNoub, costAnkhPremium, quantity, itemType) {
+/**
+ * Handles the purchase of both consumables and library items.
+ */
+async function handleBuyGameItem(item) {
+    const { key, costNoub, costAnkhPremium, quantity, type } = item;
     const currentNoub = state.playerProfile.noub_score || 0;
     const currentAnkhPremium = state.playerProfile.ankh_premium || 0;
 
     // 1. Check for purchase conflicts (e.g., already unlocked)
-    if (itemType === 'library_unlock') {
-         // This requires an additional API call to check if it's already unlocked.
+    if (type === 'library_unlock') {
          const { data: libraryData } = await api.fetchPlayerLibrary(state.currentUser.id);
-         if (libraryData.some(entry => entry.entry_key === itemKey)) {
+         if (libraryData.some(entry => entry.entry_key === key)) {
              showToast("This Encyclopedia entry is already unlocked!", 'info');
              return;
          }
@@ -104,11 +115,10 @@ async function handleBuyGameItem(itemKey, costNoub, costAnkhPremium, quantity, i
     }
 
     // 3. Handle item grant based on type
-    if (itemType === 'library_unlock') {
-         // Grant library unlock directly to player_library table
+    if (type === 'library_unlock') {
          const { error: unlockError } = await api.supabaseClient.from('player_library').insert({
              player_id: state.currentUser.id,
-             entry_key: itemKey
+             entry_key: key
          });
          
          if (unlockError) {
@@ -116,15 +126,17 @@ async function handleBuyGameItem(itemKey, costNoub, costAnkhPremium, quantity, i
              console.error("Library Unlock Error:", unlockError);
              return;
          }
-         showToast(`Encyclopedia unlocked: ${itemKey.replace(/_/g, ' ').toUpperCase()}!`, 'success');
+         showToast(`Encyclopedia unlocked: ${item.name}!`, 'success');
          // Redirect user to the library to see the new content
-         import('../ui.js').then(({ navigateTo }) => navigateTo('library-screen'));
-    } else {
-        // Standard consumable item
-        const currentConsumableQty = state.consumables.get(itemKey) || 0;
+         import('../ui.js').then(({ navigateTo, closeModal }) => {
+             closeModal('shop-modal');
+             navigateTo('library-screen');
+         });
+    } else { // 'consumable' type
+        const currentConsumableQty = state.consumables.get(key) || 0;
         const newConsumableQty = currentConsumableQty + quantity;
-        await api.updateConsumableQuantity(state.currentUser.id, itemKey, newConsumableQty);
-        showToast(`Acquired ${quantity} x ${itemKey.replace(/_/g, ' ').toUpperCase()}!`, 'success');
+        await api.updateConsumableQuantity(state.currentUser.id, key, newConsumableQty);
+        showToast(`Acquired ${quantity} x ${item.name}!`, 'success');
     }
     
     // 4. Success and Refresh
@@ -133,7 +145,7 @@ async function handleBuyGameItem(itemKey, costNoub, costAnkhPremium, quantity, i
 }
 
 
-// --- TON EXCHANGE Logic (Unchanged) ---
+// --- TON EXCHANGE Logic ---
 
 async function handleTonExchange(tonAmount, ankhAmount) {
     if (!window.TonConnectUI || !window.TonConnectUI.connected) {
@@ -144,7 +156,6 @@ async function handleTonExchange(tonAmount, ankhAmount) {
     // CRITICAL: Replace this with your actual TON wallet address!
     const gameWalletAddress = "UQDYpGLl1efwDOSJb_vFnbAZ5Rz5z-AmSzrbRwM5IcNN_erF"; 
 
-    // Convert TON to Nanos (1 TON = 10^9 Nanos)
     const amountNanos = (tonAmount * 1e9).toFixed(0); 
 
     const transaction = {
@@ -205,19 +216,15 @@ function renderGameItems() {
     shopItemsGameItemsContainer.innerHTML = GAME_ITEMS.map(item => {
         const costDisplay = item.costNoub > 0 ? `${item.costNoub} 🪙` : `${item.costAnkhPremium} ☥`;
         
-        // Determine the type for the buy button click handler
-        const itemType = item.type || 'consumable';
-        const isLibraryUnlock = itemType === 'library_unlock';
-        
         return `
             <div class="shop-item">
                 <div class="icon">${item.icon}</div>
                 <div class="details">
                     <h4>${item.name}</h4>
-                    <p>${item.desc} (Own: ${isLibraryUnlock ? 'Not in Consumables' : (state.consumables.get(item.key) || 0)})</p>
+                    <p>${item.desc}</p>
                 </div>
                 <button class="buy-btn" 
-                    onclick="window.handleBuyGameItem('${item.key}', ${item.costNoub}, ${item.costAnkhPremium}, ${item.quantity}, '${itemType}')"
+                    onclick='window.handleBuyGameItem(${JSON.stringify(item)})'
                 >
                     ${costDisplay}
                 </button>
@@ -285,27 +292,20 @@ function handleTabSwitch(tabName) {
  * Main function to open the modal and initialize content.
  */
 export async function openShopModal() {
-    // 1. Ensure latest state is loaded
     await refreshPlayerState();
-
-    // 2. Render all dynamic content
     renderCardPacks();
     renderGameItems();
-    renderTonExchange(); // Renders state based on connection
+    renderTonExchange();
 
-    // 3. Attach Tab Switch Listeners (Critical for usability)
     document.querySelectorAll('.shop-tab-btn').forEach(btn => {
         btn.onclick = () => handleTabSwitch(btn.dataset.shopTab);
     });
     
-    // 4. Track daily quest for visiting the shop
     trackDailyActivity('visits', 1);
-
-    // 5. Open the modal
     openModal('shop-modal');
 }
 
-// CRITICAL: Attach global handlers required by onclick attributes in the rendered HTML
+// CRITICAL: Attach global handlers
 window.handleBuyCardPack = handleBuyCardPack;
 window.handleBuyGameItem = handleBuyGameItem;
 window.handleTonExchange = handleTonExchange;
