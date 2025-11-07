@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NOUB 0.0.9 - Final UI Fix</title>
+    <title>NOUB 0.0.10 - Final UI Fix</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -45,7 +45,7 @@
                 <div class="currency-display"><img src="images/noub_gold_coin.png" alt="NOUB" class="icon currency-img"> <span id="noub-display">0</span></div>
                 <div class="currency-display"><span class="icon">🐞</span> <span id="prestige-display">0</span></div>
                 <div class="currency-display"><img src="images/ankh_premium_key_of_life.png" alt="Ankh" class="icon currency-img"> <span id="ankh-premium-display">0</span></div>
-                <div class="currency-display"><span class="icon">🎟️</span> <span id="spin-ticket-display">0</span></div>
+                <!-- CRITICAL: Removed Spin Ticket display from the main header -->
                 <div id="connectButton" class="ton-connect-btn"></div> 
             </div>
         </header>
@@ -125,6 +125,7 @@
                 <h2>Tomb of Treasures (Slot)</h2>
                  <div id="slot-machine-container" class="game-container">
                     <div id="slot-result-message"></div> 
+                    <!-- CRITICAL: Ensure Spin Ticket display is inside the game container -->
                     <div class="balance-info">Spins Available: <span id="spin-ticket-display">0</span> 🎟️</div>
                     <div class="reels-container">
                         <div class="reel" id="reel-1"></div><div class="reel" id="reel-2"></div><div class="reel" id="reel-3"></div><div class="reel" id="reel-4"></div><div class="reel" id="reel-5"></div> 
