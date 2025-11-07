@@ -1,8 +1,10 @@
+
+
 /*
  * Filename: js/screens/shop.js
- * Version: NOUB 0.0.11 (SHOP OVERHAUL - FINAL CRITICAL FIX: TON Transaction Setup)
+ * Version: NOUB 0.0.12 (SHOP OVERHAUL - FIX: Library Item Unlock)
  * Description: Implements the multi-tabbed Shop interface.
- * CRITICAL FIX: Ensures TON Transaction structure is minimal and correct.
+ * NEW: Logic added to handle purchasing a library item (Egyptian Gods Poster) and saving its unlock status.
 */
 
 import { state } from '../state.js';
@@ -13,7 +15,7 @@ import { trackDailyActivity } from './contracts.js';
 
 const shopModal = document.getElementById('shop-modal');
 
-// --- Shop Item Data (Unchanged) ---
+// --- Shop Item Data ---
 
 const CARD_PACKS = [
     { id: 'papyrus', name: 'Papyrus Scroll Pack', cost: 250, reward_count: 1, desc: 'Contains 1 random card (Common guaranteed).', icon: '📜' },
@@ -25,7 +27,9 @@ const GAME_ITEMS = [
     { key: 'hint_scroll', name: 'Hint Scroll (KV Game)', costNoub: 150, costAnkhPremium: 0, quantity: 1, desc: 'Reveals the last digit of the current KV code.', icon: '💡' },
     { key: 'time_amulet_45s', name: 'Time Amulet (+45s)', costNoub: 250, costAnkhPremium: 0, quantity: 1, desc: 'Adds 45 seconds to the KV game timer.', icon: '⏱️' },
     { key: 'hint_bundle', name: 'Bundle of 5 Hints', costNoub: 0, costAnkhPremium: 5, quantity: 5, desc: '5 Hint Scrolls for 5 Ankh Premium (Premium Value).', icon: '✨' },
-    { key: 'instant_prod', name: 'Instant Production Scroll', costNoub: 0, costAnkhPremium: 10, quantity: 1, desc: 'Instantly completes a single running factory production.', icon: '⚡' }
+    { key: 'instant_prod', name: 'Instant Production Scroll', costNoub: 0, costAnkhPremium: 10, quantity: 1, desc: 'Instantly completes a single running factory production.', icon: '⚡' },
+    // NEW: Library Unlock Item
+    { key: 'lore_egypt', name: 'Egyptian Gods Poster', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the Major Egyptian Gods entry in the Tomb Encyclopedia.', icon: '📚', type: 'library_unlock' } 
 ];
 
 const TON_PACKAGES = [
@@ -35,7 +39,7 @@ const TON_PACKAGES = [
 ];
 
 
-// --- Core Transaction Handlers (Unchanged) ---
+// --- Core Transaction Handlers ---
 
 async function handleBuyCardPack(packCost, packId) {
     if (!state.currentUser || (state.playerProfile.noub_score || 0) < packCost) {
@@ -68,32 +72,68 @@ async function handleBuyCardPack(packCost, packId) {
     if (!shopModal.classList.contains('hidden')) renderCardPacks();
 }
 
-async function handleBuyGameItem(itemKey, costNoub, costAnkhPremium, quantity) {
+async function handleBuyGameItem(itemKey, costNoub, costAnkhPremium, quantity, itemType) {
     const currentNoub = state.playerProfile.noub_score || 0;
     const currentAnkhPremium = state.playerProfile.ankh_premium || 0;
+
+    // 1. Check for purchase conflicts (e.g., already unlocked)
+    if (itemType === 'library_unlock') {
+         // This requires an additional API call to check if it's already unlocked.
+         const { data: libraryData } = await api.fetchPlayerLibrary(state.currentUser.id);
+         if (libraryData.some(entry => entry.entry_key === itemKey)) {
+             showToast("This Encyclopedia entry is already unlocked!", 'info');
+             return;
+         }
+    }
 
     if (currentNoub < costNoub || currentAnkhPremium < costAnkhPremium) {
         showToast("Missing currency!", 'error');
         return;
     }
 
+    // 2. Deduct costs
     const profileUpdate = {
         noub_score: currentNoub - costNoub,
         ankh_premium: currentAnkhPremium - costAnkhPremium
     };
-    await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
+    const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
 
-    const currentConsumableQty = state.consumables.get(itemKey) || 0;
-    const newConsumableQty = currentConsumableQty + quantity;
-    await api.updateConsumableQuantity(state.currentUser.id, itemKey, newConsumableQty);
+    if (profileError) {
+        showToast("Error deducting cost!", 'error');
+        return;
+    }
 
-    showToast(`Acquired ${quantity} x ${itemKey.replace(/_/g, ' ').toUpperCase()}!`, 'success');
+    // 3. Handle item grant based on type
+    if (itemType === 'library_unlock') {
+         // Grant library unlock directly to player_library table
+         const { error: unlockError } = await api.supabaseClient.from('player_library').insert({
+             player_id: state.currentUser.id,
+             entry_key: itemKey
+         });
+         
+         if (unlockError) {
+             showToast("Error granting library unlock!", 'error');
+             console.error("Library Unlock Error:", unlockError);
+             return;
+         }
+         showToast(`Encyclopedia unlocked: ${itemKey.replace(/_/g, ' ').toUpperCase()}!`, 'success');
+         // Redirect user to the library to see the new content
+         import('../ui.js').then(({ navigateTo }) => navigateTo('library-screen'));
+    } else {
+        // Standard consumable item
+        const currentConsumableQty = state.consumables.get(itemKey) || 0;
+        const newConsumableQty = currentConsumableQty + quantity;
+        await api.updateConsumableQuantity(state.currentUser.id, itemKey, newConsumableQty);
+        showToast(`Acquired ${quantity} x ${itemKey.replace(/_/g, ' ').toUpperCase()}!`, 'success');
+    }
+    
+    // 4. Success and Refresh
     await refreshPlayerState();
-    if (!shopModal.classList.contains('hidden')) renderGameItems();
+    if (!shopModal.classList.contains('hidden')) renderGameItems(); 
 }
 
 
-// --- TON EXCHANGE Logic (CRITICALLY MODIFIED) ---
+// --- TON EXCHANGE Logic (Unchanged) ---
 
 async function handleTonExchange(tonAmount, ankhAmount) {
     if (!window.TonConnectUI || !window.TonConnectUI.connected) {
@@ -102,7 +142,6 @@ async function handleTonExchange(tonAmount, ankhAmount) {
     }
 
     // CRITICAL: Replace this with your actual TON wallet address!
-    // The address used in the successful image: UQDYpGLl1efwDOSJb_vFnbAZ5Rz5z-AmSzrbRwM5IcNN_erF
     const gameWalletAddress = "UQDYpGLl1efwDOSJb_vFnbAZ5Rz5z-AmSzrbRwM5IcNN_erF"; 
 
     // Convert TON to Nanos (1 TON = 10^9 Nanos)
@@ -113,7 +152,6 @@ async function handleTonExchange(tonAmount, ankhAmount) {
         messages: [{
             address: gameWalletAddress,
             amount: amountNanos,
-            // Removed payload to ensure basic transfer works flawlessly
         }]
     };
 
@@ -135,13 +173,12 @@ async function handleTonExchange(tonAmount, ankhAmount) {
 
     } catch (error) {
         console.error("TON Transaction Failed:", error);
-        // Show a filtered error message to the user
         showToast("TON transaction cancelled or failed. Check console for an invalid address or balance.", 'error');
     }
 }
 
 
-// --- Rendering Functions (Unchanged) ---
+// --- Rendering Functions ---
 
 function renderCardPacks() {
     const shopItemsCardsContainer = document.getElementById('shop-items-cards-container');
@@ -167,15 +204,20 @@ function renderGameItems() {
      
     shopItemsGameItemsContainer.innerHTML = GAME_ITEMS.map(item => {
         const costDisplay = item.costNoub > 0 ? `${item.costNoub} 🪙` : `${item.costAnkhPremium} ☥`;
+        
+        // Determine the type for the buy button click handler
+        const itemType = item.type || 'consumable';
+        const isLibraryUnlock = itemType === 'library_unlock';
+        
         return `
             <div class="shop-item">
                 <div class="icon">${item.icon}</div>
                 <div class="details">
                     <h4>${item.name}</h4>
-                    <p>${item.desc} (Own: ${state.consumables.get(item.key) || 0})</p>
+                    <p>${item.desc} (Own: ${isLibraryUnlock ? 'Not in Consumables' : (state.consumables.get(item.key) || 0)})</p>
                 </div>
                 <button class="buy-btn" 
-                    onclick="window.handleBuyGameItem('${item.key}', ${item.costNoub}, ${item.costAnkhPremium}, ${item.quantity})"
+                    onclick="window.handleBuyGameItem('${item.key}', ${item.costNoub}, ${item.costAnkhPremium}, ${item.quantity}, '${itemType}')"
                 >
                     ${costDisplay}
                 </button>
