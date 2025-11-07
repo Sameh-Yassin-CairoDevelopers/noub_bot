@@ -1,32 +1,50 @@
 /*
  * Filename: js/screens/wheel.js
- * Version: NOUB 0.0.3 (WHEEL MODULE - FINAL FIX: Simplified Slot Style)
- * Description: Implements a simplified Slot/Reel-style selection mechanism to replace the complex spinning wheel.
- * This guarantees proper rendering on all mobile browsers/TWA.
+ * Version: Pharaoh's Legacy 'NOUB' v0.2
+ * Description: Implements a redesigned Wheel of Fortune game.
+ * OVERHAUL: Replaces simple random logic with a weighted probability system for more engaging and balanced rewards.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, updateHeaderUI } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
+import { trackDailyActivity } from './contracts.js';
 
 const wheelContainer = document.getElementById('wheel-screen');
 
-// --- WHEEL CONFIGURATION (Now acts as a single-reel slot machine prize list) ---
+// --- NEW: Weighted Wheel Configuration ---
 const WHEEL_PRIZES = [
-    { type: 'ankh', value: 100, label: '100 ☥', icon: '☥' },
-    { type: 'card_pack', value: 1, label: '1x Pack', icon: '📜' },
-    { type: 'ankh', value: 500, label: '500 ☥', icon: '☥' },
-    { type: 'blessing', value: 1, label: '1x Dagger 🗡️', icon: '🗡️' },
-    { type: 'ankh', value: 200, label: '200 ☥', icon: '☥' },
-    { type: 'scarab', value: 1, label: '1x Scarab 🐞', icon: '🐞' },
-    { type: 'ankh', value: 1000, label: '1K ☥', icon: '☥' },
-    { type: 'spin_ticket', value: 1, label: '+1 Spin', icon: '🎟️' }
+    { type: 'noub', value: 100, label: '100 NOUB', icon: '🪙', weight: 40 },
+    { type: 'noub', value: 250, label: '250 NOUB', icon: '🪙', weight: 25 },
+    { type: 'spin_ticket', value: 2, label: '2 Tickets', icon: '🎟️', weight: 15 },
+    { type: 'noub', value: 1000, label: '1K NOUB', icon: '🪙', weight: 10 },
+    { type: 'prestige', value: 5, label: '5 Prestige', icon: '🐞', weight: 5 },
+    { type: 'card_pack', value: 1, label: '1x Papyrus Pack', icon: '📜', weight: 3 },
+    { type: 'ankh_premium', value: 10, label: '10 Ankh', icon: '☥', weight: 2 },
 ];
 const SPIN_COST = 1; 
 
 let isSpinning = false;
 
+
+/**
+ * Selects a prize based on weighted probability.
+ * @returns {object} The chosen prize object from WHEEL_PRIZES.
+ */
+function getWeightedRandomPrize() {
+    const totalWeight = WHEEL_PRIZES.reduce((sum, p) => sum + p.weight, 0);
+    let randomNum = Math.random() * totalWeight;
+
+    for (const prize of WHEEL_PRIZES) {
+        randomNum -= prize.weight;
+        if (randomNum <= 0) {
+            return prize;
+        }
+    }
+    // Fallback in case of floating point issues
+    return WHEEL_PRIZES[0]; 
+}
 
 /**
  * Renders the base wheel structure and view elements.
@@ -39,24 +57,22 @@ export async function renderWheel() {
         return;
     }
     
-    // --- Initial Screen Setup (Inject core structure) ---
+    // Inject core structure if it doesn't exist
     if (!wheelContainer.querySelector('.wheel-container')) {
         wheelContainer.innerHTML = `
             <div class="wheel-container game-container">
-                <h2>Wheel of Fortune (Reel Style)</h2>
-                <p style="color: var(--text-secondary);">Match the pointer to a prize!</p>
-                <div class="wheel-reel-area" style="position: relative; margin: 30px auto; width: 80%; max-width: 250px; height: 100px; border: 4px solid var(--primary-accent); border-radius: 10px; overflow: hidden;">
-                    <div id="wheel-reel" style="transition: transform 6s cubic-bezier(0.25, 1, 0.5, 1);"></div>
-                    <!-- Pointer/Selector -->
-                    <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: var(--danger-color); z-index: 5;"></div>
+                <h2>Wheel of Fortune</h2>
+                <p style="color: var(--text-secondary);">Test your luck for valuable prizes!</p>
+                <div class="wheel-reel-area">
+                    <div id="wheel-reel"></div>
+                    <div class="wheel-pointer"></div>
                 </div>
                 <button id="wheel-spin-button" class="action-button spin-button">SPIN (${SPIN_COST} TICKET)</button>
-                <p id="wheel-spins-left" style="margin-top: 10px;">Spin Tickets: 0</p>
+                <p id="wheel-spins-left" class="balance-info">Spin Tickets: 0</p>
             </div>
         `;
     }
     
-    // Re-fetch DOM elements after potential injection
     const wheelReel = document.getElementById('wheel-reel');
     const spinBtn = document.getElementById('wheel-spin-button');
     
@@ -64,24 +80,19 @@ export async function renderWheel() {
     
     // 1. Initialize Reel Items (Multiple times for a long spin)
     wheelReel.innerHTML = '';
-    for(let j = 0; j < 10; j++) { // Repeat 10 times
-        WHEEL_PRIZES.forEach((prize, i) => {
+    for(let j = 0; j < 10; j++) { // Repeat 10 times for a looping effect
+        WHEEL_PRIZES.forEach((prize) => {
             const item = document.createElement('div');
             item.className = 'wheel-prize-item';
-            item.style.cssText = `
-                width: 100px; height: 100px; display: inline-flex; flex-direction: column; 
-                align-items: center; justify-content: center; background-color: ${prize.color}; 
-                border-right: 1px solid #000; box-sizing: border-box; font-size: 14px;
-                color: #121212; font-weight: bold;
-            `;
-            item.innerHTML = `<span style="font-size: 24px;">${prize.icon}</span><span>${prize.label}</span>`;
+            // Use textContent for security
+            item.innerHTML = `<span class="icon"></span><span></span>`;
+            item.querySelector('.icon').textContent = prize.icon;
+            item.querySelector('span:last-child').textContent = prize.label;
             wheelReel.appendChild(item);
         });
     }
     
-    // CRITICAL: Set initial reel width and display flex
-    wheelReel.style.display = 'flex';
-    wheelReel.style.width = `${WHEEL_PRIZES.length * 100 * 10}px`; // 100px width * prizes * 10 cycles
+    wheelReel.style.width = `${WHEEL_PRIZES.length * 100 * 10}px`;
 
     // 2. Attach Listener
     spinBtn.onclick = runWheelSpin;
@@ -121,22 +132,23 @@ async function runWheelSpin() {
     const newTickets = spins - SPIN_COST;
     await api.updatePlayerProfile(state.currentUser.id, { spin_tickets: newTickets });
     
-    showToast("Spinning the reel...", 'info');
+    showToast("Spinning the wheel...", 'info');
+    trackDailyActivity('games');
 
-    // 2. Determine random result
-    const prizeIndex = Math.floor(Math.random() * WHEEL_PRIZES.length);
-    const prize = WHEEL_PRIZES[prizeIndex];
+    // 2. Determine weighted random result
+    const prize = getWeightedRandomPrize();
+    const prizeIndex = WHEEL_PRIZES.findIndex(p => p.label === prize.label);
     
-    // 3. Calculate final position (5 cycles + target prize)
-    const itemWidth = 100;
+    // 3. Calculate final position
+    const itemWidth = 100; // Must match wheel-prize-item width in CSS
     const cycles = 5;
     const fullCycleDistance = WHEEL_PRIZES.length * itemWidth;
     
-    // Target position (needs to land near the center line/pointer)
-    const targetOffset = (WHEEL_PRIZES.length - prizeIndex) * itemWidth;
+    const targetOffset = prizeIndex * itemWidth;
+    // Randomize position within the item width for a more natural stop
+    const randomJitter = (Math.random() - 0.5) * (itemWidth * 0.4);
     
-    // The final destination: full cycles + target item (plus half an item width to center it under the pointer)
-    const finalDestination = (cycles * fullCycleDistance) + targetOffset - (itemWidth / 2);
+    const finalDestination = (cycles * fullCycleDistance) + targetOffset + randomJitter;
     
     const wheelReel = document.getElementById('wheel-reel');
     if (!wheelReel) return;
@@ -146,14 +158,9 @@ async function runWheelSpin() {
 
     // 4. Wait for animation to finish and award prize
     setTimeout(async () => {
-        // Reset transition and position for next spin
-        wheelReel.style.transition = 'none';
-        wheelReel.style.transform = `translateX(-${targetOffset - (itemWidth / 2)}px)`;
-        
         await handleWheelPrize(prize);
 
         isSpinning = false;
-        spinBtn.disabled = false;
         await refreshPlayerState(); 
         updateWheelUIState();
     }, 6200); 
@@ -165,36 +172,43 @@ async function runWheelSpin() {
 async function handleWheelPrize(prize) {
     if (!state.currentUser) return;
     
-    const profileUpdates = {};
+    let profileUpdates = {};
     let message = `You won: ${prize.label}!`;
 
-    if (prize.type === 'ankh') {
-        profileUpdates.score = (state.playerProfile.score || 0) + prize.value;
-    } else if (prize.type === 'blessing') {
-        profileUpdates.blessing = (state.playerProfile.blessing || 0) + prize.value;
-    } else if (prize.type === 'scarab') {
-        profileUpdates.prestige = (state.playerProfile.prestige || 0) + prize.value;
-    } else if (prize.type === 'spin_ticket') {
-        profileUpdates.spin_tickets = (state.playerProfile.spin_tickets || 0) + prize.value;
-    } else if (prize.type === 'card_pack') {
-        // Award a single common card directly as a bonus.
-        const { data: allCards } = await api.fetchAllMasterCards();
-        if (allCards && allCards.length > 0) {
-            const commonCard = allCards[0]; 
-            await api.addCardToPlayerCollection(state.currentUser.id, commonCard.id);
-            message += ` (+1 Common Card)`;
+    switch (prize.type) {
+        case 'noub':
+            profileUpdates.noub_score = (state.playerProfile.noub_score || 0) + prize.value;
+            break;
+        case 'prestige':
+            profileUpdates.prestige = (state.playerProfile.prestige || 0) + prize.value;
+            break;
+        case 'ankh_premium':
+            profileUpdates.ankh_premium = (state.playerProfile.ankh_premium || 0) + prize.value;
+            break;
+        case 'spin_ticket':
+            // Add to the tickets already in state, since the deduction already happened
+            profileUpdates.spin_tickets = (state.playerProfile.spin_tickets || 0) + prize.value;
+            break;
+        case 'card_pack':
+            // Award a single papyrus pack
+            const { data: masterCards } = await api.fetchAllMasterCards();
+            if (masterCards && masterCards.length > 0) {
+                const randomCard = masterCards[Math.floor(Math.random() * masterCards.length)];
+                await api.addCardToPlayerCollection(state.currentUser.id, randomCard.id);
+            }
+            break;
+    }
+    
+    // Update profile in Supabase only if there are changes
+    if (Object.keys(profileUpdates).length > 0) {
+        const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdates);
+        
+        if (error) {
+            showToast('Error awarding prize!', 'error');
+            return;
         }
     }
     
-    // Update profile in Supabase
-    const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdates);
-    
-    if (!error) {
-        // CRITICAL: Log the activity
-        await api.logActivity(state.currentUser.id, 'WHEEL_SPIN', `Won ${prize.label} from Wheel of Fortune.`);
-        
-        showToast(message, 'success');
-    } else {
-        showToast('Error awarding prize!', 'error');
-    }
+    await api.logActivity(state.currentUser.id, 'WHEEL_SPIN', `Won ${prize.label} from Wheel of Fortune.`);
+    showToast(message, 'success');
 }
