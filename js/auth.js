@@ -1,9 +1,8 @@
 /*
  * Filename: js/auth.js
- * Version: NOUB 0.0.6 (STARTER PACK & FACTORY SEEDING - NOUB & ANKH Rework - FINAL FIX)
- * Description: Authentication Module. Ensures login works and implements
- * starter pack distribution and factory seeding for new players.
- * FIXED: Removed avatar_url assumptions for profile creation/refresh as it's not in DB schema.
+ * Version: Pharaoh's Legacy 'NOUB' v0.2
+ * Description: Authentication Module. Manages login, signup, and player state refreshing.
+ * CRITICAL FIX: refreshPlayerState now fetches player specializations to correctly display specialized factories.
 */
 
 import { supabaseClient } from './config.js';
@@ -47,14 +46,13 @@ window.showLoginForm = showLoginForm;
  * Called immediately after profile creation.
  */
 async function seedNewPlayer(userId) {
-    // 1. Grant Starter Currencies (NOUB, Prestige, Spin Tickets, Ankh Premium)
+    // 1. Grant Starter Currencies
     const profileUpdate = {
         noub_score: STARTER_NOUB_SCORE,
         prestige: STARTER_PRESTIGE,
         spin_tickets: STARTER_SPIN_TICKETS,
         ankh_premium: STARTER_ANKH_PREMIUM,
-        last_daily_spin: new Date().toISOString(), // Initialize spin tracking
-        // avatar_url: 'images/user_avatar.png' // Removed: Assuming avatar_url is not in profiles table
+        last_daily_spin: new Date().toISOString(), 
     };
     
     const { error: profileError } = await api.updatePlayerProfile(userId, profileUpdate);
@@ -63,7 +61,7 @@ async function seedNewPlayer(userId) {
         return false;
     }
     
-    // 2. Seed Initial Factories (All 6 core factories)
+    // 2. Seed Initial Factories
     const factoryPromises = INITIAL_FACTORY_IDS.map(factoryId => {
         return supabaseClient.from('player_factories').insert({
             player_id: userId,
@@ -81,21 +79,23 @@ async function seedNewPlayer(userId) {
 }
 
 /**
- * Refreshes the player's entire state (profile, inventory, UCP data)
+ * Refreshes the player's entire state (profile, inventory, specializations, etc.)
  * from the database and updates the UI header.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
     // Fetch all critical data simultaneously for maximum speed
-    // fetchProfile no longer requests avatar_url
-    const [profileResult, inventoryResult, consumablesResult, ucpResult] = await Promise.all([
+    const [profileResult, inventoryResult, consumablesResult, ucpResult, specializationsResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
         api.fetchKVGameConsumables(state.currentUser.id),
-        api.fetchUCPProtocol(state.currentUser.id)
+        api.fetchUCPProtocol(state.currentUser.id),
+        // CRITICAL: Fetch player's unlocked specializations
+        api.fetchPlayerSpecializations(state.currentUser.id) 
     ]);
 
+    // Profile Data
     if (!profileResult.error && profileResult.data) {
         state.playerProfile = profileResult.data;
         updateHeaderUI(state.playerProfile);
@@ -103,6 +103,7 @@ export async function refreshPlayerState() {
         console.error("Error refreshing profile data.");
     }
     
+    // Inventory Data
     if (!inventoryResult.error && inventoryResult.data) {
         state.inventory.clear();
         inventoryResult.data.forEach(item => {
@@ -110,6 +111,7 @@ export async function refreshPlayerState() {
         });
     }
 
+    // Consumables Data
     if (!consumablesResult.error && consumablesResult.data) {
         state.consumables.clear();
         consumablesResult.data.forEach(item => {
@@ -117,10 +119,19 @@ export async function refreshPlayerState() {
         });
     }
 
+    // UCP Protocol Data
     if (!ucpResult.error && ucpResult.data) {
         state.ucp.clear();
         ucpResult.data.forEach(entry => {
             state.ucp.set(entry.section_key, entry.section_data);
+        });
+    }
+    
+    // Specializations Data
+    if (!specializationsResult.error && specializationsResult.data) {
+        state.specializations = new Map();
+        specializationsResult.data.forEach(spec => {
+            state.specializations.set(spec.specialization_path_id, spec);
         });
     }
 }
@@ -132,7 +143,8 @@ async function initializeApp(user) {
     await refreshPlayerState();
 
     if (!state.playerProfile) {
-        alert("Critical error loading your profile data.");
+        // SECURITY FIX: Using showToast instead of alert
+        showToast("Critical error loading your profile data.", 'error'); 
         await logout();
         return;
     }
@@ -159,9 +171,13 @@ async function signUp(email, password, username) {
     if (error) return { error };
 
     if (data.user) {
+        // The new user row is created by a DB trigger.
+        // We just need to seed it with starter data.
         await seedNewPlayer(data.user.id);
         
-        return { message: 'Account created successfully! Please check your email for confirmation, then log in.' };
+        // SECURITY FIX: Using showToast instead of alert
+        showToast('Account created! Check your email to confirm, then log in.', 'success');
+        return { message: 'Account created successfully!' };
     }
     
     return { error: { message: "Sign up successful, but could not retrieve user data." } };
@@ -170,10 +186,11 @@ async function signUp(email, password, username) {
 export async function logout() {
     await supabaseClient.auth.signOut();
     state.currentUser = null;
-    state.playerProfile = {};
+    state.playerProfile = null;
     state.inventory.clear();
     state.consumables.clear();
     state.ucp.clear();
+    state.specializations.clear();
     appContainer.classList.add('hidden');
     authOverlay.classList.remove('hidden');
 }
@@ -210,13 +227,14 @@ export function setupAuthEventListeners() {
             if (result.error) {
                 errorDiv.textContent = 'Signup Error: ' + result.error.message;
             } else {
-                alert(result.message);
-                window.showLoginForm();
+                // On success, switch to login form
+                showLoginForm();
             }
             e.target.disabled = false;
         });
     }
 
+    // Logout button is now on the profile screen, its event is attached there.
     if (logoutButton) {
         logoutButton.addEventListener('click', logout);
     }
