@@ -3,7 +3,7 @@
  * Version: NOUB 0.0.12 (ECONOMY MODULE - CRITICAL FIX & Specialization Seeding)
  * Description: View Logic Module for Production and Stockpile screens.
  * CRITICAL FIX: Added missing FACTORY_UPGRADE constants to prevent reference errors.
- * NEW: Implements specialization choice logic and seeds the new factories upon path selection.
+ * NEW: Implements the specialization choice logic and seeds new factories upon path selection.
 */
 
 import { state } from '../state.js';
@@ -11,6 +11,7 @@ import * as api from '../api.js';
 import { showToast, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
+import { executeFactoryUpgrade } from './upgrade.js';
 
 const resourcesContainer = document.getElementById('resources-container');
 const workshopsContainer = document.getElementById('workshops-container');
@@ -25,16 +26,16 @@ const stockGoodsContainer = document.getElementById('stock-goods-container');
 const ONE_MINUTE = 60000;
 const ONE_SECOND = 1000;
 
-// Specialization Unlock Level
+// NEW: Specialization Unlock Level
 const SPECIALIZATION_UNLOCK_LEVEL = 15;
 
-// CRITICAL FIX: Add missing constants directly to this file
+// --- CRITICAL FIX: Add missing constants directly to this file ---
 const FACTORY_UPGRADE_COST = 500; 
 const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
 const FACTORY_UPGRADE_QTY = 10; 
 const FACTORY_UPGRADE_LEVEL_CAP = 10; 
 
-// CRITICAL: Specialization Factory IDs (These MUST match the 'factories' table IDs)
+// --- CRITICAL: Specialization Factory IDs (These MUST match the 'factories' table IDs) ---
 const SPECIALIZATION_FACTORY_MAP = {
     // ID from 'specialization_paths' table: [IDs from 'factories' table]
     1: [7, 8, 9], // Example: 1 = House of Osiris (7=Bakery, 8=Pottery, 9=Tannery)
@@ -73,11 +74,11 @@ async function handleSelectSpecialization(pathId) {
             });
         });
         await Promise.all(factoryPromises);
-        showToast(`New factories have been granted!`, 'success');
+        showToast(`New factories seeded for path ${pathId}!`, 'success');
     }
     
     // 3. Success and UI Update
-    showToast('Specialization path unlocked! Refreshing...', 'success');
+    showToast('Specialization path unlocked! Refreshing data...', 'success');
     await refreshPlayerState(); 
     window.closeModal('specialization-choice-modal');
     renderProduction(); // Re-render the economy hub to show new factories
@@ -90,19 +91,18 @@ async function renderSpecializationChoice() {
     const modal = document.getElementById('specialization-choice-modal');
     if (!modal) return;
 
-    // Fetch all available paths from Supabase
+    // Fetch paths from Supabase
     const { data: paths, error } = await api.fetchSpecializationPaths();
     if (error || !paths) {
         showToast('Could not load specialization paths.', 'error');
         return;
     }
     
-    // Filter out paths the player has already selected
-    const selectedPathIds = new Set(Array.from(state.specializations.values()).map(spec => spec.specialization_path_id));
-    const pathsToDisplay = paths.filter(p => !selectedPathIds.has(p.id));
+    const selectedPaths = state.specializations || new Map();
+    const pathsToDisplay = paths.filter(p => !selectedPaths.has(p.id));
 
     if (pathsToDisplay.length === 0) {
-        // This case might happen if all paths are unlocked
+        showToast("No new specialization paths available.", 'info');
         return;
     }
 
@@ -338,6 +338,7 @@ function openProductionModal(playerFactory, outputItem) {
         </div>
     `;
 
+    // Inject the modal HTML
     productionModal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeModal('production-modal')">&times;</button>
@@ -383,7 +384,7 @@ function openProductionModal(playerFactory, outputItem) {
     if(upgradeFactoryBtn && canUpgrade) {
         upgradeFactoryBtn.onclick = () => {
             window.closeModal('production-modal'); 
-            import('./upgrade.js').then(({ executeFactoryUpgrade }) => executeFactoryUpgrade(playerFactory));
+            executeFactoryUpgrade(playerFactory); 
         };
     }
 }
@@ -392,13 +393,13 @@ function openProductionModal(playerFactory, outputItem) {
 export async function renderProduction() {
     if (!state.currentUser || !state.playerProfile) return;
 
-    // Guard Clause to ensure profile is loaded
+    // Guard Clause: Check for playerProfile before accessing level
     if (state.playerProfile.level === undefined) {
          await refreshPlayerState();
     }
     
-    // Check for specialization unlock
-    const hasSpecialization = state.specializations.size > 0;
+    // 1. Check for specialization unlock
+    const hasSpecialization = state.playerProfile.specializations && state.playerProfile.specializations.size > 0;
     
     if (state.playerProfile.level >= SPECIALIZATION_UNLOCK_LEVEL && !hasSpecialization) {
         renderSpecializationChoice();
@@ -422,6 +423,7 @@ export async function renderProduction() {
     const resourceBuildings = factories.filter(f => f.factories.type === 'RESOURCE');
     const workshops = factories.filter(f => f.factories.type === 'WORKSHOP');
 
+    // Display Factories
     [...resourceBuildings, ...workshops].forEach(playerFactory => {
         const factory = playerFactory.factories;
         const outputItem = factory.items;
@@ -431,11 +433,15 @@ export async function renderProduction() {
 
         card.innerHTML = `
             <img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}">
-            <h4>${factory.name}</h4>
-            <div class="level">Level: ${playerFactory.level}</div>
+            <h4></h4>
+            <div class="level"></div>
             <div class="status">Loading Status...</div>
             <div class="progress-bar"><div class="progress-bar-inner"></div></div>
         `;
+        // SECURITY FIX: Use textContent for user-generated content (names)
+        card.querySelector('h4').textContent = factory.name;
+        card.querySelector('.level').textContent = `Level: ${playerFactory.level}`;
+
 
         card.onclick = () => openProductionModal(playerFactory, outputItem); 
         
@@ -466,6 +472,7 @@ export async function renderStock() {
     let hasStock = false;
     
     state.inventory.forEach(item => {
+        // SECURITY FIX: Using textContent to display item names/quantities
         if (item.qty > 0) {
             hasStock = true;
             const itemElement = document.createElement('div');
@@ -475,14 +482,13 @@ export async function renderStock() {
             const itemQty = item.qty;
 
             itemElement.innerHTML = `
-                <img src="${item.details.image_url || 'images/default_item.png'}" alt="">
+                <img src="${item.details.image_url || 'images/default_item.png'}" alt="${itemName}">
                 <div class="details">
                     <h4></h4>
                     <span class="quantity"></span>
                 </div>
             `;
             // Use textContent for secure insertion
-            itemElement.querySelector('img').alt = itemName;
             itemElement.querySelector('h4').textContent = itemName;
             itemElement.querySelector('.quantity').textContent = `x ${itemQty}`;
 
