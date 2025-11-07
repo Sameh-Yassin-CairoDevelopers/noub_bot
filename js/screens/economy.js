@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB 0.0.10 (ECONOMY MODULE - NEW: Factory Specialization Seeding)
+ * Version: NOUB 0.0.12 (ECONOMY MODULE - CRITICAL FIX & Specialization Seeding)
  * Description: View Logic Module for Production and Stockpile screens.
- * NEW: Implements the specialization choice logic and seeds the new factories upon path selection.
+ * CRITICAL FIX: Added missing FACTORY_UPGRADE constants to prevent reference errors.
+ * NEW: Implements specialization choice logic and seeds the new factories upon path selection.
 */
 
 import { state } from '../state.js';
@@ -10,7 +11,6 @@ import * as api from '../api.js';
 import { showToast, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
-import { executeFactoryUpgrade } from './upgrade.js';
 
 const resourcesContainer = document.getElementById('resources-container');
 const workshopsContainer = document.getElementById('workshops-container');
@@ -25,10 +25,16 @@ const stockGoodsContainer = document.getElementById('stock-goods-container');
 const ONE_MINUTE = 60000;
 const ONE_SECOND = 1000;
 
-// NEW: Specialization Unlock Level
+// Specialization Unlock Level
 const SPECIALIZATION_UNLOCK_LEVEL = 15;
 
-// --- CRITICAL: Specialization Factory IDs (These MUST match the 'factories' table IDs) ---
+// CRITICAL FIX: Add missing constants directly to this file
+const FACTORY_UPGRADE_COST = 500; 
+const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
+const FACTORY_UPGRADE_QTY = 10; 
+const FACTORY_UPGRADE_LEVEL_CAP = 10; 
+
+// CRITICAL: Specialization Factory IDs (These MUST match the 'factories' table IDs)
 const SPECIALIZATION_FACTORY_MAP = {
     // ID from 'specialization_paths' table: [IDs from 'factories' table]
     1: [7, 8, 9], // Example: 1 = House of Osiris (7=Bakery, 8=Pottery, 9=Tannery)
@@ -56,7 +62,7 @@ async function handleSelectSpecialization(pathId) {
         return;
     }
     
-    // 2. Seed Initial Factories for the chosen path (only if the map has factories for this path)
+    // 2. Seed Initial Factories for the chosen path
     const factoryIdsToSeed = SPECIALIZATION_FACTORY_MAP[pathId];
     if (factoryIdsToSeed && factoryIdsToSeed.length > 0) {
         const factoryPromises = factoryIdsToSeed.map(factoryId => {
@@ -67,11 +73,11 @@ async function handleSelectSpecialization(pathId) {
             });
         });
         await Promise.all(factoryPromises);
-        showToast(`New factories seeded for path ${pathId}!`, 'success');
+        showToast(`New factories have been granted!`, 'success');
     }
     
     // 3. Success and UI Update
-    showToast('Specialization path unlocked! Refreshing data...', 'success');
+    showToast('Specialization path unlocked! Refreshing...', 'success');
     await refreshPlayerState(); 
     window.closeModal('specialization-choice-modal');
     renderProduction(); // Re-render the economy hub to show new factories
@@ -84,20 +90,19 @@ async function renderSpecializationChoice() {
     const modal = document.getElementById('specialization-choice-modal');
     if (!modal) return;
 
-    // Fetch paths from Supabase (including cost_noub_initial_unlock)
+    // Fetch all available paths from Supabase
     const { data: paths, error } = await api.fetchSpecializationPaths();
     if (error || !paths) {
         showToast('Could not load specialization paths.', 'error');
         return;
     }
     
-    // Filter out paths already selected (rely on player_specializations in state, though api.fetchSpecializationPaths doesn't return that)
-    const selectedPaths = state.specializations || new Map(); // Assuming state.specializations is correctly populated in auth.js
-
-    const pathsToDisplay = paths.filter(p => !selectedPaths.has(p.id));
+    // Filter out paths the player has already selected
+    const selectedPathIds = new Set(Array.from(state.specializations.values()).map(spec => spec.specialization_path_id));
+    const pathsToDisplay = paths.filter(p => !selectedPathIds.has(p.id));
 
     if (pathsToDisplay.length === 0) {
-        showToast("No new specialization paths available.", 'info');
+        // This case might happen if all paths are unlocked
         return;
     }
 
@@ -130,12 +135,12 @@ async function renderSpecializationChoice() {
 }
 
 
-// --- Utility Functions (Unchanged) ---
+// --- Utility Functions ---
 
 function formatTime(ms) {
     if (ms < 0) return '00:00';
     const totalSeconds = Math.floor(ms / ONE_SECOND);
-    const hours = Math.floor((totalSeconds % 3600) / 60); // Simplified for mobile time
+    const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
@@ -148,7 +153,7 @@ function formatTime(ms) {
 }
 
 
-// --- Production Logic (Unchanged) ---
+// --- Production Logic ---
 
 async function handleStartProduction(factoryId, recipes) {
     if (!state.currentUser) return;
@@ -227,7 +232,7 @@ async function handleClaimProduction(playerFactory, outputItem) {
 }
 
 
-// --- Production UI Render (Unchanged in core logic) ---
+// --- Production UI Render ---
 
 function updateProductionCard(factory, outputItem) {
     const cardId = `factory-card-${factory.id}`;
@@ -246,7 +251,7 @@ function updateProductionCard(factory, outputItem) {
         if (timeLeft <= 0) {
             statusEl.textContent = `Ready: ${outputItem.name}`;
             progressEl.style.width = '100%';
-            card.onclick = () => handleClaimProduction(factory, outputItem);
+            card.onclick = () => openProductionModal(factory, outputItem);
         } else {
             statusEl.textContent = `Time: ${formatTime(timeLeft)}`;
             progressEl.style.width = `${(timeElapsed / masterTime) * 100}%`;
@@ -279,13 +284,10 @@ function openProductionModal(playerFactory, outputItem) {
         const hasEnough = playerQty >= recipe.input_quantity;
         if (!hasEnough) canStart = false;
         
-        // SECURITY FIX: Using textContent for ingredient names for safety
-        const ingredientName = recipe.items.name;
-
         return `
             <div class="prod-item">
-                <img src="${recipe.items.image_url || 'images/default_item.png'}" alt="${ingredientName}">
-                <p>${recipe.input_quantity} x <span style="color:${hasEnough ? 'var(--success-color)' : 'var(--danger-color)'}">${ingredientName}</span></p>
+                <img src="${recipe.items.image_url || 'images/default_item.png'}" alt="${recipe.items.name}">
+                <p>${recipe.input_quantity} x <span style="color:${hasEnough ? 'var(--success-color)' : 'var(--danger-color)'}">${recipe.items.name}</span></p>
                 <div class="label">(Owned: ${playerQty})</div>
             </div>
         `;
@@ -336,7 +338,6 @@ function openProductionModal(playerFactory, outputItem) {
         </div>
     `;
 
-    // Inject the modal HTML
     productionModal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeModal('production-modal')">&times;</button>
@@ -391,14 +392,13 @@ function openProductionModal(playerFactory, outputItem) {
 export async function renderProduction() {
     if (!state.currentUser || !state.playerProfile) return;
 
-    // Guard Clause: Check for playerProfile before accessing level
+    // Guard Clause to ensure profile is loaded
     if (state.playerProfile.level === undefined) {
          await refreshPlayerState();
     }
     
-    // 1. Check for specialization unlock
-    // NOTE: This assumes specialization_path_id is added to profiles table during player_specializations update
-    const hasSpecialization = state.playerProfile.specialization_path_id !== null; 
+    // Check for specialization unlock
+    const hasSpecialization = state.specializations.size > 0;
     
     if (state.playerProfile.level >= SPECIALIZATION_UNLOCK_LEVEL && !hasSpecialization) {
         renderSpecializationChoice();
@@ -419,23 +419,11 @@ export async function renderProduction() {
     resourcesContainer.innerHTML = '';
     workshopsContainer.innerHTML = '';
     
-    // Filter factories to display based on player's specialization paths (including defaults)
-    const specializedFactories = state.playerProfile.specializations || new Map();
-    const isSpecialized = specializedFactories.size > 0;
-    
     const resourceBuildings = factories.filter(f => f.factories.type === 'RESOURCE');
     const workshops = factories.filter(f => f.factories.type === 'WORKSHOP');
 
-    // Display Factories
     [...resourceBuildings, ...workshops].forEach(playerFactory => {
         const factory = playerFactory.factories;
-        
-        // Skip unowned specialized factories until a purchase logic is implemented
-        if (factory.specialization_path_id !== null && !isSpecialized) {
-             // In the future, this should display a "Locked" placeholder
-             return; 
-        }
-        
         const outputItem = factory.items;
         const card = document.createElement('div');
         card.className = 'building-card';
@@ -464,7 +452,7 @@ export async function renderProduction() {
 }
 
 
-// --- Stockpile Logic (Security Fixes Applied) ---
+// --- Stockpile Logic ---
 
 export async function renderStock() {
     if (!state.currentUser) return;
@@ -478,7 +466,6 @@ export async function renderStock() {
     let hasStock = false;
     
     state.inventory.forEach(item => {
-        // SECURITY FIX: Using textContent to display item names/quantities
         if (item.qty > 0) {
             hasStock = true;
             const itemElement = document.createElement('div');
@@ -488,13 +475,14 @@ export async function renderStock() {
             const itemQty = item.qty;
 
             itemElement.innerHTML = `
-                <img src="${item.details.image_url || 'images/default_item.png'}" alt="${itemName}">
+                <img src="${item.details.image_url || 'images/default_item.png'}" alt="">
                 <div class="details">
                     <h4></h4>
                     <span class="quantity"></span>
                 </div>
             `;
             // Use textContent for secure insertion
+            itemElement.querySelector('img').alt = itemName;
             itemElement.querySelector('h4').textContent = itemName;
             itemElement.querySelector('.quantity').textContent = `x ${itemQty}`;
 
