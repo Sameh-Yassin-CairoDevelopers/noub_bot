@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (Polished)
  * Description: UI Controller Module. Handles all UI logic and navigation.
- * UPDATED: Header UI logic, removed Slot Game navigation, and added new header profile button event.
+ * POLISHED: Removed commented-out code and correctly linked the new header profile button.
 */
 
 // --- CORE IMPORTS ---
@@ -26,7 +26,6 @@ import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction } from './screens/economy.js';
 import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
-// DELETED: renderSlotGame import removed
 import { renderKVGame } from './screens/kvgame.js';
 import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js';
@@ -58,12 +57,10 @@ export function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    // SECURITY FIX: Use textContent instead of innerHTML to prevent XSS
     toast.textContent = message;
     toastContainer.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
-// Also make it globally available for any inline HTML onclick attributes
 window.showToast = showToast;
 
 const contentContainer = document.getElementById('content-container');
@@ -83,13 +80,11 @@ export function navigateTo(targetId) {
 
     navItems.forEach(i => i.classList.remove('active'));
 
-    // Highlight the correct bottom nav item, if one exists
     const targetNavItem = document.querySelector(`.bottom-nav a[data-target="${targetId}"]`);
     if(targetNavItem) {
         targetNavItem.classList.add('active');
     }
 
-    // Call the appropriate render function for the target screen
     switch (targetId) {
         case 'home-screen':
             renderHome();
@@ -113,7 +108,6 @@ export function navigateTo(targetId) {
         case 'card-upgrade-screen':
             upgradeModule.renderUpgrade();
             break;
-        // DELETED: Case for 'slot-game-screen' removed
         case 'kv-game-screen':
             renderKVGame();
             break;
@@ -156,18 +150,6 @@ export function updateHeaderUI(profile) {
         noubDisplay.textContent = profile.noub_score || 0;
     }
 
-    // NEW: Update only the currencies that are still in the header
-    // const prestigeDisplay = document.getElementById('prestige-display');
-    // if(prestigeDisplay) {
-    //     prestigeDisplay.textContent = profile.prestige || 0;
-    // }
-
-    // const ankhPremiumDisplay = document.getElementById('ankh-premium-display');
-    // if(ankhPremiumDisplay) {
-    //     ankhPremiumDisplay.textContent = profile.ankh_premium || 0;
-    // }
-
-    // NEW: Update header avatar image
     const headerAvatarImg = document.getElementById('header-avatar-img');
     if (headerAvatarImg) {
         headerAvatarImg.src = profile.avatar_url || 'images/user_avatar.png';
@@ -184,12 +166,11 @@ function setupNavEvents() {
     document.querySelectorAll('.home-layout a[data-target]').forEach(link => {
         link.addEventListener('click', (e) => {
              e.preventDefault();
-             const targetId = link.dataset.target;
-             navigateTo(targetId);
+             navigateTo(link.dataset.target);
         });
     });
     
-    // NEW: Header profile button
+    // Header profile button
     const headerProfileBtn = document.querySelector('.header-profile-btn');
     if (headerProfileBtn) {
         headerProfileBtn.addEventListener('click', (e) => {
