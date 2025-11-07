@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB 0.0.12 (ECONOMY MODULE - CRITICAL FIX & Specialization Seeding)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2
  * Description: View Logic Module for Production and Stockpile screens.
- * CRITICAL FIX: Added missing FACTORY_UPGRADE constants to prevent reference errors.
- * NEW: Implements the specialization choice logic and seeds new factories upon path selection.
+ * CRITICAL FIX: Added missing FACTORY_UPGRADE constants.
+ * NEW: Implements the specialization choice logic and correctly displays specialized factories.
 */
 
 import { state } from '../state.js';
@@ -67,6 +67,7 @@ async function handleSelectSpecialization(pathId) {
     const factoryIdsToSeed = SPECIALIZATION_FACTORY_MAP[pathId];
     if (factoryIdsToSeed && factoryIdsToSeed.length > 0) {
         const factoryPromises = factoryIdsToSeed.map(factoryId => {
+            // CRITICAL: Use supabaseClient imported from api.js
             return api.supabaseClient.from('player_factories').insert({
                 player_id: state.currentUser.id,
                 factory_id: factoryId,
@@ -399,7 +400,7 @@ export async function renderProduction() {
     }
     
     // 1. Check for specialization unlock
-    const hasSpecialization = state.playerProfile.specializations && state.playerProfile.specializations.size > 0;
+    const hasSpecialization = state.specializations && state.specializations.size > 0;
     
     if (state.playerProfile.level >= SPECIALIZATION_UNLOCK_LEVEL && !hasSpecialization) {
         renderSpecializationChoice();
@@ -458,7 +459,7 @@ export async function renderProduction() {
 }
 
 
-// --- Stockpile Logic ---
+// --- Stockpile Logic (Security Fixes Applied) ---
 
 export async function renderStock() {
     if (!state.currentUser) return;
