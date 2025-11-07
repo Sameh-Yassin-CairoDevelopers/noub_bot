@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB 0.0.10 (UI Controller - FIX: Header Display)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2
  * Description: UI Controller Module. Handles all UI logic and navigation.
- * FIXED: Removed Spin Ticket display logic from the main header UI for a cleaner interface.
+ * UPDATED: Header UI logic, removed Slot Game navigation, and added new header profile button event.
 */
 
 // --- CORE IMPORTS ---
@@ -26,7 +26,7 @@ import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction } from './screens/economy.js';
 import { renderActiveContracts, renderAvailableContracts } from './screens/contracts.js';
-import { renderSlotGame } from './screens/slotgame.js';
+// DELETED: renderSlotGame import removed
 import { renderKVGame } from './screens/kvgame.js';
 import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js';
@@ -58,6 +58,7 @@ export function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
+    // SECURITY FIX: Use textContent instead of innerHTML to prevent XSS
     toast.textContent = message;
     toastContainer.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
@@ -82,6 +83,7 @@ export function navigateTo(targetId) {
 
     navItems.forEach(i => i.classList.remove('active'));
 
+    // Highlight the correct bottom nav item, if one exists
     const targetNavItem = document.querySelector(`.bottom-nav a[data-target="${targetId}"]`);
     if(targetNavItem) {
         targetNavItem.classList.add('active');
@@ -111,9 +113,7 @@ export function navigateTo(targetId) {
         case 'card-upgrade-screen':
             upgradeModule.renderUpgrade();
             break;
-        case 'slot-game-screen':
-            renderSlotGame();
-            break;
+        // DELETED: Case for 'slot-game-screen' removed
         case 'kv-game-screen':
             renderKVGame();
             break;
@@ -144,6 +144,10 @@ export function navigateTo(targetId) {
     }
 }
 
+/**
+ * Updates the main header UI with player currencies and avatar.
+ * @param {object} profile - The player's profile object from the state.
+ */
 export function updateHeaderUI(profile) {
     if (!profile) return;
 
@@ -152,17 +156,22 @@ export function updateHeaderUI(profile) {
         noubDisplay.textContent = profile.noub_score || 0;
     }
 
-    const prestigeDisplay = document.getElementById('prestige-display');
-    if(prestigeDisplay) {
-        prestigeDisplay.textContent = profile.prestige || 0;
-    }
+    // NEW: Update only the currencies that are still in the header
+    // const prestigeDisplay = document.getElementById('prestige-display');
+    // if(prestigeDisplay) {
+    //     prestigeDisplay.textContent = profile.prestige || 0;
+    // }
 
-    const ankhPremiumDisplay = document.getElementById('ankh-premium-display');
-    if(ankhPremiumDisplay) {
-        ankhPremiumDisplay.textContent = profile.ankh_premium || 0;
+    // const ankhPremiumDisplay = document.getElementById('ankh-premium-display');
+    // if(ankhPremiumDisplay) {
+    //     ankhPremiumDisplay.textContent = profile.ankh_premium || 0;
+    // }
+
+    // NEW: Update header avatar image
+    const headerAvatarImg = document.getElementById('header-avatar-img');
+    if (headerAvatarImg) {
+        headerAvatarImg.src = profile.avatar_url || 'images/user_avatar.png';
     }
-    
-    // CRITICAL: Removed the logic that updates spin-ticket-display in the main header
 }
 
 function setupNavEvents() {
@@ -171,7 +180,7 @@ function setupNavEvents() {
         item.addEventListener('click', () => navigateTo(item.dataset.target));
     });
 
-    // Home screen icon links (for both featured and secondary actions)
+    // Home screen icon links
     document.querySelectorAll('.home-layout a[data-target]').forEach(link => {
         link.addEventListener('click', (e) => {
              e.preventDefault();
@@ -179,8 +188,17 @@ function setupNavEvents() {
              navigateTo(targetId);
         });
     });
+    
+    // NEW: Header profile button
+    const headerProfileBtn = document.querySelector('.header-profile-btn');
+    if (headerProfileBtn) {
+        headerProfileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo(headerProfileBtn.dataset.target);
+        });
+    }
 
-    // New shop button in the bottom navigation bar
+    // Shop button in the bottom navigation bar
     const bottomShopBtn = document.getElementById('bottom-shop-btn');
     if (bottomShopBtn) bottomShopBtn.addEventListener('click', () => openShopModal());
 
