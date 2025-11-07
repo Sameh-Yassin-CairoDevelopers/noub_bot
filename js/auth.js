@@ -1,14 +1,14 @@
 /*
  * Filename: js/auth.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (Polished)
  * Description: Authentication Module. Manages login, signup, and player state refreshing.
- * CRITICAL FIX: refreshPlayerState now fetches player specializations to correctly display specialized factories.
+ * POLISHED: Clears specializations on logout and improves signup UX flow.
 */
 
 import { supabaseClient } from './config.js';
 import { state } from './state.js';
 import * as api from './api.js';
-import { navigateTo, updateHeaderUI } from './ui.js';
+import { navigateTo, updateHeaderUI, showToast } from './ui.js';
 
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
@@ -46,7 +46,6 @@ window.showLoginForm = showLoginForm;
  * Called immediately after profile creation.
  */
 async function seedNewPlayer(userId) {
-    // 1. Grant Starter Currencies
     const profileUpdate = {
         noub_score: STARTER_NOUB_SCORE,
         prestige: STARTER_PRESTIGE,
@@ -61,7 +60,6 @@ async function seedNewPlayer(userId) {
         return false;
     }
     
-    // 2. Seed Initial Factories
     const factoryPromises = INITIAL_FACTORY_IDS.map(factoryId => {
         return supabaseClient.from('player_factories').insert({
             player_id: userId,
@@ -72,30 +70,25 @@ async function seedNewPlayer(userId) {
     
     await Promise.all(factoryPromises);
     
-    // 3. Log the starter pack action
     await api.logActivity(userId, 'STARTER_PACK', `Received Starter Pack: ${STARTER_NOUB_SCORE} NOUB, ${STARTER_PRESTIGE} Prestige, ${STARTER_SPIN_TICKETS} Spin Tickets.`);
     
     return true;
 }
 
 /**
- * Refreshes the player's entire state (profile, inventory, specializations, etc.)
- * from the database and updates the UI header.
+ * Refreshes the player's entire state.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Fetch all critical data simultaneously for maximum speed
     const [profileResult, inventoryResult, consumablesResult, ucpResult, specializationsResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
         api.fetchKVGameConsumables(state.currentUser.id),
         api.fetchUCPProtocol(state.currentUser.id),
-        // CRITICAL: Fetch player's unlocked specializations
         api.fetchPlayerSpecializations(state.currentUser.id) 
     ]);
 
-    // Profile Data
     if (!profileResult.error && profileResult.data) {
         state.playerProfile = profileResult.data;
         updateHeaderUI(state.playerProfile);
@@ -103,7 +96,6 @@ export async function refreshPlayerState() {
         console.error("Error refreshing profile data.");
     }
     
-    // Inventory Data
     if (!inventoryResult.error && inventoryResult.data) {
         state.inventory.clear();
         inventoryResult.data.forEach(item => {
@@ -111,7 +103,6 @@ export async function refreshPlayerState() {
         });
     }
 
-    // Consumables Data
     if (!consumablesResult.error && consumablesResult.data) {
         state.consumables.clear();
         consumablesResult.data.forEach(item => {
@@ -119,7 +110,6 @@ export async function refreshPlayerState() {
         });
     }
 
-    // UCP Protocol Data
     if (!ucpResult.error && ucpResult.data) {
         state.ucp.clear();
         ucpResult.data.forEach(entry => {
@@ -127,7 +117,6 @@ export async function refreshPlayerState() {
         });
     }
     
-    // Specializations Data
     if (!specializationsResult.error && specializationsResult.data) {
         state.specializations = new Map();
         specializationsResult.data.forEach(spec => {
@@ -143,7 +132,6 @@ async function initializeApp(user) {
     await refreshPlayerState();
 
     if (!state.playerProfile) {
-        // SECURITY FIX: Using showToast instead of alert
         showToast("Critical error loading your profile data.", 'error'); 
         await logout();
         return;
@@ -171,11 +159,8 @@ async function signUp(email, password, username) {
     if (error) return { error };
 
     if (data.user) {
-        // The new user row is created by a DB trigger.
-        // We just need to seed it with starter data.
         await seedNewPlayer(data.user.id);
         
-        // SECURITY FIX: Using showToast instead of alert
         showToast('Account created! Check your email to confirm, then log in.', 'success');
         return { message: 'Account created successfully!' };
     }
@@ -190,7 +175,10 @@ export async function logout() {
     state.inventory.clear();
     state.consumables.clear();
     state.ucp.clear();
-    state.specializations.clear();
+    // POLISH: Clear specializations map on logout
+    if (state.specializations) {
+        state.specializations.clear();
+    }
     appContainer.classList.add('hidden');
     authOverlay.classList.remove('hidden');
 }
@@ -198,7 +186,6 @@ export async function logout() {
 export function setupAuthEventListeners() {
     const loginButton = document.getElementById('login-button');
     const registerButton = document.getElementById('register-button');
-    const logoutButton = document.getElementById('logout-btn');
     
     if (loginButton) {
         loginButton.addEventListener('click', async (e) => {
@@ -227,17 +214,14 @@ export function setupAuthEventListeners() {
             if (result.error) {
                 errorDiv.textContent = 'Signup Error: ' + result.error.message;
             } else {
-                // On success, switch to login form
+                // POLISH: Automatically switch to login form on successful signup
                 showLoginForm();
             }
             e.target.disabled = false;
         });
     }
 
-    // Logout button is now on the profile screen, its event is attached there.
-    if (logoutButton) {
-        logoutButton.addEventListener('click', logout);
-    }
+    // Logout is now handled by profile.js
 }
 
 export async function handleInitialSession() {
