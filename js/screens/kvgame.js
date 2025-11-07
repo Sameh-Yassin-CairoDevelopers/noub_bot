@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: NOUB 0.0.11 (KV GAME LOGIC - FIX: Consumables UI & NEW: Bull & Cow Feedback)
- * Description: Implements the full 62-level Valley of the Kings (Crack the Code) logic.
- * FIXED: UI now correctly displays Time Amulet and Hint Scroll buttons after Hint 4 is revealed.
- * NEW: Implements basic Bull & Cow logic for enhanced gameplay feedback.
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: Revert to Stable UI & Input)
+ * Description: Implements the Valley of the Kings (Crack the Code) logic.
+ * CRITICAL FIX: Reverts the input to the original single field for stability.
+ * RETAINED: Bull & Cow logic for enhanced feedback.
 */
 
 import { state } from '../state.js';
@@ -11,7 +11,7 @@ import * as api from '../api.js';
 import { showToast, updateHeaderUI, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
-import { checkAndUnlockLibrary } from './library.js'; 
+import { checkAndUnlockLibrary } from './library.js';
 
 // --- KV Game Constants & State ---
 const LEVEL_COST = 100; // Cost is in NOUB (gold coin)
@@ -50,7 +50,7 @@ const kvGatesData = [
     { kv: 45, name: "Userhet" }, { kv: 46, name: "Yuya & Thuya" }, { kv: 47, name: "Siptah" },
     { kv: 48, name: "Amenemope" }, { kv: 49, name: "Unknown" }, { kv: 50, name: "Unknown" }, { kv: 51, name: "Unknown" },
     { kv: 52, name: "Unknown" },
-    { kv: 53, name: "Unknown" }, { kv: 54, name: "Tutankhamun cache?" }, { kv: 55, name: "Amarna Cache (Akhenaten?)" }, { kv: 56, name: "Gold Tomb?" },
+    { kv: 53, name: "Unknown" }, { kv: 54, name: "Tutankhamun cache?" }, { kv: 55: { kv: 55, name: "Amarna Cache (Akhenaten?)" }, { kv: 56, name: "Gold Tomb?" },
     { kv: 57, name: "Horemheb" }, { kv: 58, name: "Unknown (Chariot Tomb?)" }, { kv: 59, name: "Unknown" }, { kv: 60, name: "Sitre" },
     { kv: 61, name: "Unknown" }, { kv: 62, name: "Tutankhamun" }
 ];
@@ -58,6 +58,8 @@ const kvGatesData = [
 
 // Local DOM Element Variables
 let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, progressInfoDiv, hintDisplayDiv, kvGameControlsEl;
+// Re-add reference to kv-message-label
+let kvMessageLabel; 
 
 // --- CORE LOGIC FUNCTIONS ---
 
@@ -94,10 +96,7 @@ function calculateCodeHints(code) {
 }
 
 /**
- * NEW: Implements the Bull & Cow logic for code cracking.
- * @param {string} secret - The secret code.
- * @param {string} guess - The player's guess.
- * @returns {{bulls: number, cows: number}}
+ * RETAINED: Bull & Cow logic for better feedback display.
  */
 function getBullAndCowFeedback(secret, guess) {
     let bulls = 0;
@@ -106,31 +105,27 @@ function getBullAndCowFeedback(secret, guess) {
     const guessArr = guess.split('');
     const secretMap = new Map();
 
-    // 1. Check for Bulls (correct digit in correct place)
     for (let i = 0; i < secretArr.length; i++) {
         if (secretArr[i] === guessArr[i]) {
             bulls++;
-            // Mark the position so it's not counted as a Cow
             secretArr[i] = '#'; 
             guessArr[i] = '@';
         } else {
-            // Build a map of remaining secret digits
             secretMap.set(secretArr[i], (secretMap.get(secretArr[i]) || 0) + 1);
         }
     }
 
-    // 2. Check for Cows (correct digit in wrong place)
     for (let i = 0; i < guessArr.length; i++) {
         const digit = guessArr[i];
         if (digit !== '@' && secretMap.has(digit) && secretMap.get(digit) > 0) {
             cows++;
-            // Decrement count in map to handle duplicates (e.g., secret 112, guess 221)
             secretMap.set(digit, secretMap.get(digit) - 1);
         }
     }
 
     return { bulls, cows };
 }
+
 
 async function updateKVProgress(isWin) {
     if (!state.currentUser) return;
@@ -208,7 +203,7 @@ function timerTick() {
 }
 
 /**
- * FIXED: Now correctly displays all consumable buttons regardless of Hint 4 status.
+ * FIX: Revert to original stable hint display logic.
  */
 function updateHintDisplay() {
     if (!hintDisplayDiv || !kvGameState.code) return;
@@ -355,9 +350,16 @@ function handleSubmitGuess() {
     } else if (kvGameState.attemptsLeft <= 0) {
         endCurrentKVGame('lose_attempts'); 
     } else {
-        // NEW: Provide Bull & Cow feedback
+        // RETAINED: Bull & Cow feedback logic
         const feedback = getBullAndCowFeedback(kvGameState.code, guess);
-        showToast(`Incorrect! ${feedback.bulls} Bulls (Right Place), ${feedback.cows} Cows (Wrong Place).`, 'info');
+        
+        // NEW: Display feedback in kv-message-label (Using a temporary ID since index.html was changed)
+        const feedbackMessageEl = document.getElementById('kv-message-label');
+        if (feedbackMessageEl) {
+             feedbackMessageEl.textContent = `Incorrect! Bulls: ${feedback.bulls}, Cows: ${feedback.cows}`;
+        }
+
+        showToast(`Incorrect! Bulls: ${feedback.bulls}, Cows: ${feedback.cows}`, 'info');
         guessInputEl.value = '';
         guessInputEl.focus();
     }
@@ -407,8 +409,17 @@ async function startNewKVGame() {
     kvGameState.timeLeft = config.time;
     kvGameState.attemptsLeft = config.attempts;
 
-    levelNameEl.textContent = `KV${gateInfo.kv}: ${gateInfo.name}`;
+    // FIX: Show/Hide the correct content sections
+    const kvGameIntroContent = document.getElementById('kv-game-intro-content');
+    const kvGameActiveContent = document.getElementById('kv-game-controls-content');
+    if (kvGameIntroContent) kvGameIntroContent.classList.add('hidden');
+    if (kvGameActiveContent) kvGameActiveContent.classList.remove('hidden');
+
+
+    document.getElementById('kv-level-name-display').textContent = `KV${gateInfo.kv}: ${gateInfo.name}`;
     document.getElementById('kv-attempts-display').textContent = `Attempts Left: ${kvGameState.attemptsLeft}`;
+    document.getElementById('kv-message-label').textContent = `Code: ${config.digits} digits`;
+
 
     if (guessInputEl) {
         guessInputEl.value = '';
@@ -417,10 +428,6 @@ async function startNewKVGame() {
         guessInputEl.disabled = false;
         guessInputEl.focus();
     }
-
-    kvGameControlsEl.classList.remove('hidden');
-    progressInfoDiv.classList.remove('hidden');
-    if (hintDisplayDiv) hintDisplayDiv.classList.remove('hidden');
 
     if (newGameBtn) newGameBtn.disabled = true;
 
@@ -444,15 +451,41 @@ async function startNewKVGame() {
 // --- MAIN SCREEN RENDER & UI SETUP ---
 
 function renderKVGameContent() {
+    // FIX: Re-assign elements based on the stable structure
     levelNameEl = document.getElementById('kv-level-name-display');
     timerDisplayEl = document.getElementById('kv-timer-display');
     guessInputEl = document.getElementById('kv-guess-input');
     submitGuessBtn = document.getElementById('kv-submit-guess-btn');
     newGameBtn = document.getElementById('kv-start-btn');
     endGameBtn = document.getElementById('kv-end-game-btn');
-    progressInfoDiv = document.getElementById('kv-progress-info');
     hintDisplayDiv = document.getElementById('kv-hints-list');
     kvGameControlsEl = document.getElementById('kv-game-controls-content');
+    kvMessageLabel = document.getElementById('kv-message-label');
+
+    // Re-inject elements inside kv-game-controls-content if they are missing (for stability)
+    if (kvGameControlsEl && !kvGameControlsEl.querySelector('#kv-message-label')) {
+         kvGameControlsEl.innerHTML = `
+            <div id="kv-progress-info" class="game-status-message">
+                <div id="kv-timer-display">Time Left: 0s</div><div id="kv-attempts-display">Attempts Left: 0</div>
+            </div>
+            <div id="kv-message-label">Enter the secret code.</div>
+            <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
+                <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
+            </div>
+            <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;"></ul>
+            <div class="kv-controls-grid">
+                <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
+                <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
+            </div>
+        `;
+        // Re-assign local variables
+        timerDisplayEl = document.getElementById('kv-timer-display');
+        guessInputEl = document.getElementById('kv-guess-input');
+        submitGuessBtn = document.getElementById('kv-submit-guess-btn');
+        endGameBtn = document.getElementById('kv-end-game-btn');
+        hintDisplayDiv = document.getElementById('kv-hints-list');
+        kvMessageLabel = document.getElementById('kv-message-label');
+    }
 
     if (newGameBtn) newGameBtn.onclick = startNewKVGame;
     if (submitGuessBtn) submitGuessBtn.onclick = handleSubmitGuess;
@@ -466,6 +499,8 @@ function renderKVGameContent() {
 
 async function updateKVProgressInfo() {
     const startBtn = document.getElementById('kv-start-btn');
+    const kvGameIntroContent = document.getElementById('kv-game-intro-content');
+    const kvGameActiveContent = document.getElementById('kv-game-controls-content'); 
 
     let { data: progress } = await api.fetchKVProgress(state.currentUser.id);
     if (!progress) {
@@ -486,9 +521,8 @@ async function updateKVProgressInfo() {
     const nextGate = kvGatesData[kvGameState.levelIndex];
 
     if (nextGate) {
-        kvGameControlsEl.classList.add('hidden');
-        progressInfoDiv.classList.add('hidden');
-        if (hintDisplayDiv) hintDisplayDiv.classList.add('hidden');
+        if(kvGameIntroContent) kvGameIntroContent.classList.remove('hidden');
+        if(kvGameActiveContent) kvGameActiveContent.classList.add('hidden');
 
         startBtn.textContent = `Start KV Gate ${nextGate.kv}`;
         startBtn.disabled = false;
