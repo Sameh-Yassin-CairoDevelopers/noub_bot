@@ -1,8 +1,8 @@
 /*
  * Filename: js/main.js
- * Version: NOUB 0.0.7 (CRITICAL SAFE ENTRY POINT - UI Rework)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2
  * Description: Main entry point. Loads all modules and starts authentication.
- * NEW: Imports the new tasks.js module.
+ * REMOVED: Import for the deprecated tasks.js module.
 */
 
 // --- CORE MODULES ---
@@ -18,7 +18,7 @@ import './screens/contracts.js'; // Still needed for quest tracking logic
 import './screens/upgrade.js'; 
 import './screens/home.js'; 
 import './screens/chat.js'; 
-import './screens/slotgame.js'; 
+// DELETED: slotgame.js import removed
 import './screens/kvgame.js'; 
 import './screens/collection.js'; 
 import './screens/economy.js'; 
@@ -31,8 +31,6 @@ import './screens/albums.js';
 import './screens/wheel.js';      
 import './screens/exchange.js'; 
 import './screens/activity.js'; 
-
-// NEW: Import the new tasks module
 import './screens/tasks.js';
 
 
@@ -41,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 0. CRITICAL: Initialize Telegram Web App SDK
     if (window.Telegram && window.Telegram.WebApp) {
          window.Telegram.WebApp.ready();
+         window.Telegram.WebApp.expand(); // Expand the web app to full screen
     }
 
     // 1. Setup all event listeners (for navigation, forms, etc.)
