@@ -1,8 +1,8 @@
 /*
  * Filename: js/ui.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: openModal Export)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: openModal Duplicate Export)
  * Description: UI Controller Module. Handles all UI logic and navigation.
- * CRITICAL FIX: Changed openModal from global window binding to direct export for module safety.
+ * CRITICAL FIX: Removed duplicate export of openModal to resolve SyntaxError.
 */
 
 // --- CORE IMPORTS ---
@@ -72,8 +72,8 @@ export function openModal(modalId) {
         modal.classList.remove('hidden');
     }
 }
-// FIX: openModal is now an export, to be imported and used by wheel.js
-export { openModal };
+// CRITICAL FIX: Expose openModal to the window object for inline onclick use AND module use
+window.openModal = openModal; 
 
 
 export function navigateTo(targetId) {
