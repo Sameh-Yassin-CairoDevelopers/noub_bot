@@ -1,8 +1,10 @@
+
 /*
  * Filename: js/screens/kvgame.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (FINAL CRITICAL FIX: Rebuild KV UI Elements)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (FINAL ROOT FIX: Element Assignment)
  * Description: Implements the Valley of the Kings (Crack the Code) logic.
- * CRITICAL FIX: Rebuilds the game's dynamic UI elements (input, message label, progress bar) for stability.
+ * FINAL FIX: Elements are now retrieved only ONCE safely at the start of renderKVGameContent 
+ * and rely on the original HTML structure (NO MORE DYNAMIC RE-INJECTION) for stability.
 */
 
 import { state } from '../state.js';
@@ -55,7 +57,7 @@ const kvGatesData = [
 ];
 
 
-// Local DOM Element Variables
+// Local DOM Element Variables (CRITICAL: These MUST be defined via DOM lookup)
 let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, progressInfoDiv, hintDisplayDiv, kvGameControlsEl, kvMessageLabel;
 
 
@@ -351,10 +353,9 @@ function handleSubmitGuess() {
         // RETAINED: Bull & Cow feedback logic
         const feedback = getBullAndCowFeedback(kvGameState.code, guess);
         
-        // NEW: Display feedback in kv-message-label
-        const feedbackMessageEl = document.getElementById('kv-message-label');
-        if (feedbackMessageEl) {
-             feedbackMessageEl.textContent = `Incorrect! Bulls: ${feedback.bulls}, Cows: ${feedback.cows}`;
+        // Display feedback in kv-message-label
+        if (kvMessageLabel) {
+             kvMessageLabel.textContent = `Incorrect! Bulls: ${feedback.bulls}, Cows: ${feedback.cows}`;
         }
 
         showToast(`Incorrect! Bulls: ${feedback.bulls}, Cows: ${feedback.cows}`, 'info');
@@ -449,7 +450,7 @@ async function startNewKVGame() {
 // --- MAIN SCREEN RENDER & UI SETUP ---
 
 function renderKVGameContent() {
-    // FIX: Re-assign elements based on the stable structure
+    // CRITICAL: Assign elements here from the DOM.
     levelNameEl = document.getElementById('kv-level-name-display');
     timerDisplayEl = document.getElementById('kv-timer-display');
     guessInputEl = document.getElementById('kv-guess-input');
@@ -459,30 +460,11 @@ function renderKVGameContent() {
     hintDisplayDiv = document.getElementById('kv-hints-list');
     kvGameControlsEl = document.getElementById('kv-game-controls-content');
     kvMessageLabel = document.getElementById('kv-message-label');
-
-    // Re-inject elements inside kv-game-controls-content if they are missing (for stability)
-    if (kvGameControlsEl && !kvGameControlsEl.querySelector('#kv-message-label')) {
-         kvGameControlsEl.innerHTML = `
-            <div id="kv-progress-info" class="game-status-message">
-                <div id="kv-timer-display">Time Left: 0s</div><div id="kv-attempts-display">Attempts Left: 0</div>
-            </div>
-            <div id="kv-message-label">Enter the secret code.</div>
-            <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
-                <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
-            </div>
-            <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;"></ul>
-            <div class="kv-controls-grid">
-                <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
-                <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
-            </div>
-        `;
-        // Re-assign local variables
-        timerDisplayEl = document.getElementById('kv-timer-display');
-        guessInputEl = document.getElementById('kv-guess-input');
-        submitGuessBtn = document.getElementById('kv-submit-guess-btn');
-        endGameBtn = document.getElementById('kv-end-game-btn');
-        hintDisplayDiv = document.getElementById('kv-hints-list');
-        kvMessageLabel = document.getElementById('kv-message-label');
+    
+    // Safety check that the necessary elements exist before adding listeners
+    if (!levelNameEl || !guessInputEl) {
+         console.error("KV Game UI elements are missing from index.html. Cannot initialize game logic.");
+         return;
     }
 
     if (newGameBtn) newGameBtn.onclick = startNewKVGame;
