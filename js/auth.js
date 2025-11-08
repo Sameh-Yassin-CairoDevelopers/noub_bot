@@ -1,8 +1,8 @@
 /*
  * Filename: js/auth.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (Polished)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: Fetch Specializations)
  * Description: Authentication Module. Manages login, signup, and player state refreshing.
- * POLISHED: Clears specializations on logout and improves signup UX flow.
+ * CRITICAL FIX: refreshPlayerState now fetches player specializations to correctly display specialized factories.
 */
 
 import { supabaseClient } from './config.js';
@@ -43,7 +43,6 @@ window.showLoginForm = showLoginForm;
 
 /**
  * Seeds the necessary initial data for a brand new player.
- * Called immediately after profile creation.
  */
 async function seedNewPlayer(userId) {
     const profileUpdate = {
@@ -76,19 +75,23 @@ async function seedNewPlayer(userId) {
 }
 
 /**
- * Refreshes the player's entire state.
+ * Refreshes the player's entire state (profile, inventory, specializations, etc.)
+ * from the database and updates the UI header.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
+    // Fetch all critical data simultaneously for maximum speed
     const [profileResult, inventoryResult, consumablesResult, ucpResult, specializationsResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
         api.fetchKVGameConsumables(state.currentUser.id),
         api.fetchUCPProtocol(state.currentUser.id),
+        // CRITICAL FIX: Fetch player's unlocked specializations
         api.fetchPlayerSpecializations(state.currentUser.id) 
     ]);
 
+    // Profile Data
     if (!profileResult.error && profileResult.data) {
         state.playerProfile = profileResult.data;
         updateHeaderUI(state.playerProfile);
@@ -96,6 +99,7 @@ export async function refreshPlayerState() {
         console.error("Error refreshing profile data.");
     }
     
+    // Inventory Data
     if (!inventoryResult.error && inventoryResult.data) {
         state.inventory.clear();
         inventoryResult.data.forEach(item => {
@@ -103,6 +107,7 @@ export async function refreshPlayerState() {
         });
     }
 
+    // Consumables Data
     if (!consumablesResult.error && consumablesResult.data) {
         state.consumables.clear();
         consumablesResult.data.forEach(item => {
@@ -110,6 +115,7 @@ export async function refreshPlayerState() {
         });
     }
 
+    // UCP Protocol Data
     if (!ucpResult.error && ucpResult.data) {
         state.ucp.clear();
         ucpResult.data.forEach(entry => {
@@ -117,6 +123,7 @@ export async function refreshPlayerState() {
         });
     }
     
+    // Specializations Data
     if (!specializationsResult.error && specializationsResult.data) {
         state.specializations = new Map();
         specializationsResult.data.forEach(spec => {
@@ -220,8 +227,6 @@ export function setupAuthEventListeners() {
             e.target.disabled = false;
         });
     }
-
-    // Logout is now handled by profile.js
 }
 
 export async function handleInitialSession() {
