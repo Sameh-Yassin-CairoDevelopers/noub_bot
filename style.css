@@ -2,7 +2,7 @@
  * Filename: style.css
  * Version: Pharaoh's Legacy 'NOUB' v0.2 - FINAL UI OVERHAUL
  * Description: Main stylesheet for the "Noub" game.
- * OVERHAUL: Redesigned header, login screen, and prepared styles for KV Game interactive input.
+ * OVERHAUL: Final styles for the entire application, including KV Game UI, Profile, and Login.
 */
 
 
@@ -134,6 +134,7 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-between; /* Space between the three main elements */
+    gap: 10px;
 }
 
 /* Currency Display - Only NOUB is in the header now */
@@ -173,7 +174,6 @@ header {
     overflow: hidden;
     order: 3; /* TON is on the right */
     border-radius: 50%;
-    /* ADD: Custom style for connected/disconnected state can be added here via JS class */
 }
 
 /* Header Profile Button */
@@ -352,7 +352,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- NEW HOME SCREEN STYLES (Unchanged) --- */
+/* --- NEW HOME SCREEN STYLES --- */
 .home-layout {
     display: flex;
     flex-direction: column;
@@ -409,9 +409,11 @@ input:focus, textarea:focus {
 }
 
 .home-secondary-actions {
+    /* NEW: Arrange 6 icons in 2 rows of 3 */
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
+    padding: 10px; /* Add some padding for better look */
 }
 
 .action-icon-link {
@@ -662,7 +664,7 @@ input:focus, textarea:focus {
 .progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
 
 
-/* --- Games Screen (Slots / KV) --- */
+/* --- Games Screen (KV) (Reverted to stable input) --- */
 .game-container {
     background-color: var(--surface-dark);
     padding: 14px;
@@ -674,219 +676,76 @@ input:focus, textarea:focus {
     color: var(--ankh-premium-color);
     margin-bottom: 10px;
 }
-/* Slots (Styles for multiplier buttons added) */
-.reels-container {
-    display: flex;
-    justify-content: center;
-    gap: 7px;
-    margin-bottom: 14px;
+#kv-game-content h3 {
+    color: var(--kv-gate-color);
+    margin-top: 0;
+    padding-top: 0;
 }
-.reel {
-    width: 45px;
-    height: 45px;
-    overflow: hidden;
-    border: 1px solid var(--primary-accent);
-    border-radius: 6px;
-    background-color: #000;
-}
-.reel-inner {
-    width: 100%;
-    transition: transform 3s cubic-bezier(0.2, 0.9, 0.5, 1);
-}
-.reel-item {
-    width: 100%;
-    height: 45px;
-    line-height: 45px;
-    font-size: 24px;
-    color: var(--primary-accent);
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
-}
-/* Slot Multiplier Buttons */
-.multiplier-btn {
-    background-color: var(--input-bg);
-    color: var(--text-secondary);
-    border: 1px solid #3a3a3c;
-    padding: 5px 12px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 0.8em;
-}
-.multiplier-btn.active {
-    background-color: var(--primary-accent);
-    color: var(--background-dark);
-    border-color: var(--primary-accent);
-}
-
-.game-status-message {
-    font-size: 0.9em;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: var(--success-color);
-}
-.game-status-message.lose {
-    color: var(--danger-color);
-}
-
-/* --- KV Game (NEW INTERACTIVE INPUT STYLES) --- */
-/* Overall style for the active game area */
-#kv-game-active-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    padding: 10px;
-}
-
-/* Status Bar */
-#kv-game-status-bar {
-    display: flex;
-    justify-content: space-around;
-    width: 100%;
-    background: #1a1a1a;
-    padding: 5px 10px;
-    border-radius: 6px;
-    font-weight: bold;
-    font-size: 0.85em;
-    color: var(--text-secondary);
-}
-#kv-timer-display, #kv-attempts-display {
-    color: var(--primary-accent);
-}
-#kv-message-label {
-    color: var(--text-primary);
-    font-weight: bold;
-    font-size: 1em;
-    min-height: 20px;
-}
-
-/* Guess Input Containers */
-#kv-guess-container {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-    margin-bottom: 10px;
-}
-.kv-digit-input {
-    width: 40px;
-    height: 40px;
-    text-align: center;
-    font-size: 1.2em;
-    padding: 0;
-    margin: 0;
-    background: var(--input-bg);
-    border: 2px solid #3a3a3c;
-    border-radius: 4px;
-    color: var(--text-primary);
-    transition: box-shadow 0.2s, border-color 0.2s;
-}
-.kv-digit-input:focus {
-    outline: none;
-    border-color: var(--ankh-premium-color);
-}
-
-/* History Display */
-#kv-history-container {
-    width: 100%;
-    display: flex;
-    flex-direction: column-reverse; /* Newest guess at the bottom */
-    gap: 5px;
-    max-height: 150px;
-    overflow-y: auto;
-    padding: 5px;
-}
-.kv-guess-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    padding: 5px;
-    background: #1a1a1a;
-    border-radius: 6px;
-    font-size: 0.85em;
-}
-.kv-history-digit {
-    width: 25px;
-    height: 25px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    font-weight: bold;
-    color: var(--text-primary);
-    background: #444;
-}
-
-/* Feedback Box */
-.kv-feedback-box {
-    display: flex;
-    gap: 7px;
-    font-weight: bold;
-    font-size: 0.9em;
-    margin-left: 10px;
-    align-items: center;
-}
-.kv-feedback-bull, .kv-feedback-cow {
-    padding: 3px 8px;
-    border-radius: 4px;
-    color: var(--background-dark);
-}
-.kv-feedback-bull { background-color: var(--kv-bull-color); }
-.kv-feedback-cow { background-color: var(--kv-cow-color); }
-
-/* --- Feedback Colors (Hales) --- */
-.kv-digit-input.bull {
-    box-shadow: 0 0 5px 2px var(--kv-bull-color);
-    border-color: var(--kv-bull-color);
-}
-.kv-digit-input.cow {
-    box-shadow: 0 0 5px 2px var(--kv-cow-color);
-    border-color: var(--kv-cow-color);
-}
-
-
-/* --- Upgrade Modal (Unchanged) --- */
-.upgrade-modal-content {
-    text-align: center;
-}
-.upgrade-card-target {
-    width: 110px;
-    margin: 0 auto 14px auto;
-}
-.upgrade-cost-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-    gap: 7px;
-    margin-bottom: 14px;
-}
-.cost-item {
+.kv-hint-item {
     background-color: #1a1a1a;
-    padding: 7px;
-    border-radius: 6px;
-    font-size: 0.8em;
     color: var(--text-secondary);
-    text-align: center;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-bottom: 5px;
+    text-align: left;
 }
-.cost-item img {
-    width: 20px;
-    height: 20px;
-    margin-bottom: 3px;
-}
-.cost-item .value {
+.kv-hint-item span {
     font-weight: bold;
-    display: block;
-    margin-top: 3px;
-    color: var(--text-primary);
+    color: var(--kv-gate-color);
 }
-.cost-item .icon {
-    font-size: 1.2em;
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+.kv-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 10px;
+}
+#kv-guess-input {
+    width: 100%;
+    padding: 8px;
+    font-size: 0.9em;
+    text-align: center;
+    background: var(--background-dark);
+    border: 1px solid var(--primary-accent);
+    color: var(--text-primary);
+    border-radius: 6px;
+}
+#kv-timer-display {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--primary-accent);
+    margin-bottom: 10px;
+}
+#kv-use-item-button-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 10px;
 }
 
-/* --- Chat Screen Styles (Unchanged) --- */
+
+/* --- Wheel Game (NEW STYLES) --- */
+.dice-result-container {
+    padding: 15px;
+    background: #1a1a1a;
+    border-radius: 10px;
+    margin: 20px auto;
+    width: 150px;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5); /* Gold glow */
+}
+.dice-result-container .icon-lg {
+    font-size: 4em;
+    color: var(--primary-accent);
+    display: block;
+}
+
+
+/* --- Chat Screen Styles (REFINED) --- */
 #chat-messages {
     background-color: var(--surface-dark);
     border-radius: 8px;
-    height: 280px;
+    height: 300px; /* Increased chat height */
     overflow-y: auto;
     padding: 10px;
     margin-bottom: 10px;
@@ -896,23 +755,53 @@ input:focus, textarea:focus {
 .eve-bubble, .user-bubble {
     padding: 7px 10px;
     border-radius: 10px;
-    margin-bottom: 7px;
-    max-width: 80%;
+    margin-bottom: 5px; /* Reduced margin */
+    max-width: 90%; /* Increased width */
     line-height: 1.3;
+    font-size: 0.9em; /* Reduced font size */
     word-wrap: break-word;
 }
 .eve-bubble {
-    background-color: var(--chat-eve-color);
-    color: #333;
+    background-color: #2a2a2e;
+    color: var(--text-primary);
     align-self: flex-start;
     border-bottom-left-radius: 3px;
+    border-left: 2px solid var(--ankh-premium-color);
 }
 .user-bubble {
-    background-color: var(--chat-user-color);
-    color: #155724;
+    background-color: #3a3a3c;
+    color: var(--text-primary);
     align-self: flex-end;
     border-bottom-right-radius: 3px;
+    border-right: 2px solid var(--primary-accent);
 }
+/* New Interactive Options */
+.ucp-options-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    width: 100%;
+}
+.ucp-option-btn {
+    width: 48%; /* Two buttons per row */
+}
+.ucp-range-slider-container {
+     display: flex;
+     justify-content: space-between;
+     width: 100%;
+     padding: 0 5px;
+     margin-top: 10px;
+}
+.ucp-range-btn {
+     width: 18%;
+     padding: 8px 0;
+}
+
+/* Chat Input Row (NEW: Side-by-side design) */
 #chat-input-area {
     display: flex;
     gap: 7px;
@@ -920,136 +809,29 @@ input:focus, textarea:focus {
 }
 #chat-input-field {
     flex-grow: 1;
+    margin-bottom: 0; /* Remove bottom margin */
 }
-
-/* --- SWAP/EXCHANGE UI (DEX Style) (Unchanged) --- */
-.swap-box {
-    background: var(--surface-dark);
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #3a3a3c;
-    margin-bottom: 7px;
-}
-.swap-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8em;
-    color: var(--text-secondary);
-    margin-bottom: 7px;
-}
-.swap-input-row {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-.swap-input-row input {
-    flex-grow: 1;
-    font-size: 0.9em;
-    padding: 3px;
-    border: none;
-    background: transparent;
-    color: var(--text-primary);
-    margin: 0;
-}
-.swap-input-row select {
-    padding: 3px;
-    border-radius: 6px;
-    background: var(--input-bg);
-    color: var(--text-primary);
-}
-.swap-percent-row {
-    display: flex;
-    gap: 5px;
-    margin-top: 7px;
-}
-.swap-percent-row button {
-    padding: 3px 7px;
-    font-size: 0.7em;
-}
-.swap-icon-container {
-    text-align: center;
-    margin: -7px 0;
-    z-index: 10;
-    position: relative;
-}
-#swap-icon-btn {
-    background: var(--primary-accent);
-    border: 3px solid var(--background-dark);
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-#swap-icon-btn:active { transform: rotate(180deg); }
-#continue-swap-btn:disabled { opacity: 0.5; }
-
-
-/* --- Shop Tabs Styles (Unchanged) --- */
-.shop-tabs-container {
-    display: flex;
-    justify-content: space-around;
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 10px;
-}
-.shop-tab-btn {
-    padding: 7px 10px;
-    border: none;
-    background: none;
-    color: var(--text-secondary);
-    font-size: 0.8em;
-    font-weight: bold;
-    cursor: pointer;
-}
-.shop-tab-btn.active {
-    color: var(--primary-accent);
-    border-bottom: 1px solid var(--primary-accent);
-}
-.shop-content-tab {
-    display: none;
-}
-.shop-content-tab.active {
-    display: block;
-}
-.shop-item {
-    display: flex;
-    align-items: center;
-    background: #2a2a2e;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
-.shop-item .icon { font-size: 28px; margin-right: 14px; }
-.shop-item .details { flex-grow: 1; }
-.shop-item h4 { margin: 0 0 3px 0; }
-.shop-item p { margin: 0; color: var(--text-secondary); font-size: 0.8em; }
-
-.buy-btn {
-    background: var(--primary-accent);
-    color: #121212;
-    border: none;
-    padding: 7px 14px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
+#chat-send-button {
+    flex-shrink: 0;
+    width: 80px;
+    margin: 0; /* Remove button margin */
 }
 
 
-/* --- Profile Screen (NEW STYLES) --- */
+/* --- Profile Screen (COMPRESSED STYLES) --- */
 .profile-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
+    gap: 10px; /* Reduced gap */
+    padding: 0 5px;
 }
 .profile-header {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
+    margin-bottom: 5px;
 }
 .profile-header .avatar {
     width: 70px;
@@ -1064,7 +846,7 @@ input:focus, textarea:focus {
 }
 .profile-section {
     width: 100%;
-    padding: 10px 0;
+    padding: 5px 0; /* Reduced padding */
 }
 .profile-section h3 {
     color: var(--ankh-premium-color);
@@ -1076,29 +858,32 @@ input:focus, textarea:focus {
 .profile-stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 10px;
+    gap: 7px; /* Reduced gap */
     width: 100%;
+}
+.currency-stats {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Tighter grid for currencies */
 }
 .stat-box {
     background: var(--surface-dark);
-    padding: 12px;
+    padding: 10px; /* Reduced padding */
     border-radius: 8px;
     text-align: center;
 }
 .stat-box .value {
-    font-size: 1.1em;
+    font-size: 1em; /* Reduced size */
     font-weight: bold;
     color: var(--text-primary);
     display: block;
 }
 .stat-box .label {
-    font-size: 0.7em;
+    font-size: 0.65em; /* Reduced size */
     color: var(--text-secondary);
     margin-top: 3px;
 }
 .specialization-box .value {
     color: var(--success-color);
-    font-size: 1.2em;
+    font-size: 1.1em;
 }
 
 
