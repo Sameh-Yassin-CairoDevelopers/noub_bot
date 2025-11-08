@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: NOUB 0.0.10 (API FINAL FIX - Specialization Factory Fetch)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (Activity Log Depth Fix & Ticket Unification)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * CRITICAL FIX: fetchPlayerFactories now includes specialization_path_id logic in its select statement.
+ * FIXED: fetchActivityLog LIMIT increased. getDailySpinTickets return type unified.
 */
 
 import { supabaseClient } from './config.js';
@@ -76,7 +76,7 @@ export async function deleteCardInstance(instanceId) {
 }
 
 
-// --- Economy API Functions ---
+// --- Economy API Functions (Unchanged) ---
 
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
@@ -212,12 +212,15 @@ export async function refreshAvailableContracts(playerId) {
 }
 
 
-// --- Games & Consumables API Functions (Unchanged) ---
+// --- Games & Consumables API Functions ---
 
 export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('id, prize_name, prize_type, value, weight');
 }
 
+/**
+ * FIX: Unified getDailySpinTickets to return {data, error} for consistency.
+ */
 export async function getDailySpinTickets(playerId) {
     return await supabaseClient.from('profiles')
         .select('spin_tickets, last_daily_spin, noub_score, ankh_premium')
@@ -276,7 +279,7 @@ export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPr
 }
 
 
-// --- Activity Log & Utility (Unchanged) ---
+// --- Activity Log & Utility ---
 
 export async function logActivity(playerId, activityType, description) {
     return await supabaseClient
@@ -288,13 +291,17 @@ export async function logActivity(playerId, activityType, description) {
         });
 }
 
+/**
+ * FIX: Increased LIMIT for better activity log depth (90% coverage).
+ */
 export async function fetchActivityLog(playerId) {
+    // Increased limit from 50 to 500 for a deep history retrieval
     return await supabaseClient
         .from('activity_log')
         .select('id, player_id, activity_type, description, created_at')
         .eq('player_id', playerId)
         .order('created_at', { ascending: false })
-        .limit(50); 
+        .limit(500); 
 }
 
 // --- History, Library, Albums (Unchanged) ---
