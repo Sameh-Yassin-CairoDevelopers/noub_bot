@@ -48,7 +48,6 @@
     <div id="app-container" class="hidden">
         
         <header>
-            <!-- NEW: Redesigned balance bar with only 3 elements -->
             <div class="balance-bar">
                 <div class="currency-display"><img src="images/noub_gold_coin.png" alt="NOUB" class="icon currency-img"> <span id="noub-display">0</span></div>
                 <div id="connectButton" class="ton-connect-btn"></div>
@@ -69,7 +68,6 @@
                                 <div class="icon-box large">🗝️</div>
                                 <span>KV Game</span>
                             </a>
-                            <!-- NEW: Wheel Game is now a featured game -->
                             <a class="action-card-link" data-target="wheel-screen">
                                 <div class="icon-box large">🎡</div>
                                 <span>Wheel of Fortune</span>
@@ -82,7 +80,6 @@
                             <a class="action-icon-link" data-target="card-upgrade-screen"><div class="icon-box">✨</div><span>Upgrade</span></a>
                             <a class="action-icon-link" data-target="albums-screen"><div class="icon-box">📖</div><span>Albums</span></a>
                             <a class="action-icon-link" data-target="contracts-screen"><div class="icon-box">📜</div><span>Contracts</span></a>
-                            <!-- NEW: Chat with Eve is now on the home screen -->
                             <a class="action-icon-link" data-target="chat-screen"><div class="icon-box">💬</div><span>Chat</span></a>
                             <a class="action-icon-link" data-target="exchange-screen"><div class="icon-box">🔄</div><span>Exchange</span></a>
                             <a class="action-icon-link" data-target="library-screen"><div class="icon-box">📚</div><span>Library</span></a>
@@ -131,36 +128,34 @@
                 <div id="upgrade-detail-area" class="upgrade-detail-area hidden"></div>
             </div>
 
-            <!-- DELETED: slot-game-screen is completely removed -->
-            
             <div id="wheel-screen" class="screen hidden"></div>
 
             <div id="kv-game-screen" class="screen hidden">
                 <h2>Valley of the Kings - Crack the Code</h2>
                 <div id="kv-game-content" class="game-container">
-                    <!-- Intro content remains the same -->
+                    <!-- Intro content (Initial view) -->
                     <div id="kv-game-intro-content">
                          <h2 style="margin-top: 0; padding-top: 0;"><span id="kv-level-name-display">KV Gate Name</span></h2>
-                         <button id="kv-start-btn" class="action-button" style="width: 200px;">Begin Expedition</button>
+                         <button id="kv-start-btn" class="action-button small" style="width: 200px;">Load Game</button>
                     </div>
-
-                    <!-- NEW: Redesigned active game area -->
-                    <div id="kv-game-active-content" class="hidden">
-                        <div id="kv-game-status-bar">
-                            <div id="kv-timer-display">Time: 0s</div>
-                            <div id="kv-attempts-display">Attempts: 0</div>
+                    
+                    <!-- CRITICAL: Active game controls content (This must exist in the HTML) -->
+                    <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
+                        <!-- Progress/Timer/Attempts -->
+                        <div id="kv-progress-info" class="game-status-message">
+                            <div id="kv-timer-display">Time Left: 0s</div><div id="kv-attempts-display">Attempts Left: 0</div>
                         </div>
-                        <div id="kv-message-label">Enter the secret code.</div>
-                        <div id="kv-history-container">
-                            <!-- Previous guesses will be appended here by JS -->
+                        <div id="kv-message-label" style="margin-bottom: 10px;">Enter the secret code.</div>
+                        
+                        <!-- Input Field -->
+                        <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
+                            <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
                         </div>
-                        <div id="kv-guess-container">
-                            <!-- Input boxes will be generated here by JS -->
-                        </div>
-                        <div id="kv-input-controls">
-                             <!-- This can be a virtual numpad in the future -->
-                        </div>
-                        <ul id="kv-hints-list"></ul>
+                        
+                        <!-- Hints List -->
+                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;"></ul>
+                        
+                        <!-- Action Buttons -->
                         <div class="kv-controls-grid">
                             <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
                             <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
@@ -170,7 +165,6 @@
             </div>
             
             <div id="profile-screen" class="screen hidden">
-                 <!-- The content will be heavily modified by profile.js -->
                  <div class="profile-container"></div>
             </div>
             
@@ -183,8 +177,8 @@
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
                 <div id="chat-messages"></div>
-                <div id="chat-input-area">
-                    <input type="text" id="chat-input-field" placeholder="Chat with Eve...">
+                <div id="chat-input-area" style="display: flex; flex-direction: column; gap: 7px; margin-top: 7px;">
+                    <input type="text" id="chat-input-field" placeholder="Chat with Eve..." style="flex-grow: 1;">
                     <button id="chat-send-button" class="action-button small">Send</button>
                 </div>
             </div>
@@ -217,7 +211,6 @@
                 <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
                 <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
                 <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
-                <!-- DELETED: Profile and Chat are now accessed from home/header -->
                 <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
             </div>
         </div>
@@ -235,6 +228,10 @@
     <script type="module" src="js/main.js?v=202511040101"></script> 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand(); // Expand the web app to full screen
+            }
             if (window.TON_CONNECT_UI) {
                 const manifestUrl = 'https://raw.githubusercontent.com/sameh-yassin-cairodevelopers/noub_bot/main/tonconnect-manifest.json';
                 
