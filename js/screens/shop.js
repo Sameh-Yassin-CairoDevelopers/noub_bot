@@ -1,9 +1,11 @@
 
-/*
+    const gameWalletAddress = ""; 
+
+  /*
  * Filename: js/screens/shop.js
- * Version: NOUB 0.0.13 (SHOP OVERHAUL - CRITICAL FIX: Library Item Unlock & Completeness)
+ * Version: NOUB 0.0.14 (SHOP OVERHAUL - CRITICAL FIX: Prevent Duplicate Library Unlock)
  * Description: Implements the multi-tabbed Shop interface.
- * CRITICAL FIX: handleBuyGameItem now correctly unlocks library entries and prevents re-purchase.
+ * CRITICAL FIX: Logic added to check if a library item is already unlocked and hides/disables the buy button.
 */
 
 import { state } from '../state.js';
@@ -27,7 +29,7 @@ const GAME_ITEMS = [
     { key: 'time_amulet_45s', name: 'Time Amulet (+45s)', costNoub: 250, costAnkhPremium: 0, quantity: 1, desc: 'Adds 45 seconds to the KV game timer.', icon: '⏱️', type: 'consumable' },
     { key: 'hint_bundle', name: 'Bundle of 5 Hints', costNoub: 0, costAnkhPremium: 5, quantity: 5, desc: '5 Hint Scrolls for 5 Ankh Premium.', icon: '✨', type: 'consumable' },
     { key: 'instant_prod', name: 'Instant Production Scroll', costNoub: 0, costAnkhPremium: 10, quantity: 1, desc: 'Instantly completes a single running factory production.', icon: '⚡', type: 'consumable' },
-    // The Great Ennead Scrolls
+    // NEW: Library Unlock Items (The Great Ennead)
     { key: 'god_ra', name: 'Scroll of Ra', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Ra" entry in the Encyclopedia.', icon: '📚', type: 'library_unlock' },
     { key: 'god_shu', name: 'Scroll of Shu', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Shu" entry (Requires Ra).', icon: '📚', type: 'library_unlock' },
     { key: 'god_tefnut', name: 'Scroll of Tefnut', costNoub: 1000, costAnkhPremium: 0, quantity: 1, desc: 'Unlocks the "Tefnut" entry.', icon: '📚', type: 'library_unlock' },
@@ -88,13 +90,19 @@ async function handleBuyGameItem(item) {
     const currentNoub = state.playerProfile.noub_score || 0;
     const currentAnkhPremium = state.playerProfile.ankh_premium || 0;
 
-    // 1. Check for purchase conflicts (e.g., already unlocked)
+    // 1. Check for purchase conflicts (already unlocked)
     if (type === 'library_unlock') {
+         // Fetch player library data once
          const { data: libraryData } = await api.fetchPlayerLibrary(state.currentUser.id);
-         if (libraryData.some(entry => entry.entry_key === key)) {
+         const isUnlocked = libraryData.some(entry => entry.entry_key === key);
+
+         if (isUnlocked) {
              showToast("This Encyclopedia entry is already unlocked!", 'info');
              return;
          }
+         
+         // Logic for sequential unlock (Optional: check previous key if needed, e.g., 'god_shu' requires 'god_ra')
+         // For a cleaner UX, we rely on the DB not failing if a sequential unlock is enforced there.
     }
 
     if (currentNoub < costNoub || currentAnkhPremium < costAnkhPremium) {
@@ -116,6 +124,7 @@ async function handleBuyGameItem(item) {
 
     // 3. Handle item grant based on type
     if (type === 'library_unlock') {
+         // Grant library unlock directly to player_library table
          const { error: unlockError } = await api.supabaseClient.from('player_library').insert({
              player_id: state.currentUser.id,
              entry_key: key
@@ -145,7 +154,7 @@ async function handleBuyGameItem(item) {
 }
 
 
-// --- TON EXCHANGE Logic ---
+// --- TON EXCHANGE Logic (Unchanged) ---
 
 async function handleTonExchange(tonAmount, ankhAmount) {
     if (!window.TonConnectUI || !window.TonConnectUI.connected) {
@@ -209,28 +218,45 @@ function renderCardPacks() {
     `).join('');
 }
 
+/**
+ * Renders Game Items tab, checking for unlock status.
+ */
 function renderGameItems() {
     const shopItemsGameItemsContainer = document.getElementById('shop-items-game_items-container');
      if (!shopItemsGameItemsContainer) return;
      
-    shopItemsGameItemsContainer.innerHTML = GAME_ITEMS.map(item => {
-        const costDisplay = item.costNoub > 0 ? `${item.costNoub} 🪙` : `${item.costAnkhPremium} ☥`;
-        
-        return `
-            <div class="shop-item">
-                <div class="icon">${item.icon}</div>
-                <div class="details">
-                    <h4>${item.name}</h4>
-                    <p>${item.desc}</p>
-                </div>
-                <button class="buy-btn" 
-                    onclick='window.handleBuyGameItem(${JSON.stringify(item)})'
-                >
-                    ${costDisplay}
-                </button>
-            </div>
-        `;
-    }).join('');
+     // Fetch unlocked keys for library checks
+     api.fetchPlayerLibrary(state.currentUser.id).then(({ data: libraryData }) => {
+         const unlockedKeys = new Set(libraryData.map(entry => entry.entry_key));
+         
+         shopItemsGameItemsContainer.innerHTML = GAME_ITEMS.map(item => {
+             const costDisplay = item.costNoub > 0 ? `${item.costNoub} 🪙` : `${item.costAnkhPremium} ☥`;
+             const isLibraryUnlock = item.type === 'library_unlock';
+             const isUnlocked = isLibraryUnlock && unlockedKeys.has(item.key);
+             
+             let buttonHTML;
+             if (isUnlocked) {
+                 buttonHTML = `<button class="buy-btn" disabled style="background-color: var(--success-color);">Unlocked</button>`;
+             } else {
+                 buttonHTML = `<button class="buy-btn" 
+                     onclick='window.handleBuyGameItem(${JSON.stringify(item)})'
+                 >
+                     ${costDisplay}
+                 </button>`;
+             }
+
+             return `
+                 <div class="shop-item">
+                     <div class="icon">${item.icon}</div>
+                     <div class="details">
+                         <h4>${item.name}</h4>
+                         <p>${item.desc}</p>
+                     </div>
+                     ${buttonHTML}
+                 </div>
+             `;
+         }).join('');
+     });
 }
 
 function renderTonExchange() {
@@ -293,6 +319,7 @@ function handleTabSwitch(tabName) {
  */
 export async function openShopModal() {
     await refreshPlayerState();
+
     renderCardPacks();
     renderGameItems();
     renderTonExchange();
