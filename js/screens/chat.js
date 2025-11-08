@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/chat.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (OVERHAUL: Eve UCP Protocol & UI)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: UCP DOM Insertion)
  * Description: Logic for the Eve Chat interface. Implements the UCP-LLM protocol 
  * with dynamic input tools, a redesigned chat interface, and complete protocol export.
+ * CRITICAL FIX: Corrected DOM insertion logic to fix the 'insertBefore' error.
 */
 
 import { state } from '../state.js';
@@ -55,7 +56,6 @@ function addMessage(sender, text, type = 'eve-bubble') {
     text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     text = text.replace(/\*(.*?)\*/g, '<i>$1</i>');
     
-    // SECURITY FIX: Using innerHTML only for trusted/formatted text, use DOMPurify in a real scenario
     messageDiv.innerHTML = text; 
     chatMessagesContainer.appendChild(messageDiv);
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
@@ -65,19 +65,23 @@ function addMessage(sender, text, type = 'eve-bubble') {
  * Manages the state of the chat input area (enabling/disabling text input).
  */
 function setInputMode(isEnabled) {
+    // Clear dynamic elements
+    const dynamicElements = chatActionArea.querySelectorAll('.ucp-dynamic-element');
+    dynamicElements.forEach(el => el.remove());
+    
+    // Clear text input state
     chatInputField.value = '';
     chatInputField.disabled = !isEnabled;
     chatSendButton.disabled = !isEnabled;
-    
-    // Clear dynamic buttons (multiple choice, range, etc.)
-    const dynamicElements = chatActionArea.querySelectorAll('.ucp-dynamic-element');
-    dynamicElements.forEach(el => el.remove());
 
     if (isEnabled) {
         chatInputField.style.display = 'block';
+        chatSendButton.style.display = 'block';
         chatInputField.placeholder = "Type your response...";
         chatInputField.focus();
     } else {
+        chatInputField.style.display = 'none';
+        chatSendButton.style.display = 'none';
         chatInputField.placeholder = "Answer the question above using the options.";
     }
 }
@@ -91,9 +95,7 @@ function renderInputArea(questionConfig) {
     
     setInputMode(questionConfig.type === 'text' || questionConfig.type === 'textarea');
     
-    // Remove old dynamic elements
-    const dynamicElements = chatActionArea.querySelectorAll('.ucp-dynamic-element');
-    dynamicElements.forEach(el => el.remove());
+    // The insertion point is always the chatActionArea, before the existing elements
     
     if (questionConfig.type === 'mc' || questionConfig.type === 'select' || questionConfig.type === 'range') {
         
@@ -126,10 +128,11 @@ function renderInputArea(questionConfig) {
             optionsDiv.appendChild(rangeDiv);
         }
         
-        chatActionArea.insertBefore(optionsDiv, chatInputField.parentNode);
+        // CRITICAL FIX: Insert optionsDiv directly into chatActionArea
+        chatActionArea.insertBefore(optionsDiv, chatActionArea.firstChild);
         
     } else {
-        // Standard text/textarea input is handled by the default input field
+        // Standard text/textarea input is active
         if (questionConfig.type === 'textarea') {
              chatInputField.placeholder = "Type your detailed answer here...";
         }
@@ -159,7 +162,6 @@ function askNextUCPQuestion() {
 window.handleUCPChoice = function(answerText) {
     if (!isAwaitingUCPAnswer) return;
     
-    // Add a stylish response to the chat before processing
     addMessage("User", `(Selected: ${answerText})`, 'user-bubble');
     processUCPAnswer(answerText);
 }
@@ -186,7 +188,8 @@ function processUCPAnswer(answer) {
             showToast('Protocol Updated!', 'success');
         })
         .catch(err => {
-            showToast('Error saving answer!', 'error');
+            // Log full error, but give generic message to user
+            showToast('Error saving answer! Failed to update protocol.', 'error');
             console.error('UCP Save Error:', err);
         });
 }
@@ -198,11 +201,11 @@ function handleChatSend() {
     
     chatInputField.value = ''; // Clear input immediately
 
-    if (isAwaitingUCPAnswer) {
+    if (isAwaitingUCPAnswer && !chatInputField.disabled) {
         // If awaiting a response from the user for a UCP question via text input
         addMessage("User", messageText, 'user-bubble');
         processUCPAnswer(messageText);
-    } else {
+    } else if (!isAwaitingUCPAnswer) {
         // Standard chat simulation
         addMessage("User", messageText, 'user-bubble');
         simulateEveResponse(messageText);
@@ -237,7 +240,7 @@ export async function renderChat() {
     chatMessagesContainer = document.getElementById('chat-messages'); 
     chatInputField = document.getElementById('chat-input-field');
     chatSendButton = document.getElementById('chat-send-button');
-    chatActionArea = chatInputField ? chatInputField.parentNode : null;
+    chatActionArea = document.getElementById('chat-input-area'); // The container holding the buttons and input
 
     if (!chatMessagesContainer || !chatInputField || !chatSendButton || !chatActionArea) {
         console.error("Chat interface elements not found."); 
@@ -258,7 +261,6 @@ export async function renderChat() {
     for (let i = 0; i < EVE_UCP_QUESTIONS_LIST.length; i++) {
         const q = EVE_UCP_QUESTIONS_LIST[i];
         const sectionKey = q.sectionTitle.replace(/[\s\&\.\/]+/g, '_').toLowerCase();
-        // Check if the state has data for this section
         if (state.ucp.has(sectionKey)) {
              lastAnsweredIndex = i; 
         }
