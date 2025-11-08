@@ -1,6 +1,4 @@
 
-    const gameWalletAddress = ""; 
-
   /*
  * Filename: js/screens/shop.js
  * Version: NOUB 0.0.14 (SHOP OVERHAUL - CRITICAL FIX: Prevent Duplicate Library Unlock)
@@ -336,3 +334,4 @@ export async function openShopModal() {
 window.handleBuyCardPack = handleBuyCardPack;
 window.handleBuyGameItem = handleBuyGameItem;
 window.handleTonExchange = handleTonExchange;
+
