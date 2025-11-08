@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/profile.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (UI FIX: Compressing Layout)
  * Description: View Logic Module for the Profile screen.
- * OVERHAUL: The profile screen is now a comprehensive dashboard displaying all player currencies, stats, and specialization.
+ * OVERHAUL: Applies UI adjustments to reduce unnecessary whitespace and tighten the layout.
 */
 
 import { state } from '../state.js';
@@ -16,13 +16,13 @@ const profileContainer = document.querySelector('#profile-screen .profile-contai
 // Default avatar fallback
 const DEFAULT_AVATAR = 'images/user_avatar.png';
 
+
 /**
  * Calculates the total Power Score by summing the power_score of all owned card instances.
  */
 async function calculateTotalPower(playerCards) {
     if (!playerCards || playerCards.length === 0) return 0;
     
-    // Use reduce to sum up power scores
     return playerCards.reduce((sum, card) => sum + (card.power_score || 0), 0);
 }
 
@@ -31,7 +31,6 @@ async function calculateTotalPower(playerCards) {
  */
 export async function renderProfile() {
     if (!state.currentUser || !state.playerProfile) {
-        // Guard clause in case state is not ready
         profileContainer.innerHTML = '<p class="error-message">Could not load profile data.</p>';
         return;
     }
@@ -53,7 +52,7 @@ export async function renderProfile() {
     const specializationName = playerSpecs && playerSpecs.length > 0 
         ? playerSpecs[0].specialization_paths.name 
         : 'None Selected';
-
+        
     // 3. Build the new Profile UI
     profileContainer.innerHTML = `
         <div class="profile-header">
