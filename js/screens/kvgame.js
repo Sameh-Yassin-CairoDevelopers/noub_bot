@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/kvgame.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: Syntax Error in KV Data Array)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (FINAL CRITICAL FIX: Rebuild KV UI Elements)
  * Description: Implements the Valley of the Kings (Crack the Code) logic.
- * CRITICAL FIX: Corrected array syntax and reverted to stable UI/Input.
+ * CRITICAL FIX: Rebuilds the game's dynamic UI elements (input, message label, progress bar) for stability.
 */
 
 import { state } from '../state.js';
@@ -30,7 +30,7 @@ let kvGameState = {
     hintsRevealed: [true, true, true, false],
 };
 
-// --- CRITICAL DATA: Full 62 KV Gates Data (SYNTAX CORRECTED) ---
+// --- CRITICAL DATA: Full 62 KV Gates Data (Unchanged) ---
 const kvGatesData = [
     { kv: 1, name: "Ramses VII" }, { kv: 2, name: "Ramses IV" }, { kv: 3, name: "Sons of Ramses II" },
     { kv: 4, name: "Ramses XI" }, { kv: 5, name: "Sons of Ramses II" }, { kv: 6, name: "Ramses IX" },
@@ -56,9 +56,8 @@ const kvGatesData = [
 
 
 // Local DOM Element Variables
-let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, progressInfoDiv, hintDisplayDiv, kvGameControlsEl;
-// Re-add reference to kv-message-label
-let kvMessageLabel; 
+let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, progressInfoDiv, hintDisplayDiv, kvGameControlsEl, kvMessageLabel;
+
 
 // --- CORE LOGIC FUNCTIONS ---
 
