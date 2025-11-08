@@ -1,10 +1,9 @@
-
 /*
  * Filename: js/screens/kvgame.js
  * Version: Pharaoh's Legacy 'NOUB' v0.2 (FINAL ROOT FIX: Element Assignment)
  * Description: Implements the Valley of the Kings (Crack the Code) logic.
  * FINAL FIX: Elements are now retrieved only ONCE safely at the start of renderKVGameContent 
- * and rely on the original HTML structure (NO MORE DYNAMIC RE-INJECTION) for stability.
+ * and rely on the original HTML structure for stability.
 */
 
 import { state } from '../state.js';
@@ -48,7 +47,7 @@ const kvGatesData = [
     { kv: 34, name: "Thutmose III" }, { kv: 35, name: "Amenhotep II" }, { kv: 36, name: "Maiherpri" },
     { kv: 37, name: "Unknown" }, { kv: 38, name: "Thutmose I" }, { kv: 39, name: "Unknown" }, { kv: 40, name: "Unknown" },
     { kv: 41, name: "Unknown" }, { kv: 42, name: "Hatshepsut-Meryet-Ra" }, { kv: 43, name: "Thutmose IV" }, { kv: 44, name: "Unknown" },
-    { kv: 45, name: "Userhet" }, { kv: 46, name: "Yuya & Thuya" }, { kv: 47, name: "Siptah" },
+    { kv: 45, name: "Userhet" }, { kv: 46, name: "Yuya & Thuya" }, { kv: 47: { kv: 47, name: "Siptah" },
     { kv: 48, name: "Amenemope" }, { kv: 49, name: "Unknown" }, { kv: 50, name: "Unknown" }, { kv: 51, name: "Unknown" },
     { kv: 52, name: "Unknown" },
     { kv: 53, name: "Unknown" }, { kv: 54, name: "Tutankhamun cache?" }, { kv: 55, name: "Amarna Cache (Akhenaten?)" }, { kv: 56, name: "Gold Tomb?" },
@@ -57,7 +56,7 @@ const kvGatesData = [
 ];
 
 
-// Local DOM Element Variables (CRITICAL: These MUST be defined via DOM lookup)
+// Local DOM Element Variables (CRITICAL: These MUST be defined via DOM lookup in renderKVGameContent)
 let levelNameEl, timerDisplayEl, guessInputEl, submitGuessBtn, newGameBtn, endGameBtn, progressInfoDiv, hintDisplayDiv, kvGameControlsEl, kvMessageLabel;
 
 
@@ -450,7 +449,7 @@ async function startNewKVGame() {
 // --- MAIN SCREEN RENDER & UI SETUP ---
 
 function renderKVGameContent() {
-    // CRITICAL: Assign elements here from the DOM.
+    // CRITICAL: Assign elements here from the DOM. This should fix the null/undefined error.
     levelNameEl = document.getElementById('kv-level-name-display');
     timerDisplayEl = document.getElementById('kv-timer-display');
     guessInputEl = document.getElementById('kv-guess-input');
@@ -462,7 +461,7 @@ function renderKVGameContent() {
     kvMessageLabel = document.getElementById('kv-message-label');
     
     // Safety check that the necessary elements exist before adding listeners
-    if (!levelNameEl || !guessInputEl) {
+    if (!levelNameEl || !guessInputEl || !newGameBtn) {
          console.error("KV Game UI elements are missing from index.html. Cannot initialize game logic.");
          return;
     }
