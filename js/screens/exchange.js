@@ -1,36 +1,30 @@
 /*
  * Filename: js/screens/exchange.js
- * Version: NOUB 0.0.4 (WEB3 SWAP UI OVERHAUL - FINAL CODE)
- * Description: Implements a single-page swap interface (like a DEX/Wallet) for currency conversion.
- * Includes UX features: From/To boxes, Max/Percentage buttons, and dynamic display.
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (OVERHAUL: Full Currency Swap Logic)
+ * Description: Implements a single-page swap interface (like a DEX) for currency conversion.
+ * FIXED: Uses the unified CURRENCY_MAP and dynamically calculates all conversion rates.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, updateHeaderUI, openModal } from '../ui.js';
+import { showToast, updateHeaderUI } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
+import { TOKEN_RATES, CURRENCY_MAP } from '../config.js'; // Import new constants
 
 const exchangeContainer = document.getElementById('exchange-screen');
 
-// --- EXCHANGE RATES (Based on Economic Plan) ---
+// --- EXCHANGE RATES (Base rates are NOUB-centric) ---
 const RATES = {
-    // Key: FROM_TO
-    "ANKH_PRESTIGE": 1000, 
-    "PRESTIGE_ANKH": 1000, 
-    "ANKH_TICKET": 100, 
-    "TICKET_ANKH": 100, 
-    "ANKH_BLESSING": 500,
-    "BLESSING_ANKH": 500
+    // NOUB to other currencies (Cost in NOUB to BUY 1 unit)
+    NOUB_PER_PRESTIGE: TOKEN_RATES.NOUB_PER_PRESTIGE,
+    NOUB_PER_TICKET: TOKEN_RATES.NOUB_PER_TICKET,
+    NOUB_PER_ANKH: TOKEN_RATES.NOUB_PER_ANKH_PREMIUM, 
+    
+    // Cross-Currency Rates (These are defined for logic clarity, not config)
+    ANKH_TO_PRESTIGE: 0.005, // Arbitrary base rate
+    PRESTIGE_TO_ANKH: 200,   // Arbitrary base rate
 };
 const MIN_CONVERSION_AMOUNT = 1;
-
-// Maps short codes to playerProfile keys and display names
-const CURRENCY_MAP = {
-    'ANKH': { key: 'score', icon: '☥', rate: RATES.PRESTIGE_ANKH },
-    'PRESTIGE': { key: 'prestige', icon: '🐞', rate: RATES.ANKH_TO_PRESTIGE },
-    'TICKET': { key: 'spin_tickets', icon: '🎟️', rate: RATES.ANKH_TO_TICKET },
-    'BLESSING': { key: 'blessing', icon: '🗡️', rate: RATES.ANKH_TO_BLESSING },
-};
 
 let fromToken = 'ANKH';
 let toToken = 'PRESTIGE';
@@ -40,7 +34,8 @@ let toToken = 'PRESTIGE';
  */
 function getBalance(tokenName) {
     const map = CURRENCY_MAP[tokenName.toUpperCase()];
-    if (map) {
+    // SECURITY FIX: Ensure state.playerProfile exists before accessing
+    if (map && state.playerProfile) { 
         return state.playerProfile[map.key] || 0;
     }
     return 0;
@@ -50,28 +45,53 @@ function getBalance(tokenName) {
  * Calculates the amount received and required based on current conversion.
  */
 function calculateConversion(inputAmount, fromToken, toToken) {
-    const fromMap = CURRENCY_MAP[fromToken];
-    const toMap = CURRENCY_MAP[toToken];
-    const rateKey = `${fromToken}_${toToken}`;
-    let costRate = RATES[rateKey];
+    // Normalize tokens
+    fromToken = fromToken.toUpperCase();
+    toToken = toToken.toUpperCase();
     
-    if (!costRate) {
-        const inverseRateKey = `${toToken}_${fromToken}`;
-        costRate = RATES[inverseRateKey];
-        if (!costRate) return { received: 0, required: 0 };
-        
-        // This is X -> ANKH conversion
-        const received = inputAmount * costRate;
-        const required = inputAmount;
-        return { received: Math.floor(received), required: required };
+    if (fromToken === toToken || isNaN(inputAmount) || inputAmount <= 0) {
+        return { received: 0, required: 0 };
     }
+
+    // --- Core Logic: All conversions route through NOUB first for simplicity ---
+    let received = 0;
+    let required = inputAmount;
+
+    // 1. Conversion to NOUB (Selling the FROM token)
+    if (toToken === 'NOUB') {
+        const rate = RATES[`NOUB_PER_${fromToken}`]; // Cost to buy 1 unit of FROM is the sale price of FROM to NOUB
+        if (!rate) return { received: 0, required: inputAmount, error: 'Conversion rate not defined.' };
+
+        // Selling 1 unit of FROM gives 1 unit of NOUB at the cost rate
+        // Sell FROM for NOUB (e.g., sell 1 Prestige for 1000 NOUB)
+        received = inputAmount * rate;
     
-    // This is ANKH -> X conversion (where X is Prestige, Ticket, Blessing)
-    const required = inputAmount;
-    const received = inputAmount / costRate;
-    
-    // Enforce divisibility for ANKH -> X
-    if (inputAmount % costRate !== 0) return { received: 0, required: inputAmount, error: `Must be a multiple of ${costRate}.` };
+    // 2. Conversion from NOUB (Buying the TO token)
+    } else if (fromToken === 'NOUB') {
+        const costPerUnit = RATES[`NOUB_PER_${toToken}`];
+        if (!costPerUnit) return { received: 0, required: inputAmount, error: 'Conversion rate not defined.' };
+        
+        // Buying TO with NOUB (e.g., buy Prestige with 1000 NOUB)
+        if (inputAmount % costPerUnit !== 0) {
+            return { received: 0, required: inputAmount, error: `Must be a multiple of ${costPerUnit}.` };
+        }
+        received = inputAmount / costPerUnit;
+
+    // 3. Cross-Conversion (FROM -> NOUB -> TO)
+    } else {
+         // This is complex and usually requires a fixed market rate for Cross-currency.
+         // For stability, we'll use a hardcoded internal rate (e.g., Ankh/Prestige) if defined
+         const rateKey = `${fromToken}_TO_${toToken}`;
+         let fixedRate = RATES[rateKey];
+         
+         if (fixedRate) {
+              // Direct fixed cross-rate exists
+              received = inputAmount * fixedRate;
+         } else {
+              // No direct rate: Block or use NOUB as intermediate (more complex)
+              return { received: 0, required: inputAmount, error: 'Cross-conversion not directly supported.' };
+         }
+    }
     
     return { received: Math.floor(received), required: required };
 }
@@ -87,8 +107,33 @@ export async function renderExchange() {
     
     await refreshPlayerState();
 
+    // Get Conversion Details for display
+    const rateKey = `${fromToken.toUpperCase()}_PER_${toToken.toUpperCase()}`;
+    const directRate = RATES[rateKey] || 'N/A';
+    
+    // Determine the exchange direction and display rate clearly
+    let displayRate = 'N/A';
+    if (fromToken === 'NOUB') {
+        displayRate = `1 ${CURRENCY_MAP[toToken].icon} = ${RATES[`NOUB_PER_${toToken}`]} 🪙`;
+    } else if (toToken === 'NOUB') {
+        displayRate = `1 ${CURRENCY_MAP[fromToken].icon} = ${RATES[`NOUB_PER_${fromToken}`]} 🪙`;
+    } else {
+        // Fallback for cross-conversion to display an estimate if possible
+        const directRateValue = RATES[`${fromToken}_TO_${toToken}`];
+        if (directRateValue) {
+             displayRate = `1 ${CURRENCY_MAP[fromToken].icon} ≈ ${directRateValue} ${CURRENCY_MAP[toToken].icon}`;
+        } else {
+             displayRate = "Cross-Conversion is rate-locked.";
+        }
+    }
+    
+
     exchangeContainer.innerHTML = `
         <h2 style="text-align: center;">Currency Swap (DEX Style)</h2>
+        
+        <div style="text-align: center; margin-bottom: 15px;">
+            <p id="conversion-display-rate" style="color: var(--primary-accent); font-weight: bold; font-size: 1.1em;">${displayRate}</p>
+        </div>
         
         <!-- FROM BOX -->
         <div class="swap-box">
@@ -145,39 +190,19 @@ export async function renderExchange() {
     Object.keys(CURRENCY_MAP).forEach(token => {
         const fromOption = document.createElement('option');
         fromOption.value = token;
-        fromOption.textContent = `${token} (${CURRENCY_MAP[token].icon})`;
-        if (token === fromToken) fromOption.selected = true;
+        fromOption.textContent = `${CURRENCY_MAP[token].name} (${CURRENCY_MAP[token].icon})`;
+        if (token.toUpperCase() === fromToken.toUpperCase()) fromOption.selected = true;
         fromSelect.appendChild(fromOption);
         
         const toOption = document.createElement('option');
         toOption.value = token;
-        toOption.textContent = `${token} (${CURRENCY_MAP[token].icon})`;
-        if (token === toToken) toOption.selected = true;
+        toOption.textContent = `${CURRENCY_MAP[token].name} (${CURRENCY_MAP[token].icon})`;
+        if (token.toUpperCase() === toToken.toUpperCase()) toOption.selected = true;
         toSelect.appendChild(toOption);
     });
     
     // 2. Initial UI update
     window.updateSwapOutput();
-    
-    // 3. Inject CSS for the swap look (for quick testing)
-    if (!document.getElementById('swap-style')) {
-        const style = document.createElement('style');
-        style.id = 'swap-style';
-        style.innerHTML = `
-            .swap-box { background: var(--surface-dark); padding: 15px; border-radius: 12px; border: 1px solid #3a3a3c; margin-bottom: 10px; }
-            .swap-header { display: flex; justify-content: space-between; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; }
-            .swap-input-row { display: flex; align-items: center; gap: 10px; }
-            .swap-input-row input { flex-grow: 1; font-size: 1.2em; padding: 5px; border: none; background: transparent; color: var(--text-primary); margin: 0; }
-            .swap-input-row select { padding: 5px; border-radius: 8px; background: var(--input-bg); color: var(--text-primary); }
-            .swap-percent-row { display: flex; gap: 8px; margin-top: 10px; }
-            .swap-percent-row button { padding: 5px 10px; font-size: 0.8em; }
-            .swap-icon-container { text-align: center; margin: -10px 0; z-index: 10; position: relative; }
-            #swap-icon-btn { background: var(--primary-accent); border: 4px solid var(--background-dark); border-radius: 50%; width: 40px; height: 40px; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; }
-            #swap-icon-btn:active { transform: rotate(180deg); }
-            #continue-swap-btn:disabled { opacity: 0.5; }
-        `;
-        document.head.appendChild(style);
-    }
 }
 
 /**
@@ -187,9 +212,36 @@ window.updateSwapOutput = function() {
     const inputElement = document.getElementById('swap-input-from');
     const outputElement = document.getElementById('swap-input-to');
     const detailsElement = document.getElementById('conversion-details');
+    const rateDisplayElement = document.getElementById('conversion-display-rate');
     const continueBtn = document.getElementById('continue-swap-btn');
     const inputAmount = parseInt(inputElement.value);
     
+    // Update balances and rates first
+    document.querySelector('.swap-box:first-child .swap-balance').textContent = `Balance: ${getBalance(fromToken)} ${CURRENCY_MAP[fromToken].icon}`;
+    document.querySelector('.swap-box:last-child .swap-balance').textContent = `Balance: ${getBalance(toToken)} ${CURRENCY_MAP[toToken].icon}`;
+    
+    // Update rate display in the middle (re-render for rate logic)
+    const newRate = calculateConversion(1, fromToken, toToken); // Calculate rate for 1 unit
+    
+    let displayRate = 'N/A';
+    if (fromToken === 'NOUB') {
+        displayRate = `1 ${CURRENCY_MAP[toToken].icon} = ${RATES[`NOUB_PER_${toToken}`]} 🪙`;
+    } else if (toToken === 'NOUB') {
+        displayRate = `1 ${CURRENCY_MAP[fromToken].icon} = ${RATES[`NOUB_PER_${fromToken}`]} 🪙`;
+    } else {
+         const rateValue = RATES[`${fromToken}_TO_${toToken}`];
+         const inverseRateValue = RATES[`${toToken}_TO_${fromToken}`];
+         if(rateValue) {
+            displayRate = `1 ${CURRENCY_MAP[fromToken].icon} ≈ ${rateValue} ${CURRENCY_MAP[toToken].icon}`;
+         } else if (inverseRateValue) {
+            displayRate = `1 ${CURRENCY_MAP[toToken].icon} ≈ ${inverseRateValue} ${CURRENCY_MAP[fromToken].icon}`;
+         } else {
+             displayRate = "Cross-Conversion Rate Missing.";
+         }
+    }
+    rateDisplayElement.textContent = displayRate;
+
+
     if (isNaN(inputAmount) || inputAmount <= 0) {
         outputElement.value = '0.0';
         detailsElement.textContent = 'Enter an amount to see details.';
@@ -246,20 +298,17 @@ window.swapTokens = function() {
  */
 window.setSwapPercentage = function(percentage) {
     const maxBalance = getBalance(fromToken);
-    const amount = Math.floor(maxBalance * percentage);
+    let amount = Math.floor(maxBalance * percentage);
     
-    // Enforce divisibility for ANKH conversions to other tokens
-    if (fromToken === 'ANKH') {
-        const rateToNext = RATES[`ANKH_${toToken}`];
-        if (rateToNext) {
-            const divisibleAmount = Math.floor(amount / rateToNext) * rateToNext;
-            document.getElementById('swap-input-from').value = divisibleAmount;
-        } else {
-            document.getElementById('swap-input-from').value = amount;
+    // Enforce divisibility for NOUB conversions (buying non-NOUB items)
+    if (fromToken === 'NOUB' && toToken !== 'NOUB') {
+        const costPerUnit = RATES[`NOUB_PER_${toToken}`];
+        if (costPerUnit) {
+            amount = Math.floor(amount / costPerUnit) * costPerUnit;
         }
-    } else {
-        document.getElementById('swap-input-from').value = amount;
-    }
+    } 
+    
+    document.getElementById('swap-input-from').value = amount;
     
     window.updateSwapOutput();
 }
@@ -281,20 +330,15 @@ window.executeSwap = async function() {
 
     const updateObject = {};
     
-    // Deduct from source (Always the 'fromCurrency')
+    // Deduct from source
     const deductedKey = CURRENCY_MAP[fromToken].key;
     updateObject[deductedKey] = getBalance(fromToken) - amountDeducted;
     
-    // Add to destination (Always the 'toCurrency')
+    // Add to destination
     const receivedKey = CURRENCY_MAP[toToken].key;
     const currentReceivedBalance = getBalance(toToken);
     
-    // Safe update: apply addition to the updated object
-    if (updateObject[receivedKey]) {
-        updateObject[receivedKey] += result.received;
-    } else {
-        updateObject[receivedKey] = currentReceivedBalance + result.received;
-    }
+    updateObject[receivedKey] = currentReceivedBalance + result.received;
 
     
     // 1. Execute database update
@@ -314,4 +358,3 @@ window.executeSwap = async function() {
         showToast('Error processing swap!', 'error');
     }
 }
-
