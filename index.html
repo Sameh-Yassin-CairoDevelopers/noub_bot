@@ -19,7 +19,6 @@
 <body>
 
     <div id="auth-overlay">
-        <!-- NEW: Login screen structure for better styling -->
         <div class="auth-container">
             <div class="auth-header">
                 <img src="images/noub_logo.png" alt="NOUB Logo" class="auth-logo">
@@ -172,7 +171,13 @@
             <div id="library-screen" class="screen hidden"></div>
             <div id="settings-screen" class="screen hidden"></div>
             <div id="activity-screen" class="screen hidden"></div>
-            <div id="exchange-screen" class="screen hidden"></div>
+            
+            <div id="exchange-screen" class="screen hidden">
+                <h2>Currency Swap (DEX Style)</h2>
+                <div id="exchange-rate-container" style="text-align: center; margin-bottom: 15px;">
+                    <p id="conversion-display-rate" class="swap-rate-display"></p>
+                </div>
+            </div>
             
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
@@ -230,7 +235,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Telegram && window.Telegram.WebApp) {
                 window.Telegram.WebApp.ready();
-                window.Telegram.WebApp.expand(); // Expand the web app to full screen
+                window.Telegram.WebApp.expand(); 
             }
             if (window.TON_CONNECT_UI) {
                 const manifestUrl = 'https://raw.githubusercontent.com/sameh-yassin-cairodevelopers/noub_bot/main/tonconnect-manifest.json';
