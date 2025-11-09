@@ -1,20 +1,25 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: NOUB 0.0.7 (Daily Quests & Contracts - FIX: Implement Completion Bonus)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (UX OVERHAUL: Contracts Logic & Stats)
  * Description: View Logic Module for the contracts screen. 
- * NEW: Implements the logic to track and grant a NOUB bonus after completing 10 contracts.
- * UPDATED: Currency usage for NOUB.
+ * NEW: Implements a 60-second cooldown after contract acceptance.
+ * UPDATED: Display player's core currencies in the contract screen.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, updateHeaderUI, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { TOKEN_RATES } from '../config.js'; // Import TOKEN_RATES for constants
+import { TOKEN_RATES } from '../config.js';
+import { trackDailyActivity } from './contracts.js'; // Self-import for trackDailyActivity
 
 const activeContractsContainer = document.getElementById('active-contracts-container');
 const availableContractsContainer = document.getElementById('available-contracts-container');
 const contractDetailModal = document.getElementById('contract-detail-modal');
+
+// --- CONSTANTS ---
+const CONTRACT_COOLDOWN_MS = 60 * 1000; // 60 seconds cooldown after acceptance
+
 
 // --- Daily Quest Logic (Unchanged) ---
 
@@ -92,8 +97,8 @@ export async function completeDailyQuest(questId, reward) {
         saveDailyQuests(quests);
 
         // Grant reward (NOUB only for Daily Quests)
-        const newNoubScore = (state.playerProfile.noub_score || 0) + reward; // Use noub_score
-        const { error } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore }); // Update noub_score
+        const newNoubScore = (state.playerProfile.noub_score || 0) + reward;
+        const { error } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
 
         if (!error) {
             await refreshPlayerState();
@@ -118,29 +123,29 @@ async function handleAcceptContract(contractId) {
         showToast('Error accepting contract!', 'error');
         console.error(error);
     } else {
-        showToast('Contract Accepted!', 'success');
+        // Log the acceptance time immediately for cooldown
+        await api.supabaseClient.from('player_contracts')
+            .update({ accepted_at: new Date().toISOString() })
+            .eq('player_id', state.currentUser.id)
+            .eq('contract_id', contractId);
+
+        showToast('Contract Accepted! Cooldown started.', 'success');
         window.closeModal('contract-detail-modal');
         renderActiveContracts();
         renderAvailableContracts();
     }
 }
 
-/**
- * NEW: Updates the contract completion count in player profile.
- */
 async function updateContractCompletionCount(playerId) {
-    // 1. Fetch current contracts count
     let count = state.playerProfile.completed_contracts_count || 0;
     count++;
 
-    // 2. Check for Bonus
     let bonusNoub = 0;
-    if (count % TOKEN_RATES.CONTRACT_COMPLETION_BONUS_COUNT === 0) {
+    if (TOKEN_RATES.CONTRACT_COMPLETION_BONUS_NOUB && TOKEN_RATES.CONTRACT_COMPLETION_BONUS_COUNT && count % TOKEN_RATES.CONTRACT_COMPLETION_BONUS_COUNT === 0) {
         bonusNoub = TOKEN_RATES.CONTRACT_COMPLETION_BONUS_NOUB;
         showToast(`Contract Bonus! +${bonusNoub} NOUB for completing ${TOKEN_RATES.CONTRACT_COMPLETION_BONUS_COUNT} contracts!`, 'success');
     }
 
-    // 3. Update the profile with new count and potential bonus
     const newNoubScore = (state.playerProfile.noub_score || 0) + bonusNoub;
 
     await api.updatePlayerProfile(playerId, { 
@@ -152,10 +157,34 @@ async function updateContractCompletionCount(playerId) {
 }
 
 
-async function handleDeliverContract(playerContract, requirements) {
+async function handleDeliverContract(playerContract, contractRequirements) {
     showToast('Delivering goods...');
 
-    const consumePromises = requirements.map(req => {
+    // CRITICAL: Check Cooldown Time
+    const acceptedTime = new Date(playerContract.accepted_at).getTime();
+    const now = Date.now();
+    const elapsedTime = now - acceptedTime;
+
+    if (elapsedTime < CONTRACT_COOLDOWN_MS) {
+        const remainingTime = Math.ceil((CONTRACT_COOLDOWN_MS - elapsedTime) / 1000);
+        showToast(`Delivery cooldown active. Try again in ${remainingTime} seconds.`, 'error');
+        return;
+    }
+    
+    // Check if player has enough resources (second check for safety)
+    let allRequirementsMet = true;
+    contractRequirements.forEach(req => {
+        const playerQty = state.inventory.get(req.items.id)?.qty || 0;
+        if (playerQty < req.quantity) allRequirementsMet = false;
+    });
+
+    if (!allRequirementsMet) {
+         showToast('Error: Insufficient resources to fulfill the contract!', 'error');
+         return;
+    }
+
+
+    const consumePromises = contractRequirements.map(req => {
         const currentQty = state.inventory.get(req.items.id)?.qty || 0;
         const newQty = currentQty - req.quantity;
         state.inventory.set(req.items.id, { ...state.inventory.get(req.items.id), qty: newQty });
@@ -168,7 +197,7 @@ async function handleDeliverContract(playerContract, requirements) {
     // 1. Calculate Standard Rewards
     let totalNoubReward = contractDetails.reward_score;
     const newTotals = {
-        noub_score: (state.playerProfile.noub_score || 0) + totalNoubReward, // Use reward_score for NOUB
+        noub_score: (state.playerProfile.noub_score || 0) + totalNoubReward,
         prestige: (state.playerProfile.prestige || 0) + contractDetails.reward_prestige
     };
 
@@ -191,6 +220,30 @@ async function handleDeliverContract(playerContract, requirements) {
     window.closeModal('contract-detail-modal');
     renderActiveContracts();
 }
+
+/**
+ * NEW: Helper function to display player's current currencies.
+ */
+function renderPlayerStats() {
+    const statsContainer = document.getElementById('contracts-player-stats');
+    if (!statsContainer) return;
+
+    // Use current state to display player's core currencies/items
+    const noub = state.playerProfile.noub_score || 0;
+    const ankh = state.playerProfile.ankh_premium || 0;
+    const prestige = state.playerProfile.prestige || 0;
+    const tickets = state.playerProfile.spin_tickets || 0;
+
+    statsContainer.innerHTML = `
+        <div class="stats-row" style="display: flex; justify-content: space-around; background: var(--surface-dark); padding: 7px; border-radius: 8px; margin-bottom: 10px;">
+            <div class="stat-item"><span class="icon">🪙</span> ${noub}</div>
+            <div class="stat-item"><span class="icon">☥</span> ${ankh}</div>
+            <div class="stat-item"><span class="icon">🐞</span> ${prestige}</div>
+            <div class="stat-item"><span class="icon">🎟️</span> ${tickets}</div>
+        </div>
+    `;
+}
+
 
 async function openContractModal(contractId, playerContract = null) {
     const { data: contract, error } = await api.fetchContractWithRequirements(contractId);
@@ -217,9 +270,29 @@ async function openContractModal(contractId, playerContract = null) {
     }).join('');
 
     const isAccepted = playerContract !== null;
-    let actionButtonHTML;
+    let actionButtonHTML = '';
+    let deliverDisabled = !allRequirementsMet;
+    let buttonText = 'Deliver';
+    
     if (isAccepted) {
-        actionButtonHTML = `<button id="contract-action-btn" class="action-button" ${allRequirementsMet ? '' : 'disabled'}>Deliver</button>`;
+        // Check Cooldown
+        const acceptedTime = new Date(playerContract.accepted_at).getTime();
+        const now = Date.now();
+        const elapsedTime = now - acceptedTime;
+        
+        if (elapsedTime < CONTRACT_COOLDOWN_MS) {
+            const remainingTime = Math.ceil((CONTRACT_COOLDOWN_MS - elapsedTime) / 1000);
+            deliverDisabled = true;
+            buttonText = `Cooldown: ${remainingTime}s`;
+            
+            // Re-render the modal after cooldown passes (for UX)
+            setTimeout(() => openContractModal(contractId, playerContract), remainingTime * 1000 + 100);
+        } else {
+             deliverDisabled = !allRequirementsMet;
+        }
+
+        actionButtonHTML = `<button id="contract-action-btn" class="action-button" ${deliverDisabled ? 'disabled' : ''}>${buttonText}</button>`;
+        
     } else {
         actionButtonHTML = `<button id="contract-action-btn" class="action-button">Accept Contract</button>`;
     }
@@ -238,8 +311,8 @@ async function openContractModal(contractId, playerContract = null) {
             <h4 class="contract-modal-subtitle">Rewards</h4>
             <div class="contract-modal-rewards">
                 <div class="reward-item">
-                    <span class="icon">🪙</span> <!-- NOUB icon -->
-                    <div>${contract.reward_score} NOUB</div> <!-- Using reward_score for NOUB -->
+                    <span class="icon">🪙</span>
+                    <div>${contract.reward_score} NOUB</div>
                 </div>
                 <div class="reward-item">
                     <span class="icon">🐞</span>
@@ -264,6 +337,15 @@ async function openContractModal(contractId, playerContract = null) {
 
 export async function renderActiveContracts() {
     if (!state.currentUser) return;
+    
+    // Add player stats area if it doesn't exist
+    if (!document.getElementById('contracts-player-stats')) {
+         const statsDiv = document.createElement('div');
+         statsDiv.id = 'contracts-player-stats';
+         document.getElementById('contracts-screen').insertBefore(statsDiv, document.getElementById('contracts-screen').firstChild.nextSibling);
+    }
+    renderPlayerStats();
+    
     activeContractsContainer.innerHTML = 'Loading active contracts...';
 
     const { data: contracts, error } = await api.fetchPlayerContracts(state.currentUser.id);
@@ -277,6 +359,9 @@ export async function renderActiveContracts() {
         return;
     }
 
+    // Get contracts count for display (optional)
+    const activeCount = contracts.length; 
+    
     activeContractsContainer.innerHTML = '';
     contracts.forEach(pc => {
         const contract = pc.contracts;
@@ -333,9 +418,7 @@ async function handleRefreshContracts() {
     refreshBtn.disabled = true;
     showToast('Refreshing available contracts...');
     
-    // NOTE: This currently deletes all player contracts to refresh. 
-    // In a final version, this should only fetch new contracts or generate them on the backend.
-    const { error } = await api.refreshAvailableContracts(state.currentUser.id); 
+    const { error } = await api.refreshAvailableContracts(state.currentUser.id);
 
     if (error) {
         showToast('Error refreshing contracts!', 'error');
