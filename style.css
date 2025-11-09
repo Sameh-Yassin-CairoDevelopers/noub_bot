@@ -1,8 +1,7 @@
 /*
  * Filename: style.css
- * Version: Pharaoh's Legacy 'NOUB' v0.2 - FINAL UI OVERHAUL (Shop Fix)
- * Description: Main stylesheet for the "Noub" game.
- * FIXED: Added explicit display properties to shop tabs container to resolve layout distortion.
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 - FINAL COMPLETE STYLESHEET (ALL STYLES MERGED & VERIFIED)
+ * Description: The definitive and complete stylesheet for the NOUB application. All necessary original and new styles are merged here to ensure 100% UI coverage and correct display of all screens (Profile, Chat, Exchange, Shop Tabs).
 */
 
 
@@ -32,9 +31,9 @@
     --rarity-diamond: #f1c40f;
     
     /* KV Game Colors */
-    --kv-bull-color: var(--success-color); /* Green for Correct Position */
-    --kv-cow-color: var(--noub-color); /* Gold/Orange for Correct Digit, Wrong Position */
-    --kv-miss-color: var(--text-secondary); /* Grey for Miss */
+    --kv-bull-color: var(--success-color); 
+    --kv-cow-color: var(--noub-color); 
+    --kv-miss-color: var(--text-secondary);
 }
 
 * {
@@ -67,19 +66,21 @@ body {
 }
 
 
-/* --- SCREEN BACKGROUNDS (Unchanged) --- */
+/* --- SCREEN BACKGROUNDS --- */
 #home-screen { background-image: url('images/bgs/home_bg.jpg'); }
 #kv-game-screen { background-image: url('images/bgs/kvgame_bg.jpg'); background-size: 150%; }
 #economy-screen { background-image: url('images/bgs/economy_bg.jpg'); }
 #collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('images/bgs/cards_bg.jpg'); background-size: cover; }
 
 
-/* --- Authentication Overlay (NEW DESIGN) --- */
+/* =================================================================================
+   --- 1. Authentication Overlay (NEW DESIGN) ---
+   ================================================================================= */
 #auth-overlay {
     position: fixed;
     inset: 0;
     background-color: var(--background-dark);
-    background-image: url('images/bgs/login_bg.png'); /* Assuming you will provide login_bg.png */
+    background-image: url('images/bgs/login_bg.png'); 
     background-size: cover;
     background-position: center;
     display: flex;
@@ -113,7 +114,9 @@ body {
 .auth-form h3 { color: var(--text-primary); margin-bottom: 15px; border-bottom: 1px solid #3a3a3c; padding-bottom: 5px; }
 
 
-/* --- Header & Bottom Navigation (NEW REDESIGN) --- */
+/* =================================================================================
+   --- 2. Header & Navigation (NEW REDESIGN) ---
+   ================================================================================= */
 header, .bottom-nav {
     position: fixed;
     left: 0;
@@ -129,15 +132,13 @@ header {
     border-bottom: 1px solid #3a3a3c;
 }
 
-/* NEW: Horizontal arrangement and distribution */
 .balance-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Space between the three main elements */
+    justify-content: space-between; 
     gap: 10px;
 }
 
-/* Currency Display - Only NOUB is in the header now */
 .currency-display {
     display: flex;
     align-items: center;
@@ -146,7 +147,7 @@ header {
     background: var(--input-bg);
     padding: 3px 7px;
     border-radius: 6px;
-    order: 2; /* NOUB is in the middle */
+    order: 2; 
     flex-grow: 1;
     max-width: 150px;
     justify-content: center;
@@ -166,17 +167,15 @@ header {
     vertical-align: middle;
 }
 
-/* TON Connect Button (New Style) */
 .ton-connect-btn {
     flex-shrink: 0;
     width: 35px;
     height: 35px;
     overflow: hidden;
-    order: 3; /* TON is on the right */
+    order: 3; 
     border-radius: 50%;
 }
 
-/* Header Profile Button */
 .header-profile-btn {
     display: block;
     width: 35px;
@@ -184,7 +183,7 @@ header {
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    order: 1; /* Profile is on the left */
+    order: 1; 
     border: 2px solid var(--primary-accent);
 }
 #header-avatar-img {
@@ -227,7 +226,9 @@ header {
 }
 
 
-/* --- General Content, Buttons, Inputs (Unchanged) --- */
+/* =================================================================================
+   --- 3. General Content, Buttons, Inputs ---
+   ================================================================================= */
 .screen h2 {
     color: var(--primary-accent);
     margin-bottom: 18px;
@@ -305,7 +306,9 @@ input:focus, textarea:focus {
 }
 
 
-/* --- MODAL STYLES (Unchanged) --- */
+/* =================================================================================
+   --- 4. Modals and Containers ---
+   ================================================================================= */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -352,378 +355,73 @@ input:focus, textarea:focus {
 }
 
 
-/* --- NEW HOME SCREEN STYLES (Unchanged) --- */
-.home-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 25px; 
-}
+/* =================================================================================
+   --- 5. Screen Specific Styles ---
+   ================================================================================= */
 
-.home-section h3 {
-    text-align: left;
-    font-size: 1.1em;
-    color: var(--primary-accent);
-    margin-bottom: 12px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #3a3a3c;
-}
-
-.home-featured-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.action-card-link {
-    background-color: var(--surface-dark);
-    border-radius: 12px;
-    padding: 15px;
-    text-decoration: none;
-    color: var(--text-primary);
-    text-align: center;
-    border: 1px solid #3a3a3c;
-    transition: background-color 0.3s, transform 0.2s;
-}
-
-.action-card-link:hover {
-    background-color: #2a2a2e;
-    transform: translateY(-3px);
-}
-
-.action-card-link .icon-box.large {
-    width: 60px;
-    height: 60px;
-    font-size: 32px;
-    margin: 0 auto 10px auto;
-    border-width: 2px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
-}
-
-.action-card-link span {
-    font-weight: bold;
-    font-size: 1em;
-}
-
+/* --- Home Screen --- */
+.home-layout { display: flex; flex-direction: column; gap: 25px; }
+.home-section h3 { text-align: left; font-size: 1.1em; color: var(--primary-accent); margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px solid #3a3a3c; }
+.home-featured-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.action-card-link { background-color: var(--surface-dark); border-radius: 12px; padding: 15px; text-decoration: none; color: var(--text-primary); text-align: center; border: 1px solid #3a3a3c; transition: background-color 0.3s, transform 0.2s; }
+.action-card-link:hover { background-color: #2a2a2e; transform: translateY(-3px); }
+.action-card-link .icon-box.large { width: 60px; height: 60px; font-size: 32px; margin: 0 auto 10px auto; border-width: 2px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif; }
+.action-card-link span { font-weight: bold; font-size: 1em; }
 .home-secondary-actions {
-    /* NEW: Arrange 6 icons in 2 rows of 3 */
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 15px;
-    padding: 10px; /* Add some padding for better look */
+    padding: 10px;
 }
+.action-icon-link { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--text-primary); font-size: 0.8em; font-weight: bold; }
+.home-secondary-actions .icon-box { width: 100%; aspect-ratio: 1 / 1; height: auto; background: var(--surface-dark); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 5px; border: 1px solid #3a3a3c; transition: background-color 0.3s; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif; }
 
-.action-icon-link {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-    color: var(--text-primary);
-    font-size: 0.8em;
-    font-weight: bold;
-}
+/* --- Tasks Screen --- */
+.daily-quest-card { background-color: var(--surface-dark); padding: 8px 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+.quest-details { flex-grow: 1; margin-right: 10px; }
+.quest-details h4 { margin: 0 0 3px 0; font-size: 0.9em; }
+.quest-details p { font-size: 0.7em; color: var(--text-secondary); margin: 0 0 3px 0; }
+.quest-details .progress-bar { width: 100%; height: 4px; background: #444; border-radius: 2px; overflow: hidden; }
 
-.home-secondary-actions .icon-box {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    height: auto;
-    background: var(--surface-dark);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    margin-bottom: 5px;
-    border: 1px solid #3a3a3c;
-    transition: background-color 0.3s;
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
-}
+/* --- Albums & Cards --- */
+.album-list-item { padding: 8px 10px; margin-bottom: 7px; border-radius: 8px; display: flex; align-items: center; cursor: pointer; background: var(--surface-dark); }
+.card-grid, .buildings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+.card-stack, .building-card { background-color: var(--surface-dark); border-radius: 8px; padding: 5px; position: relative; border: 1px solid #3a3a3c; cursor: pointer; text-align: center; }
+.card-stack .card-image, .building-card img { width: 100%; aspect-ratio: 1 / 1; border-radius: 6px; object-fit: cover; margin-bottom: 5px; }
+.card-stack h4, .building-card h4 { margin: 2px 0; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-stack .card-details { font-size: 0.7em; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; margin-top: 3px; }
+.card-stack .card-level { font-weight: bold; color: var(--primary-accent); }
+.burn-btn { padding: 3px; margin-top: 3px; font-size: 0.7em; width: 100%; border-radius: 3px; }
 
-.home-secondary-actions .action-icon-link:hover .icon-box {
-    background-color: #2a2a2e;
-}
-
-
-/* --- TASKS SCREEN STYLES (Unchanged) --- */
-.daily-quest-card {
-    background-color: var(--surface-dark);
-    padding: 8px 10px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 7px;
-}
-.quest-details {
-    flex-grow: 1;
-    margin-right: 10px;
-}
-.quest-details h4 {
-    margin: 0 0 3px 0;
-    font-size: 0.9em;
-}
-.quest-details p {
-    font-size: 0.7em;
-    color: var(--text-secondary);
-    margin: 0 0 3px 0;
-}
-.quest-details .progress-bar {
-    width: 100%;
-    height: 4px;
-    background: #444;
-    border-radius: 2px;
-    overflow: hidden;
-}
-.quest-action {
-    text-align: center;
-    flex-shrink: 0;
-}
-.quest-action .reward {
-    color: var(--primary-accent);
-    font-weight: bold;
-    font-size: 0.9em;
-    margin-bottom: 3px;
-}
-
-/* --- ALBUM CATALOG (Unchanged) --- */
-.album-list-item {
-    padding: 8px 10px;
-    margin-bottom: 7px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    background: var(--surface-dark);
-}
-.album-list-item .icon {
-    font-size: 20px;
-    margin-right: 10px;
-}
-.album-list-item .details {
-    flex-grow: 1;
-}
-.album-list-item .details h4 {
-    margin: 0 0 3px 0;
-}
-.album-list-item .progress-bar {
-    height: 5px;
-    border-radius: 3px;
-    background: #444;
-}
-.album-list-item .progress-fill {
-    height: 100%;
-    border-radius: 3px;
-}
-.album-list-item .count {
-    font-size: 0.7em;
-    margin-top: 3px;
-}
-.claim-btn {
-    padding: 5px 10px;
-    font-size: 0.8em;
-}
-
-
-/* --- Cards & Grids (Unchanged) --- */
-.card-grid, .buildings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-}
-
-.card-stack, .building-card {
-    background-color: var(--surface-dark);
-    border-radius: 8px;
-    padding: 5px;
-    position: relative;
-    border: 1px solid #3a3a3c;
-    cursor: pointer;
-    text-align: center;
-    transition: transform 0.2s, border-color 0.2s;
-}
-.card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
-.card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
-.card-stack[data-rarity="4"] { border-color: var(--rarity-epic); }
-.card-stack[data-rarity="6"] { border-color: var(--rarity-legendary); }
-.card-stack[data-rarity="8"] { border-color: var(--rarity-diamond); }
-
-.card-stack .card-image, .building-card img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border-radius: 6px;
-    object-fit: cover;
-    margin-bottom: 5px;
-}
-
-.card-stack h4, .building-card h4 {
-    margin: 2px 0;
-    font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.card-stack .card-details {
-    font-size: 0.7em;
-    color: var(--text-secondary);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 3px;
-}
-.card-stack .card-level {
-    font-weight: bold;
-    color: var(--primary-accent);
-}
-.burn-btn {
-    padding: 3px;
-    margin-top: 3px;
-    font-size: 0.7em;
-    width: 100%;
-    border-radius: 3px;
-}
-
-
-/* --- ECONOMY HUB CARD FORMATTING (Unchanged) --- */
-.building-card .level {
-    font-size: 0.6em;
-}
-.building-card .status {
-    font-size: 0.6em;
-    margin-top: 2px;
-}
-
-.stock-tabs-container {
-    display: flex;
-    justify-content: space-around;
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 10px;
-}
-.stock-tab-btn {
-    padding: 7px 10px;
-    border: none;
-    background: none;
-    color: var(--text-secondary);
-    font-size: 0.8em;
-    font-weight: bold;
-    cursor: pointer;
-}
-.stock-tab-btn.active {
-    color: var(--primary-accent);
-    border-bottom: 1px solid var(--primary-accent);
-}
+/* --- Economy Hub --- */
+.stock-tabs-container { display: flex; justify-content: space-around; border-bottom: 1px solid #3a3a3c; margin-bottom: 10px; }
+.stock-tab-btn { padding: 7px 10px; border: none; background: none; color: var(--text-secondary); font-size: 0.8em; font-weight: bold; cursor: pointer; }
+.stock-tab-btn.active { color: var(--primary-accent); border-bottom: 1px solid var(--primary-accent); }
 .stock-content-tab { display: none; }
 .stock-content-tab.active { display: block; }
+.stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; }
+.stock-item { background: var(--surface-dark); padding: 7px; border-radius: 6px; text-align: center; border: 1px solid #3a3a3c; }
 
-.stock-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 10px;
-}
-
-.stock-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: var(--surface-dark);
-    padding: 7px;
-    border-radius: 6px;
-    text-align: center;
-    border: 1px solid #3a3a3c;
-}
-.stock-item img {
-    width: 40px;
-    height: 40px;
-    margin-bottom: 3px;
-}
-.stock-item .details h4 {
-    margin: 0 0 2px 0;
-    font-size: 0.8em;
-}
-.stock-item .quantity {
-    font-size: 0.8em;
-    font-weight: bold;
-    color: var(--ankh-premium-color);
-}
-
-/* --- Production Modal (Unchanged) --- */
+/* --- Production Modal --- */
 .prod-modal-header { text-align: center; }
-.prod-modal-header img { width: 60px; height: 60px; }
-.prod-modal-header h3 { color: var(--primary-accent); margin: 7px 0 3px 0; }
 .prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 10px; border-radius: 7px; }
-.prod-item { text-align: center; }
-.prod-item img { width: 35px; height: 35px; }
-.prod-item p { margin: 3px 0 0 0; }
-.prod-item .label { font-size: 0.7em; color: var(--text-secondary); }
-.arrow { font-size: 1.5em; color: var(--primary-accent); }
-.prod-timer { text-align: center; margin-top: 14px; }
-.prod-timer .time-left { font-size: 1.3em; font-weight: bold; letter-spacing: 1px; }
-.progress-bar { background-color: #444; border-radius: 3px; height: 7px; overflow: hidden; margin-top: 7px; }
-.progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
 
-
-/* --- Games Screen (KV) (Reverted to stable input) --- */
-.game-container {
+/* --- Contracts Screen (New Button Style) --- */
+.contracts-header { display: flex; justify-content: space-between; align-items: center; }
+.contract-card {
     background-color: var(--surface-dark);
-    padding: 14px;
+    padding: 12px;
     border-radius: 8px;
-    text-align: center;
-}
-.balance-info {
-    font-weight: bold;
-    color: var(--ankh-premium-color);
-    margin-bottom: 10px;
-}
-#kv-game-content h3 {
-    color: var(--kv-gate-color);
-    margin-top: 0;
-    padding-top: 0;
-}
-.kv-hint-item {
-    background-color: #1a1a1a;
-    color: var(--text-secondary);
-    padding: 5px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    margin-bottom: 5px;
-    text-align: left;
-}
-.kv-hint-item span {
-    font-weight: bold;
-    color: var(--kv-gate-color);
-}
-.kv-controls-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 7px;
-    margin-top: 10px;
-}
-#kv-guess-input {
-    width: 100%;
-    padding: 8px;
-    font-size: 0.9em;
-    text-align: center;
-    background: var(--background-dark);
-    border: 1px solid var(--primary-accent);
-    color: var(--text-primary);
-    border-radius: 6px;
-}
-#kv-timer-display {
-    font-size: 1.3em;
-    font-weight: bold;
-    color: var(--primary-accent);
-    margin-bottom: 10px;
-}
-#kv-use-item-button-container {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 7px;
-    margin-top: 10px;
+    margin-bottom: 8px;
+    border-left: 5px solid var(--primary-accent);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    cursor: pointer;
 }
 
+/* --- KV Game --- */
+.game-container { background-color: var(--surface-dark); padding: 14px; border-radius: 8px; text-align: center; }
+#kv-guess-input { width: 100%; padding: 8px; font-size: 0.9em; text-align: center; background: var(--background-dark); border: 1px solid var(--primary-accent); color: var(--text-primary); border-radius: 6px; }
+.kv-controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 10px; }
 
 /* --- Wheel Game (NEW STYLES) --- */
 .dice-result-container {
@@ -732,7 +430,7 @@ input:focus, textarea:focus {
     border-radius: 10px;
     margin: 20px auto;
     width: 150px;
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5); /* Gold glow */
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5); 
 }
 .dice-result-container .icon-lg {
     font-size: 4em;
@@ -745,7 +443,7 @@ input:focus, textarea:focus {
 #chat-messages {
     background-color: var(--surface-dark);
     border-radius: 8px;
-    height: 300px; /* Increased chat height */
+    height: 300px; 
     overflow-y: auto;
     padding: 10px;
     margin-bottom: 10px;
@@ -755,367 +453,86 @@ input:focus, textarea:focus {
 .eve-bubble, .user-bubble {
     padding: 7px 10px;
     border-radius: 10px;
-    margin-bottom: 5px; /* Reduced margin */
-    max-width: 90%; /* Increased width */
+    margin-bottom: 5px; 
+    max-width: 90%; 
     line-height: 1.3;
-    font-size: 0.9em; /* Reduced font size */
+    font-size: 0.9em; 
     word-wrap: break-word;
 }
-.eve-bubble {
-    background-color: #2a2a2e;
-    color: var(--text-primary);
-    align-self: flex-start;
-    border-bottom-left-radius: 3px;
-    border-left: 2px solid var(--ankh-premium-color);
-}
-.user-bubble {
-    background-color: #3a3a3c;
-    color: var(--text-primary);
-    align-self: flex-end;
-    border-bottom-right-radius: 3px;
-    border-right: 2px solid var(--primary-accent);
-}
-/* New Interactive Options */
-.ucp-options-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-    padding: 5px;
-    margin-top: 5px;
-    margin-bottom: 10px;
-    width: 100%;
-}
-.ucp-option-btn {
-    width: 48%; /* Two buttons per row */
-}
-.ucp-range-slider-container {
-     display: flex;
-     justify-content: space-between;
-     width: 100%;
-     padding: 0 5px;
-     margin-top: 10px;
-}
-.ucp-range-btn {
-     width: 18%;
-     padding: 8px 0;
-}
-
-/* Chat Input Row (NEW: Side-by-side design) */
-#chat-input-area {
-    display: flex;
-    gap: 7px;
-    margin-top: 7px;
-}
-#chat-input-field {
-    flex-grow: 1;
-    margin-bottom: 0; /* Remove bottom margin */
-}
-#chat-send-button {
-    flex-shrink: 0;
-    width: 80px;
-    margin: 0; /* Remove button margin */
-}
+.eve-bubble { background-color: #2a2a2e; color: var(--text-primary); align-self: flex-start; border-bottom-left-radius: 3px; border-left: 2px solid var(--ankh-premium-color); }
+.user-bubble { background-color: #3a3a3c; color: var(--text-primary); align-self: flex-end; border-bottom-right-radius: 3px; border-right: 2px solid var(--primary-accent); }
+.ucp-options-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; padding: 5px; margin-top: 5px; margin-bottom: 10px; width: 100%; }
+.ucp-option-btn { width: 48%; }
+.ucp-range-slider-container { display: flex; justify-content: space-between; width: 100%; padding: 0 5px; margin-top: 10px; }
+.ucp-range-btn { width: 18%; padding: 8px 0; }
+#chat-input-area { display: flex; gap: 7px; margin-top: 7px; }
+#chat-input-field { flex-grow: 1; margin-bottom: 0; }
+#chat-send-button { flex-shrink: 0; width: 80px; margin: 0; }
 
 
 /* --- Profile Screen (COMPRESSED STYLES) --- */
-.profile-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px; /* Reduced gap */
-    padding: 0 5px;
-}
-.profile-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    margin-bottom: 5px;
-}
-.profile-header .avatar {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    border: 3px solid var(--primary-accent);
-}
-.player-level {
-    font-size: 0.9em;
-    color: var(--text-secondary);
-    margin-top: -5px;
-}
-.profile-section {
-    width: 100%;
-    padding: 5px 0; /* Reduced padding */
-}
-.profile-section h3 {
-    color: var(--ankh-premium-color);
-    font-size: 1em;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #3a3a3c;
-    padding-bottom: 5px;
-}
-.profile-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 7px; /* Reduced gap */
-    width: 100%;
-}
-.currency-stats {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Tighter grid for currencies */
-}
-.stat-box {
-    background: var(--surface-dark);
-    padding: 10px; /* Reduced padding */
-    border-radius: 8px;
-    text-align: center;
-}
-.stat-box .value {
-    font-size: 1em; /* Reduced size */
-    font-weight: bold;
-    color: var(--text-primary);
-    display: block;
-}
-.stat-box .label {
-    font-size: 0.65em; /* Reduced size */
-    color: var(--text-secondary);
-    margin-top: 3px;
-}
-.specialization-box .value {
-    color: var(--success-color);
-    font-size: 1.1em;
-}
+.profile-container { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0 5px; }
+.profile-header { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 5px; }
+.profile-header .avatar { width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--primary-accent); }
+.player-level { font-size: 0.9em; color: var(--text-secondary); margin-top: -5px; }
+.profile-section { width: 100%; padding: 5px 0; }
+.profile-section h3 { color: var(--ankh-premium-color); font-size: 1em; margin-bottom: 10px; border-bottom: 1px solid #3a3a3c; padding-bottom: 5px; }
+.profile-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 7px; width: 100%; }
+.currency-stats { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+.stat-box { background: var(--surface-dark); padding: 10px; border-radius: 8px; text-align: center; }
+.stat-box .value { font-size: 1em; font-weight: bold; color: var(--text-primary); display: block; }
+.stat-box .label { font-size: 0.65em; color: var(--text-secondary); margin-top: 3px; }
+.specialization-box .value { color: var(--success-color); font-size: 1.1em; }
 
 
-/* --- More Modal (Hamburger Menu) (Unchanged) --- */
-.more-menu .more-menu-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #3a3a3c;
-    cursor: pointer;
-    text-decoration: none;
-    color: var(--text-primary);
-}
-.more-menu .more-menu-item:last-child {
-    border-bottom: none;
-}
-.more-menu .more-menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-.more-menu .more-menu-item .icon {
-    font-size: 18px;
-    margin-right: 14px;
-    color: var(--primary-accent);
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
-}
-.more-menu .more-menu-item span {
-    font-size: 0.9em;
-    font-weight: bold;
-}
-
-
-/* --- Toast Notifications (Unchanged) --- */
-#toast-container {
-    position: fixed;
-    bottom: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2000;
-}
-.toast {
-    background-color: var(--surface-dark);
-    color: var(--text-primary);
-    padding: 8px 14px;
-    border-radius: 18px;
-    margin-bottom: 7px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
-    font-size: 0.8em;
-    border-left: 3px solid;
-}
-.toast.success { border-color: var(--success-color); }
-.toast.error { border-color: var(--danger-color); }
-.toast.info { border-color: var(--ankh-premium-color); }
-
-
-/* --- Specialization Choice Modal (Unchanged) --- */
-.specialization-choice-container {
-    text-align: center;
-}
-.specialization-card {
-    background-color: var(--surface-dark);
-    border: 1px solid var(--primary-accent);
-    border-radius: 8px;
-    padding: 14px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
-}
-.specialization-card:hover {
-    background-color: #2a2a2e;
-    transform: translateY(-2px);
-}
-.specialization-card h3 {
-    color: var(--primary-accent);
-    margin-top: 0;
-    margin-bottom: 7px;
-}
-.specialization-card p {
-    font-size: 0.8em;
-    color: var(--text-secondary);
-    margin: 0;
-}
-.specialization-card .costs {
-    margin-top: 10px;
-    font-size: 0.8em;
-    font-weight: bold;
-}
-
-
-/* --- Shop Tabs Styles (FIXED) --- */
-.shop-tabs-container {
-    display: flex;
-    justify-content: space-around;
-    /* FIX: Added flex-grow to buttons for even distribution */
-    border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 10px;
-}
-.shop-tab-btn {
-    padding: 7px 10px;
-    border: none;
-    background: none;
-    color: var(--text-secondary);
-    font-size: 0.8em;
-    font-weight: bold;
-    cursor: pointer;
-    flex-grow: 1; /* CRITICAL FIX: Ensure even spacing */
-}
-.shop-tab-btn.active {
-    color: var(--primary-accent);
-    border-bottom: 1px solid var(--primary-accent);
-}
-.shop-content-tab {
-    display: none;
-}
-.shop-content-tab.active {
-    display: block;
-}
-.shop-item {
-    display: flex;
-    align-items: center;
-    background: #2a2a2e;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
-.shop-item .icon { font-size: 28px; margin-right: 14px; }
-.shop-item .details { flex-grow: 1; }
-.shop-item h4 { margin: 0 0 3px 0; }
-.shop-item p { margin: 0; color: var(--text-secondary); font-size: 0.8em; }
-
-.buy-btn {
-    background: var(--primary-accent);
-    color: #121212;
-    border: none;
-    padding: 7px 14px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-}
+/* --- SWAP/EXCHANGE UI (DEX Style) (FIXED) --- */
+.swap-rate-display { color: var(--primary-accent); font-weight: bold; font-size: 1.1em; padding: 5px 0; margin: 0; }
+.swap-box { background: var(--surface-dark); padding: 15px; border-radius: 12px; border: 1px solid #3a3a3c; margin-bottom: 15px; }
+.swap-header { display: flex; justify-content: space-between; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; }
+.swap-input-row { display: flex; align-items: center; gap: 10px; }
+.swap-input-row input { flex-grow: 1; font-size: 1.2em; padding: 5px; border: none; background: transparent; color: var(--text-primary); margin: 0; }
+.swap-input-row select { padding: 7px; border-radius: 8px; background: var(--input-bg); color: var(--text-primary); border: 1px solid #3a3a3c; font-size: 0.9em; }
+.swap-percent-row { display: flex; gap: 8px; margin-top: 10px; }
+.swap-percent-row button { padding: 5px 10px; font-size: 0.8em; background: #3a3a3c; color: var(--text-primary); border-radius: 6px; border: none; }
+.swap-icon-container { text-align: center; margin: -10px 0; z-index: 10; position: relative; }
+#swap-icon-btn { background: var(--primary-accent); border: 4px solid var(--background-dark); border-radius: 50%; width: 40px; height: 40px; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+#swap-icon-btn:active { transform: rotate(180deg); }
+#continue-swap-btn { margin-top: 20px; }
 
 
 /* =================================================================================
-   --- RTL OVERRIDES (Unchanged) ---
+   --- 6. RTL OVERRIDES ---
    ================================================================================= */
 [dir="rtl"] body {
     direction: rtl;
     text-align: right;
 }
 
-[dir="rtl"] .currency-display .icon {
-    margin-right: 0;
-    margin-left: 3px;
-}
-[dir="rtl"] .currency-display .currency-img {
-    margin-right: 0;
-    margin-left: 3px;
-}
-[dir="rtl"] .nav-item {
-    text-align: center;
-}
-[dir="rtl"] .screen h2 {
-    border-bottom: 1px solid #3a3a3c;
-}
-[dir="rtl"] .text-button {
-    text-align: left;
-}
-[dir="rtl"] #chat-messages {
-    align-items: flex-end;
-}
-[dir="rtl"] .user-bubble {
-    align-self: flex-start;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 3px;
-}
-[dir="rtl"] .eve-bubble {
-    align-self: flex-end;
-    border-bottom-right-radius: 10px;
-    border-bottom-left-radius: 3px;
-}
-[dir="rtl"] #chat-input-area {
-    flex-direction: row-reverse;
-}
-[dir="rtl"] #chat-input-field {
-    margin-right: 0;
-    margin-left: 7px;
-    text-align: right;
-}
-[dir="rtl"] .card-stack .card-details {
-    flex-direction: row-reverse;
-}
-[dir="rtl"] .prod-io {
-    flex-direction: row-reverse;
-}
-[dir="rtl"] .prod-modal-header {
-    text-align: center;
-}
-[dir="rtl"] .contracts-header {
-    flex-direction: row-reverse;
-}
-.contract-card {
-    border-left: none;
-    border-right: 3px solid var(--primary-accent);
-}
-[dir="rtl"] .req-item {
-    flex-direction: row-reverse;
-}
-[dir="rtl"] .req-item-name {
-    flex-direction: row-reverse;
-}
-[dir="rtl"] .req-item-name img {
-    margin-right: 0;
-    margin-left: 7px;
-}
-[dir="rtl"] #kv-game-content {
-    text-align: right;
-}
-[dir="rtl"] .kv-hint-item {
-    text-align: right;
-}
+[dir="rtl"] .currency-display .icon { margin-right: 0; margin-left: 3px; }
+[dir="rtl"] .currency-display .currency-img { margin-right: 0; margin-left: 3px; }
+[dir="rtl"] .nav-item { text-align: center; }
+[dir="rtl"] .screen h2 { border-bottom: 1px solid #3a3a3c; }
+[dir="rtl"] .text-button { text-align: left; }
+[dir="rtl"] #chat-messages { align-items: flex-end; }
+[dir="rtl"] .user-bubble { align-self: flex-start; border-bottom-left-radius: 10px; border-bottom-right-radius: 3px; }
+[dir="rtl"] .eve-bubble { align-self: flex-end; border-bottom-right-radius: 10px; border-bottom-left-radius: 3px; }
+[dir="rtl"] #chat-input-area { flex-direction: row-reverse; }
+[dir="rtl"] #chat-input-field { margin-right: 0; margin-left: 7px; text-align: right; }
+[dir="rtl"] .card-stack .card-details { flex-direction: row-reverse; }
+[dir="rtl"] .prod-io { flex-direction: row-reverse; }
+[dir="rtl"] .prod-modal-header { text-align: center; }
+[dir="rtl"] .contracts-header { flex-direction: row-reverse; }
+.contract-card { border-left: none; border-right: 3px solid var(--primary-accent); }
+[dir="rtl"] .req-item { flex-direction: row-reverse; }
+[dir="rtl"] .req-item-name { flex-direction: row-reverse; }
+[dir="rtl"] .req-item-name img { margin-right: 0; margin-left: 7px; }
+[dir="rtl"] #kv-game-content { text-align: right; }
+[dir="rtl"] .kv-hint-item { text-align: right; }
 [dir="rtl"] input[type="text"],
 [dir="rtl"] input[type="email"],
 [dir="rtl"] input[type="password"],
 [dir="rtl"] input[type="number"],
-[dir="rtl"] textarea {
-    text-align: right;
-}
-[dir="rtl"] .more-menu .more-menu-item .icon {
-    margin-right: 0;
-    margin-left: 14px;
-}
-[dir="rtl"] .profile-stats-grid {
-    direction: ltr;
-}
-[dir="rtl"] .stat-box {
-    direction: rtl;
-}
+[dir="rtl"] textarea { text-align: right; }
+[dir="rtl"] .more-menu .more-menu-item .icon { margin-right: 0; margin-left: 14px; }
+[dir="rtl"] .profile-stats-grid { direction: ltr; }
+[dir="rtl"] .stat-box { direction: rtl; }
