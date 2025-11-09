@@ -1,8 +1,8 @@
 /*
  * Filename: style.css
- * Version: Pharaoh's Legacy 'NOUB' v0.2 - FINAL UI OVERHAUL
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 - FINAL UI OVERHAUL (Shop Fix)
  * Description: Main stylesheet for the "Noub" game.
- * OVERHAUL: Final styles for the entire application, including KV Game UI, Profile, and Login.
+ * FIXED: Added explicit display properties to shop tabs container to resolve layout distortion.
 */
 
 
@@ -352,7 +352,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- NEW HOME SCREEN STYLES --- */
+/* --- NEW HOME SCREEN STYLES (Unchanged) --- */
 .home-layout {
     display: flex;
     flex-direction: column;
@@ -969,6 +969,58 @@ input:focus, textarea:focus {
     margin-top: 10px;
     font-size: 0.8em;
     font-weight: bold;
+}
+
+
+/* --- Shop Tabs Styles (FIXED) --- */
+.shop-tabs-container {
+    display: flex;
+    justify-content: space-around;
+    /* FIX: Added flex-grow to buttons for even distribution */
+    border-bottom: 1px solid #3a3a3c;
+    margin-bottom: 10px;
+}
+.shop-tab-btn {
+    padding: 7px 10px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 0.8em;
+    font-weight: bold;
+    cursor: pointer;
+    flex-grow: 1; /* CRITICAL FIX: Ensure even spacing */
+}
+.shop-tab-btn.active {
+    color: var(--primary-accent);
+    border-bottom: 1px solid var(--primary-accent);
+}
+.shop-content-tab {
+    display: none;
+}
+.shop-content-tab.active {
+    display: block;
+}
+.shop-item {
+    display: flex;
+    align-items: center;
+    background: #2a2a2e;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.shop-item .icon { font-size: 28px; margin-right: 14px; }
+.shop-item .details { flex-grow: 1; }
+.shop-item h4 { margin: 0 0 3px 0; }
+.shop-item p { margin: 0; color: var(--text-secondary); font-size: 0.8em; }
+
+.buy-btn {
+    background: var(--primary-accent);
+    color: #121212;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 
