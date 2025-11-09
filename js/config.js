@@ -1,9 +1,9 @@
 
 /*
  * Filename: js/config.js
- * Version: NOUB 0.0.7 (CORE CONFIG & TOKENOMICS - FIX: Contract Completion Bonus)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (Exchange Rates Setup)
  * Description: Contains application configuration, Supabase initialization, and core economic constants.
- * FIXED: Ensures CONTRACT_COMPLETION_BONUS_COUNT is defined for contracts.js logic.
+ * FIXED: Added full definition of all currency items for exchange module coherence.
 */
 
 // --- SUPABASE CONFIGURATION (You MUST replace these with your actual keys) ---
@@ -17,6 +17,10 @@ const TOKEN_RATES = {
     NOUB_PER_TICKET: 100,    // 1 Spin Ticket (🎟️) = 100 NOUB (🪙)
     NOUB_PER_ANKH_PREMIUM: 500,  // 1 Ankh Premium (☥) = 500 NOUB (🪙)
     
+    // NEW: Conversion Rates for Exchange Module (Exchange rates are set in exchange.js)
+    ANKH_TO_PRESTIGE_RATE: 0.5, // Example: 1 Ankh Premium = 0.5 Prestige
+    PRESTIGE_TO_ANKH_RATE: 2.0, // Example: 1 Prestige = 2 Ankh Premium
+
     // BASE LOOTBOX COSTS (Can be used as multipliers)
     PACK_PAPYRUS_COST: 250,
     PACK_CANOPIC_COST: 1000,
@@ -24,9 +28,8 @@ const TOKEN_RATES = {
     
     // CONTRACTS & REWARDS
     CONTRACT_MAX_LEVEL: 10,
-    // CRITICAL: Define the bonus count and the bonus reward (Example: 500 NOUB)
     CONTRACT_COMPLETION_BONUS_COUNT: 10, // Max 10 contracts for a bonus
-    CONTRACT_COMPLETION_BONUS_NOUB: 500, // New constant for the bonus reward
+    CONTRACT_COMPLETION_BONUS_NOUB: 500, // Bonus reward
 };
 
 // --- GAME ASSETS PATHS ---
@@ -42,6 +45,14 @@ const ASSET_PATHS = {
     BG_KVGAME: 'images/bgs/kvgame_bg.jpg',
     BG_ECONOMY: 'images/bgs/economy_bg.jpg',
     BG_COLLECTION_ALBUMS: 'images/bgs/cards_bg.jpg',
+};
+
+// --- NEW: Currency Definitions for Exchange Module ---
+export const CURRENCY_MAP = {
+    'NOUB': { key: 'noub_score', icon: '🪙', name: 'NOUB' },
+    'ANKH': { key: 'ankh_premium', icon: '☥', name: 'Ankh Premium' },
+    'PRESTIGE': { key: 'prestige', icon: '🐞', name: 'Prestige' },
+    'TICKET': { key: 'spin_tickets', icon: '🎟️', name: 'Spin Ticket' },
 };
 
 
