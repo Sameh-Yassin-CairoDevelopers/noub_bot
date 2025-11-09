@@ -1105,4 +1105,99 @@ input:focus, textarea:focus {
     margin-top: 20px; /* More space above the main button */
 }
 
-/* ... (All remaining styles remain unchanged) ... */
+
+/* =================================================================================
+   --- RTL OVERRIDES (Unchanged) ---
+   ================================================================================= */
+[dir="rtl"] body {
+    direction: rtl;
+    text-align: right;
+}
+
+[dir="rtl"] .currency-display .icon {
+    margin-right: 0;
+    margin-left: 3px;
+}
+[dir="rtl"] .currency-display .currency-img {
+    margin-right: 0;
+    margin-left: 3px;
+}
+[dir="rtl"] .nav-item {
+    text-align: center;
+}
+[dir="rtl"] .screen h2 {
+    border-bottom: 1px solid #3a3a3c;
+}
+[dir="rtl"] .text-button {
+    text-align: left;
+}
+[dir="rtl"] #chat-messages {
+    align-items: flex-end;
+}
+[dir="rtl"] .user-bubble {
+    align-self: flex-start;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 3px;
+}
+[dir="rtl"] .eve-bubble {
+    align-self: flex-end;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 3px;
+}
+[dir="rtl"] #chat-input-area {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] #chat-input-field {
+    margin-right: 0;
+    margin-left: 7px;
+    text-align: right;
+}
+[dir="rtl"] .card-stack .card-details {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .prod-io {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .prod-modal-header {
+    text-align: center;
+}
+[dir="rtl"] .contracts-header {
+    flex-direction: row-reverse;
+}
+.contract-card {
+    border-left: none;
+    border-right: 3px solid var(--primary-accent);
+}
+[dir="rtl"] .req-item {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .req-item-name {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .req-item-name img {
+    margin-right: 0;
+    margin-left: 7px;
+}
+[dir="rtl"] #kv-game-content {
+    text-align: right;
+}
+[dir="rtl"] .kv-hint-item {
+    text-align: right;
+}
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] textarea {
+    text-align: right;
+}
+[dir="rtl"] .more-menu .more-menu-item .icon {
+    margin-right: 0;
+    margin-left: 14px;
+}
+[dir="rtl"] .profile-stats-grid {
+    direction: ltr;
+}
+[dir="rtl"] .stat-box {
+    direction: rtl;
+}
