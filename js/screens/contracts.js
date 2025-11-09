@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (UX OVERHAUL: Contracts Logic & Stats)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: trackDailyActivity Declaration)
  * Description: View Logic Module for the contracts screen. 
+ * CRITICAL FIX: Removed duplicate import/declaration of trackDailyActivity.
  * NEW: Implements a 60-second cooldown after contract acceptance.
- * UPDATED: Display player's core currencies in the contract screen.
 */
 
 import { state } from '../state.js';
@@ -11,7 +11,8 @@ import * as api from '../api.js';
 import { showToast, updateHeaderUI, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { TOKEN_RATES } from '../config.js';
-import { trackDailyActivity } from './contracts.js'; // Self-import for trackDailyActivity
+// REMOVED: import { trackDailyActivity } from './contracts.js'; // Self-import for trackDailyActivity
+
 
 const activeContractsContainer = document.getElementById('active-contracts-container');
 const availableContractsContainer = document.getElementById('available-contracts-container');
@@ -21,7 +22,7 @@ const contractDetailModal = document.getElementById('contract-detail-modal');
 const CONTRACT_COOLDOWN_MS = 60 * 1000; // 60 seconds cooldown after acceptance
 
 
-// --- Daily Quest Logic (Unchanged) ---
+// --- Daily Quest Logic ---
 
 const MASTER_DAILY_QUESTS = [
     { id: 'visit_shop', title: 'Visit the Market', target: 1, reward: 50, type: 'visits' },
@@ -56,7 +57,7 @@ function saveDailyQuests(quests) {
 /**
  * Tracks player actions and updates progress towards Daily Quests.
  */
-export function trackDailyActivity(activityType, value = 1, itemName = null) {
+export function trackDailyActivity(activityType, value = 1, itemName = null) { // Retaining export for other modules
     const quests = loadDailyQuests();
     let changed = false;
 
@@ -325,7 +326,7 @@ async function openContractModal(contractId, playerContract = null) {
     `;
 
     contractDetailModal.innerHTML = modalHTML;
-    openModal('contract-detail-modal');
+    import('../ui.js').then(({ openModal }) => openModal('contract-detail-modal')); // Use imported openModal
 
     const actionBtn = document.getElementById('contract-action-btn');
     if (isAccepted) {
@@ -339,10 +340,16 @@ export async function renderActiveContracts() {
     if (!state.currentUser) return;
     
     // Add player stats area if it doesn't exist
-    if (!document.getElementById('contracts-player-stats')) {
-         const statsDiv = document.createElement('div');
+    let statsDiv = document.getElementById('contracts-player-stats');
+    if (!statsDiv) {
+         statsDiv = document.createElement('div');
          statsDiv.id = 'contracts-player-stats';
-         document.getElementById('contracts-screen').insertBefore(statsDiv, document.getElementById('contracts-screen').firstChild.nextSibling);
+         const contractsScreen = document.getElementById('contracts-screen');
+         if (contractsScreen.firstChild) {
+            contractsScreen.insertBefore(statsDiv, contractsScreen.firstChild.nextSibling);
+         } else {
+             contractsScreen.appendChild(statsDiv);
+         }
     }
     renderPlayerStats();
     
