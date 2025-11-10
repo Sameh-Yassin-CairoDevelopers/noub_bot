@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/profile.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (UI FIX: Compressing Layout)
+ * Version: Pharaoh's Legacy 'NOUB' v0.4 (Critical Fix: DOM Element Selection)
  * Description: View Logic Module for the Profile screen.
- * OVERHAUL: Applies UI adjustments to reduce unnecessary whitespace and tighten the layout.
+ * FIX: The 'profileContainer' element is now selected inside the render function
+ *      to prevent it from being null on initial script load. This fixes the blank screen bug.
 */
 
 import { state } from '../state.js';
@@ -10,15 +11,14 @@ import * as api from '../api.js';
 import { logout } from '../auth.js'; 
 import { refreshPlayerState } from '../auth.js';
 
-// DOM Element References
-const profileContainer = document.querySelector('#profile-screen .profile-container');
-
 // Default avatar fallback
 const DEFAULT_AVATAR = 'images/user_avatar.png';
 
 
 /**
  * Calculates the total Power Score by summing the power_score of all owned card instances.
+ * @param {Array} playerCards - The array of player card objects.
+ * @returns {number} - The calculated total power score.
  */
 async function calculateTotalPower(playerCards) {
     if (!playerCards || playerCards.length === 0) return 0;
@@ -30,8 +30,17 @@ async function calculateTotalPower(playerCards) {
  * Renders the player's comprehensive profile dashboard.
  */
 export async function renderProfile() {
+    // --- CRITICAL FIX START ---
+    // The profileContainer is now selected here, inside the function.
+    // This ensures that the DOM element is found at the moment of rendering,
+    // solving the "blank screen" issue.
+    const profileContainer = document.querySelector('#profile-screen .profile-container');
+    // --- CRITICAL FIX END ---
+
     if (!state.currentUser || !state.playerProfile) {
-        profileContainer.innerHTML = '<p class="error-message">Could not load profile data.</p>';
+        if (profileContainer) {
+            profileContainer.innerHTML = '<p class="error-message">Could not load profile data. Please try again.</p>';
+        }
         return;
     }
 
@@ -53,8 +62,9 @@ export async function renderProfile() {
         ? playerSpecs[0].specialization_paths.name 
         : 'None Selected';
         
-    // 3. Build the new Profile UI
-    profileContainer.innerHTML = `
+    // 3. Build the Profile UI HTML
+    // (This HTML structure is from your original file and remains unchanged)
+    const profileHTML = `
         <div class="profile-header">
             <img src="${state.playerProfile.avatar_url || DEFAULT_AVATAR}" alt="Avatar" class="avatar" id="player-avatar-img">
             <h2 id="player-name">${state.playerProfile.username || 'Explorer'}</h2>
@@ -108,9 +118,15 @@ export async function renderProfile() {
         <button id="logout-btn" class="action-button danger">Logout</button>
     `;
 
-    // Re-attach logout event listener
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.onclick = logout;
+    // 4. Inject the HTML into the container and attach event listeners
+    if (profileContainer) {
+        profileContainer.innerHTML = profileHTML;
+        
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.onclick = logout;
+        }
+    } else {
+        console.error("Profile container not found in the DOM during render.");
     }
 }
