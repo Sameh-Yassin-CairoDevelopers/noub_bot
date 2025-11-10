@@ -1,17 +1,18 @@
 /*
  * Filename: js/ui.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: openModal Duplicate Export)
+ * Version: NOUB v0.4 (Card Experience Overhaul)
  * Description: UI Controller Module. Handles all UI logic and navigation.
- * CRITICAL FIX: Removed duplicate export of openModal to resolve SyntaxError.
+ * CHANGE: Removed navigation cases and imports for the now-obsolete 
+ *         'collection.js' and 'upgrade.js' modules. All card interactions
+ *         are now handled through the 'albums.js' module.
 */
 
 // --- CORE IMPORTS ---
 import { state } from './state.js';
-import { ASSET_PATHS } from './config.js';
 
 // --- SCREEN MODULES IMPORTS ---
-import * as collectionModule from './screens/collection.js';
-import * as upgradeModule from './screens/upgrade.js';
+// REMOVED: import * as collectionModule from './screens/collection.js';
+// REMOVED: import * as upgradeModule from './screens/upgrade.js';
 import * as historyModule from './screens/history.js';
 import * as libraryModule from './screens/library.js';
 import * as settingsModule from './screens/settings.js';
@@ -31,9 +32,7 @@ import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js';
 
 
-// --- EXPORTS ---
-export const renderCollection = collectionModule.renderCollection;
-export const renderUpgrade = upgradeModule.renderUpgrade;
+// --- EXPORTS for modules that are still separate ---
 export const renderHistory = historyModule.renderHistory;
 export const renderLibrary = libraryModule.renderLibrary;
 export const renderSettings = settingsModule.renderSettings;
@@ -44,7 +43,12 @@ export const renderExchange = exchangeModule.renderExchange;
 export const renderTasks = tasksModule.renderTasks;
 
 
-// Make utility functions globally available for onclick attributes in HTML
+// --- GLOBAL UTILITY FUNCTIONS ---
+
+/**
+ * Closes a modal dialog by its ID.
+ * @param {string} modalId - The ID of the modal overlay to hide.
+ */
 window.closeModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -52,48 +56,72 @@ window.closeModal = function(modalId) {
     }
 }
 
-// Named export for module imports
+/**
+ * Displays a short-lived notification message (toast).
+ * @param {string} message - The text to display.
+ * @param {string} type - The type of toast ('info', 'success', 'error').
+ */
 export function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) return;
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
+    // Use textContent for security instead of innerHTML
     toast.textContent = message;
+    
     toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 500); // Remove after fade out
+    }, 3000);
 }
-window.showToast = showToast;
+window.showToast = showToast; // Make it globally accessible for inline calls
 
-const contentContainer = document.getElementById('content-container');
-const navItems = document.querySelectorAll('.nav-item');
-
+/**
+ * Opens a modal dialog by its ID.
+ * @param {string} modalId - The ID of the modal overlay to show.
+ */
 export function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('hidden');
     }
 }
-// CRITICAL FIX: Expose openModal to the window object for inline onclick use AND module use
-window.openModal = openModal; 
+window.openModal = openModal; // Make it globally accessible
 
 
+// --- NAVIGATION LOGIC ---
+
+const contentContainer = document.getElementById('content-container');
+const navItems = document.querySelectorAll('.nav-item');
+
+/**
+ * The main router for the application. Hides all screens and shows the target one.
+ * It also calls the appropriate render function for the target screen.
+ * @param {string} targetId - The ID of the screen to navigate to.
+ */
 export function navigateTo(targetId) {
+    // Hide all screens
     contentContainer.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    
+    // Show the target screen
     const screen = document.getElementById(targetId);
-    if (screen) screen.classList.remove('hidden');
+    if (screen) {
+        screen.classList.remove('hidden');
+    }
 
+    // Update the active state of the bottom navigation bar
     navItems.forEach(i => i.classList.remove('active'));
-
     const targetNavItem = document.querySelector(`.bottom-nav a[data-target="${targetId}"]`);
     if(targetNavItem) {
         targetNavItem.classList.add('active');
     }
 
+    // Call the corresponding render function for the screen
     switch (targetId) {
         case 'home-screen':
             renderHome();
-            break;
-        case 'collection-screen':
-            collectionModule.renderCollection();
             break;
         case 'economy-screen':
             renderProduction();
@@ -107,9 +135,6 @@ export function navigateTo(targetId) {
         case 'contracts-screen':
             renderActiveContracts();
             renderAvailableContracts();
-            break;
-        case 'card-upgrade-screen':
-            upgradeModule.renderUpgrade();
             break;
         case 'kv-game-screen':
             renderKVGame();
@@ -138,11 +163,13 @@ export function navigateTo(targetId) {
         case 'activity-screen':
             activityModule.renderActivity();
             break;
+        // NOTE: 'collection-screen' and 'card-upgrade-screen' have been removed
+        // as their functionality is now integrated into 'albums-screen'.
     }
 }
 
 /**
- * Updates the main header UI with player currencies and avatar.
+ * Updates the main header UI with the player's current NOUB score and avatar.
  * @param {object} profile - The player's profile object from the state.
  */
 export function updateHeaderUI(profile) {
@@ -159,10 +186,19 @@ export function updateHeaderUI(profile) {
     }
 }
 
+
+// --- EVENT LISTENER SETUP ---
+
+/**
+ * Sets up all navigation event listeners for the bottom bar, home screen icons, etc.
+ */
 function setupNavEvents() {
     // Bottom navigation bar links
     document.querySelectorAll('.bottom-nav a[data-target]').forEach(item => {
-        item.addEventListener('click', () => navigateTo(item.dataset.target));
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo(item.dataset.target);
+        });
     });
 
     // Home screen icon links
@@ -173,7 +209,7 @@ function setupNavEvents() {
         });
     });
     
-    // Header profile button
+    // Header profile button (top left avatar)
     const headerProfileBtn = document.querySelector('.header-profile-btn');
     if (headerProfileBtn) {
         headerProfileBtn.addEventListener('click', (e) => {
@@ -184,13 +220,26 @@ function setupNavEvents() {
 
     // Shop button in the bottom navigation bar
     const bottomShopBtn = document.getElementById('bottom-shop-btn');
-    if (bottomShopBtn) bottomShopBtn.addEventListener('click', () => openShopModal());
+    if (bottomShopBtn) {
+        bottomShopBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openShopModal();
+        });
+    }
 
-    // Hamburger menu button
+    // Hamburger menu button ("More")
     const moreBtn = document.getElementById('more-nav-btn');
-    if (moreBtn) moreBtn.addEventListener('click', () => openModal('more-modal'));
+    if (moreBtn) {
+        moreBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal('more-modal');
+        });
+    }
 }
 
+/**
+ * Sets up event listeners for the items inside the "More" menu modal.
+ */
 function setupMoreMenuEvents() {
     const handleMoreClick = (event) => {
         event.preventDefault();
@@ -207,11 +256,14 @@ function setupMoreMenuEvents() {
     });
 }
 
+/**
+ * Main function to set up all event listeners for the entire application UI.
+ */
 export function setupEventListeners() {
     setupNavEvents();
     setupMoreMenuEvents();
 
-    // Stockpile tabs in economy screen
+    // Event listeners for the Stockpile tabs in the economy screen
     const stockTabs = document.querySelectorAll('.stock-tab-btn');
     stockTabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -219,7 +271,11 @@ export function setupEventListeners() {
             document.querySelectorAll('.stock-content-tab').forEach(c => c.classList.remove('active'));
 
             tab.classList.add('active');
-            document.getElementById(`stock-content-${tab.dataset.stockTab}`).classList.add('active');
+            const contentId = `stock-content-${tab.dataset.stockTab}`;
+            const contentElement = document.getElementById(contentId);
+            if (contentElement) {
+                contentElement.classList.add('active');
+            }
         });
     });
 }
