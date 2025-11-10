@@ -85,7 +85,6 @@
                     <div class="home-section">
                         <h3>Management & Growth</h3>
                         <div class="home-secondary-actions">
-                            <!-- NOTE: "Upgrade" icon has been removed. Access is now through "Albums". -->
                             <a class="action-icon-link" data-target="albums-screen"><div class="icon-box">📖</div><span>Albums</span></a>
                             <a class="action-icon-link" data-target="contracts-screen"><div class="icon-box">📜</div><span>Contracts</span></a>
                             <a class="action-icon-link" data-target="chat-screen"><div class="icon-box">💬</div><span>Chat</span></a>
@@ -95,9 +94,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- OBSOLETE: collection-screen is no longer used, but div is kept to prevent errors if referenced -->
-            <div id="collection-screen" class="screen hidden"></div>
             
             <!-- Economy Hub Screen -->
             <div id="economy-screen" class="screen hidden">
@@ -117,66 +113,54 @@
                 <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods-container" class="stock-grid"></div></div>
             </div>
             
-            <!-- Daily Tasks Screen -->
-            <div id="tasks-screen" class="screen hidden">
-                <h2>Daily Tasks</h2>
-                <div class="daily-task-summary">
-                    <div id="daily-quests-container"></div>
-                </div>
-            </div>
-            
-            <!-- Contracts Screen -->
-            <div id="contracts-screen" class="screen hidden">
-                <h2>Royal Decrees</h2>
-                <div id="contracts-player-stats"></div>
-                <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
-                <div class="contracts-section"><div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div><div id="available-contracts-container" class="contracts-list"></div></div>
-            </div>
-            
-            <!-- Albums Screen (Now the central hub for cards) -->
-            <div id="albums-screen" class="screen hidden"></div>
-
-            <!-- OBSOLETE: card-upgrade-screen is no longer used -->
-            <div id="card-upgrade-screen" class="screen hidden"></div>
-
             <!-- Other Screens -->
+            <div id="tasks-screen" class="screen hidden"></div>
+            <div id="contracts-screen" class="screen hidden"></div>
+            <div id="albums-screen" class="screen hidden"></div>
             <div id="wheel-screen" class="screen hidden"></div>
-            <div id="kv-game-screen" class="screen hidden">
-                <!-- KV Game content remains the same -->
-            </div>
-            <div id="profile-screen" class="screen hidden">
-                 <div class="profile-container"></div>
-            </div>
+            <div id="kv-game-screen" class="screen hidden"></div>
+            <div id="profile-screen" class="screen hidden"></div>
             <div id="history-screen" class="screen hidden"></div>
             <div id="library-screen" class="screen hidden"></div>
             <div id="settings-screen" class="screen hidden"></div>
             <div id="activity-screen" class="screen hidden"></div>
             <div id="exchange-screen" class="screen hidden"></div>
-            <div id="chat-screen" class="screen hidden">
-                <!-- Chat screen content remains the same -->
-            </div>
+            <div id="chat-screen" class="screen hidden"></div>
         </main>
         
         <!-- MODALS: Reusable popup windows -->
         <div id="toast-container"></div>
+
+        <!-- Shop Modal (RESTORED TO FULL CONTENT) -->
         <div id="shop-modal" class="modal-overlay hidden">
-            <!-- Shop modal content remains the same -->
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
+                <h2>Shop</h2>
+                <div class="shop-tabs-container">
+                    <button class="shop-tab-btn active" data-shop-tab="cards">Card Packs</button>
+                    <button class="shop-tab-btn" data-shop-tab="game_items">Game Items</button>
+                    <button class="shop-tab-btn" data-shop-tab="ton_exchange">Purchase NOUB</button>
+                </div>
+                <div id="shop-content-cards" class="shop-content-tab active"><div id="shop-items-cards-container"></div></div>
+                <div id="shop-content-game_items" class="shop-content-tab"><div id="shop-items-game_items-container"></div></div>
+                <div id="shop-content-ton_exchange" class="shop-content-tab"><div id="shop-items-ton_exchange-container"></div></div>
+            </div>
         </div>
+
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
         <div id="specialization-choice-modal" class="modal-overlay hidden"></div>
 
-        <!-- NEW: Universal Card Detail Modal -->
-        <!-- This single modal will be used for viewing, upgrading, and burning cards -->
-        <div id="card-detail-modal" class="modal-overlay hidden">
-            <div id="card-detail-modal-content" class="modal-content">
+        <!-- CORRECTED: Album Detail Modal -->
+        <div id="album-detail-modal" class="modal-overlay hidden">
+            <div id="album-detail-modal-content" class="modal-content">
                 <!-- Content is injected dynamically by albums.js -->
             </div>
         </div>
-
-        <!-- NEW: Album Detail Modal (was previously inside albums.js logic) -->
-        <div id="album-detail-modal-container" class="modal-overlay hidden">
-            <div id="album-detail-modal-content" class="modal-content">
+        
+        <!-- Universal Card Detail Modal -->
+        <div id="card-detail-modal" class="modal-overlay hidden">
+            <div id="card-detail-modal-content" class="modal-content">
                 <!-- Content is injected dynamically by albums.js -->
             </div>
         </div>
@@ -197,26 +181,21 @@
     <nav class="bottom-nav">
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
         <a class="nav-item" data-target="economy-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
-        <!-- UPDATED: This link now correctly points to the albums screen as the main card hub -->
         <a class="nav-item" data-target="albums-screen" title="Albums"><div class="icon">🏛️</div><span>Albums</span></a>
         <a class="nav-item" data-target="tasks-screen" title="Tasks"><div class="icon">📜</div><span>Tasks</span></a>
         <a class="nav-item" id="bottom-shop-btn" title="Shop"><div class="icon">💰</div><span>Shop</span></a>
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
     </nav>
     
-    <script type="module" src="js/main.js?v=202511040400"></script> 
+    <script type="module" src="js/main.js?v=202511040500"></script> 
     <script>
-        // This inline script remains crucial for initializing TON Connect UI
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Telegram && window.Telegram.WebApp) {
                 window.Telegram.WebApp.ready();
                 window.Telegram.WebApp.expand(); 
             }
-            // Check if the TON Connect UI library is loaded
             if (window.TON_CONNECT_UI) {
                 const manifestUrl = 'https://raw.githubusercontent.com/sameh-yassin-cairodevelopers/noub_bot/main/tonconnect-manifest.json';
-                
-                // Initialize the TON Connect UI
                 window.TonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
                     manifestUrl: manifestUrl,
                     buttonRootId: 'connectButton' 
