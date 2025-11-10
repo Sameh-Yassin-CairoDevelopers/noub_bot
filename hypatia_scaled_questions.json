@@ -1,0 +1,122 @@
+[
+    {
+        "id": "scaled_disc_1",
+        "axis": "Discipline_Responsibility",
+        "text": "أنت منضبط في مواعيدك اليومية."
+    },
+    {
+        "id": "scaled_disc_2",
+        "axis": "Discipline_Responsibility",
+        "text": "تفضل التخطيط المسبق على الارتجال."
+    },
+    {
+        "id": "scaled_disc_3",
+        "axis": "Discipline_Responsibility",
+        "text": "تتحمل مسؤولية أفعالك بشكل كامل."
+    },
+    {
+        "id": "scaled_soc_1",
+        "axis": "Sociability_Warmth",
+        "text": "تستمتع بقضاء الوقت بمفردك."
+    },
+    {
+        "id": "scaled_soc_2",
+        "axis": "Sociability_Warmth",
+        "text": "تجد صعوبة في بدء المحادثات مع الغرباء."
+    },
+    {
+        "id": "scaled_soc_3",
+        "axis": "Sociability_Warmth",
+        "text": "يشعر الآخرون بالراحة في التحدث معك."
+    },
+    {
+        "id": "scaled_stress_1",
+        "axis": "Stress_Management",
+        "text": "تشعر بالهدوء تحت الضغط."
+    },
+    {
+        "id": "scaled_stress_2",
+        "axis": "Stress_Management",
+        "text": "تقلق كثيرًا بشأن المستقبل."
+    },
+    {
+        "id": "scaled_stress_3",
+        "axis": "Stress_Management",
+        "text": "تستطيع التعافي بسرعة من النكسات."
+    },
+    {
+        "id": "scaled_lead_1",
+        "axis": "Leadership_Dominance",
+        "text": "تحب أن تكون مسؤولاً عن الآخرين."
+    },
+    {
+        "id": "scaled_lead_2",
+        "axis": "Leadership_Dominance",
+        "text": "تميل إلى اتخاذ القرارات نيابة عن المجموعة."
+    },
+    {
+        "id": "scaled_lead_3",
+        "axis": "Leadership_Dominance",
+        "text": "تشعر بالثقة في قدرتك على قيادة الآخرين."
+    },
+    {
+        "id": "scaled_achieve_1",
+        "axis": "Achievement_Drive",
+        "text": "تسعى دائمًا لتحقيق أهداف طموحة."
+    },
+    {
+        "id": "scaled_achieve_2",
+        "axis": "Achievement_Drive",
+        "text": "لا تستسلم بسهولة عند مواجهة العقبات."
+    },
+    {
+        "id": "scaled_achieve_3",
+        "axis": "Achievement_Drive",
+        "text": "تشعر بالرضا عند إكمال المهام الصعبة."
+    },
+    {
+        "id": "scaled_flex_1",
+        "axis": "Flexibility_Change",
+        "text": "تتكيف بسهولة مع المواقف الجديدة."
+    },
+    {
+        "id": "scaled_flex_2",
+        "axis": "Flexibility_Change",
+        "text": "تفضل الروتين والاستقرار على التغيير."
+    },
+    {
+        "id": "scaled_flex_3",
+        "axis": "Flexibility_Change",
+        "text": "ترى التغيير كفرصة للنمو."
+    },
+    {
+        "id": "scaled_creativity_1",
+        "axis": "Creativity_Curiosity",
+        "text": "تستمتع باستكشاف أفكار جديدة وغير تقليدية."
+    },
+    {
+        "id": "scaled_creativity_2",
+        "axis": "Creativity_Curiosity",
+        "text": "لديك خيال واسع وحيوي."
+    },
+    {
+        "id": "scaled_creativity_3",
+        "axis": "Creativity_Curiosity",
+        "text": "تشعر بالملل من المهام الروتينية والمتكررة."
+    },
+    {
+        "id": "scaled_empathy_1",
+        "axis": "Empathy_Consideration",
+        "text": "تأخذ مشاعر الآخرين في الاعتبار عند اتخاذ القرارات."
+    },
+    {
+        "id": "scaled_empathy_2",
+        "axis": "Empathy_Consideration",
+        "text": "تجد من السهل فهم وجهات نظر الآخرين."
+    },
+    {
+        "id": "scaled_empathy_3",
+        "axis": "Empathy_Consideration",
+        "text": "تهتم بمساعدة الآخرين وحل مشاكلهم."
+    }
+]
