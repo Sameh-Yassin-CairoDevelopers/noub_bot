@@ -10,7 +10,7 @@ import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
-import { TOKEN_RATES, CURRENCY_MAP } from '../config.js'; // Import new constants
+import { TOKEN_RATES, CURRENCY_MAP } from '../config.js';
 
 const exchangeContainer = document.getElementById('exchange-screen');
 const MIN_CONVERSION_AMOUNT = 1;
@@ -20,9 +20,9 @@ let fromToken = 'NOUB';
 let toToken = 'ANKH';
 
 /**
- * Gets player balance based on the currency's key name.
+ * Gets player balance for a specific currency.
  * @param {string} tokenName - The name of the token (e.g., 'NOUB', 'ANKH').
- * @returns {number} - The player's balance for that currency.
+ * @returns {number} - The player's balance, floored to the nearest integer.
  */
 function getBalance(tokenName) {
     const map = CURRENCY_MAP[tokenName.toUpperCase()];
@@ -38,7 +38,7 @@ function getBalance(tokenName) {
  * @param {number} inputAmount - The amount of the 'fromToken' to convert.
  * @param {string} fromToken - The currency to convert from.
  * @param {string} toToken - The currency to convert to.
- * @returns {object} - An object containing the received amount and any potential errors.
+ * @returns {object} - An object containing the received amount, required amount, and any potential errors.
  */
 function calculateConversion(inputAmount, fromToken, toToken) {
     fromToken = fromToken.toUpperCase();
@@ -56,11 +56,11 @@ function calculateConversion(inputAmount, fromToken, toToken) {
     if (fromToken === 'NOUB') {
         noubValue = inputAmount;
     } else {
-        // This is a "sell" operation (e.g., selling Prestige for NOUB).
-        // We use the 'sell_for_noub' rate which includes the 20% loss.
-        const sellRate = rates[fromToken]?.sell_for_noub;
+        // This is a "sell" operation (e.g., selling Prestige to get NOUB).
+        // We use the 'sell_to_noub_rate' which includes the 20% loss.
+        const sellRate = rates[fromToken]?.sell_to_noub_rate;
         if (!sellRate) return { received: 0, error: 'Sell rate not defined.' };
-        noubValue = inputAmount * sellRate;
+        noubValue = inputAmount / sellRate;
     }
 
     // Step 2: Convert the NOUB value into the target currency ('toToken').
@@ -68,25 +68,24 @@ function calculateConversion(inputAmount, fromToken, toToken) {
         receivedAmount = noubValue;
     } else {
         // This is a "buy" operation (e.g., using NOUB to buy Ankh).
-        // We use the 'buy_for_noub' rate.
-        const buyRate = rates[toToken]?.buy_for_noub;
+        // We use the 'buy_from_noub_rate'.
+        const buyRate = rates[toToken]?.buy_from_noub_rate;
         if (!buyRate) return { received: 0, error: 'Buy rate not defined.' };
-        receivedAmount = noubValue / buyRate;
+        receivedAmount = noubValue * buyRate;
     }
     
     return { received: Math.floor(receivedAmount), required: inputAmount };
 }
 
-
 /**
- * Renders the entire Exchange Hub UI.
+ * Renders the entire Exchange Hub UI, populating it with the latest data.
  */
 export async function renderExchange() {
     if (!state.currentUser || !exchangeContainer) return;
     
     await refreshPlayerState();
 
-    // Calculate the effective exchange rate for display (e.g., "1 Prestige ≈ 4000 Ankh")
+    // Calculate the effective exchange rate for display (e.g., "1 Prestige ≈ 8000 Ankh")
     const rateResult = calculateConversion(1, fromToken, toToken);
     const displayRate = rateResult.received > 0 
         ? `1 ${CURRENCY_MAP[fromToken].icon} ≈ ${rateResult.received} ${CURRENCY_MAP[toToken].icon}`
@@ -94,7 +93,7 @@ export async function renderExchange() {
 
     exchangeContainer.innerHTML = `
         <h2 style="text-align: center;">Currency Swap</h2>
-        <div style="text-align: center; margin-bottom: 15px;">
+        <div id="exchange-rate-container" style="text-align: center; margin-bottom: 15px;">
             <p id="conversion-display-rate" class="swap-rate-display">${displayRate}</p>
         </div>
         
@@ -153,14 +152,19 @@ export async function renderExchange() {
         toSelect.appendChild(toOption);
     });
     
-    window.updateSwapOutput();
+    // Make functions available on the window object for inline HTML event handlers
+    window.updateSwapOutput = updateSwapOutput;
+    window.selectToken = selectToken;
+    window.swapTokens = swapTokens;
+    window.executeSwap = executeSwap;
+    
+    updateSwapOutput();
 }
 
 /**
  * Updates the output field and conversion details based on the user's input.
- * This function is called every time the input amount changes.
  */
-window.updateSwapOutput = function() {
+function updateSwapOutput() {
     const inputElement = document.getElementById('swap-input-from');
     const outputElement = document.getElementById('swap-input-to');
     const detailsElement = document.getElementById('conversion-details');
@@ -196,15 +200,14 @@ window.updateSwapOutput = function() {
  * @param {string} box - The box to change ('from' or 'to').
  * @param {string} newToken - The new token selected.
  */
-window.selectToken = function(box, newToken) {
+function selectToken(box, newToken) {
     if (box === 'from') {
         fromToken = newToken;
     } else {
         toToken = newToken;
     }
-    // If both tokens are the same, automatically swap the other one.
     if (fromToken === toToken) {
-        window.swapTokens();
+        swapTokens();
     } else {
         renderExchange(); 
     }
@@ -213,15 +216,15 @@ window.selectToken = function(box, newToken) {
 /**
  * Swaps the 'from' and 'to' tokens and re-renders the UI.
  */
-window.swapTokens = function() {
-    [fromToken, toToken] = [toToken, fromToken]; // Modern way to swap variables
+function swapTokens() {
+    [fromToken, toToken] = [toToken, fromToken];
     renderExchange(); 
 }
 
 /**
  * Executes the final swap transaction after user confirmation.
  */
-window.executeSwap = async function() {
+async function executeSwap() {
     const inputElement = document.getElementById('swap-input-from');
     const amountToDeduct = parseInt(inputElement.value);
     
@@ -238,15 +241,12 @@ window.executeSwap = async function() {
 
     const updateObject = {};
     
-    // Deduct from the source currency
     const fromKey = CURRENCY_MAP[fromToken].key;
     updateObject[fromKey] = getBalance(fromToken) - amountToDeduct;
     
-    // Add to the destination currency
     const toKey = CURRENCY_MAP[toToken].key;
     updateObject[toKey] = getBalance(toToken) + result.received;
 
-    // Execute the database update
     const { error } = await api.updatePlayerProfile(state.currentUser.id, updateObject);
     
     if (!error) {
