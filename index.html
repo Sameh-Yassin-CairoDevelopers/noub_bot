@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pharaoh's Legacy 'NOUB' v0.5</title>
+    <title>Pharaoh's Legacy 'NOUB' v0.6</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -19,14 +19,13 @@
 </head>
 <body>
 
-    <!-- Authentication Overlay: Handles user login and registration -->
+    <!-- Authentication Overlay -->
     <div id="auth-overlay">
         <div class="auth-container">
             <div class="auth-header">
                 <img src="images/noub_logo.png" alt="NOUB Logo" class="auth-logo">
                 <h2>Pharaoh's Legacy</h2>
             </div>
-            <!-- Login Form -->
             <div class="auth-form" id="login-form">
                 <h3>Login</h3>
                 <div class="auth-error" id="login-error"></div>
@@ -35,7 +34,6 @@
                 <button id="login-button">Login</button>
                 <div class="switch-form" onclick="showRegisterForm()">No account? Sign up now</div>
             </div>
-            <!-- Registration Form -->
             <div class="auth-form hidden" id="register-form">
                 <h3>Create New Account</h3>
                 <div class="auth-error" id="register-error"></div>
@@ -48,7 +46,7 @@
         </div>
     </div>
 
-    <!-- Main Application Container: Becomes visible after successful login -->
+    <!-- Main Application Container -->
     <div id="app-container" class="hidden">
         
         <header>
@@ -72,14 +70,8 @@
                     <div class="home-section">
                         <h3>Games & Challenges</h3>
                         <div class="home-featured-actions">
-                            <a class="action-card-link" data-target="kv-game-screen">
-                                <div class="icon-box large">🗝️</div>
-                                <span>KV Game</span>
-                            </a>
-                            <a class="action-card-link" data-target="wheel-screen">
-                                <div class="icon-box large">🎡</div>
-                                <span>Dice of Destiny</span>
-                            </a>
+                            <a class="action-card-link" data-target="kv-game-screen"><div class="icon-box large">🗝️</div><span>KV Game</span></a>
+                            <a class="action-card-link" data-target="wheel-screen"><div class="icon-box large">🎡</div><span>Dice of Destiny</span></a>
                         </div>
                     </div>
                     <div class="home-section">
@@ -95,11 +87,9 @@
                 </div>
             </div>
             
-            <!-- OBSOLETE DIVs (kept to prevent errors) -->
+            <!-- All other screen containers -->
             <div id="collection-screen" class="screen hidden"></div>
             <div id="card-upgrade-screen" class="screen hidden"></div>
-            
-            <!-- All other screens -->
             <div id="economy-screen" class="screen hidden">
                 <h2>Economy Hub</h2>
                 <div class="stock-tabs-container">
@@ -108,64 +98,45 @@
                     <button class="stock-tab-btn" data-stock-tab="materials">Materials</button>
                     <button class="stock-tab-btn" data-stock-tab="goods">Goods</button>
                 </div>
-                <div id="stock-content-production" class="stock-content-tab active">
-                    <div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div>
-                    <div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div>
-                </div>
+                <div id="stock-content-production" class="stock-content-tab active"><div class="production-section"><h3>Resource Buildings</h3><div class="buildings-grid" id="resources-container"></div></div><div class="production-section"><h3>Crafting Workshops</h3><div class="buildings-grid" id="workshops-container"></div></div></div>
                 <div id="stock-content-resources" class="stock-content-tab"><div id="stock-resources-container" class="stock-grid"></div></div>
                 <div id="stock-content-materials" class="stock-content-tab"><div id="stock-materials-container" class="stock-grid"></div></div>
                 <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods-container" class="stock-grid"></div></div>
             </div>
-            <div id="tasks-screen" class="screen hidden">
-                <h2>Daily Tasks</h2>
-                <div class="daily-task-summary"><div id="daily-quests-container"></div></div>
-            </div>
-            <div id="contracts-screen" class="screen hidden">
-                <h2>Royal Decrees</h2>
-                <div id="contracts-player-stats"></div>
-                <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
-                <div class="contracts-section"><div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div><div id="available-contracts-container" class="contracts-list"></div></div>
-            </div>
+            <div id="tasks-screen" class="screen hidden"><h2>Daily Tasks</h2><div class="daily-task-summary"><div id="daily-quests-container"></div></div></div>
+            <div id="contracts-screen" class="screen hidden"><h2>Royal Decrees</h2><div id="contracts-player-stats"></div><div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div><div class="contracts-section"><div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div><div id="available-contracts-container" class="contracts-list"></div></div></div>
             <div id="albums-screen" class="screen hidden"></div>
             <div id="wheel-screen" class="screen hidden"></div>
-            <div id="kv-game-screen" class="screen hidden">
-                 <!-- KV Game Content -->
-            </div>
-            <div id="profile-screen" class="screen hidden">
-                 <div class="profile-container"></div>
-            </div>
+            <div id="kv-game-screen" class="screen hidden"><!-- KV Game content --></div>
+            <div id="profile-screen" class="screen hidden"><div class="profile-container"></div></div>
             <div id="history-screen" class="screen hidden"></div>
             <div id="library-screen" class="screen hidden"></div>
             <div id="settings-screen" class="screen hidden"></div>
             <div id="activity-screen" class="screen hidden"></div>
             <div id="exchange-screen" class="screen hidden"></div>
-            <div id="chat-screen" class="screen hidden">
-                <!-- Chat Screen Content -->
-            </div>
+            <div id="chat-screen" class="screen hidden"><!-- Chat screen content --></div>
         </main>
         
         <!-- MODALS -->
         <div id="toast-container"></div>
-        <div id="shop-modal" class="modal-overlay hidden">
-             <!-- Shop Modal Content -->
-        </div>
+        <div id="shop-modal" class="modal-overlay hidden"><!-- Shop Modal Content --></div>
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
         <div id="specialization-choice-modal" class="modal-overlay hidden"></div>
+        
+        <!-- This modal is for the new universal card detail/upgrade/burn view -->
         <div id="card-detail-modal" class="modal-overlay hidden">
             <div id="card-detail-modal-content" class="modal-content"></div>
         </div>
-        <div id="album-detail-modal-container" class="modal-overlay hidden">
-            <div id="album-detail-modal-content" class="modal-content"></div>
-        </div>
         
-        <!-- "More" Menu Modal with RESTORED Profile Link -->
+        <!-- NOTE: album-detail-modal-container is now created dynamically by albums.js to solve the UI bug. -->
+        
+        <!-- "More" Menu Modal -->
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
                 <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
                 <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
                 <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
-                <!-- CRITICAL FIX: The link to the profile screen has been restored here. -->
                 <a class="more-menu-item" data-target="profile-screen"><div class="icon">👤</div><span>Profile</span></a>
                 <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
             </div>
@@ -182,7 +153,7 @@
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
     </nav>
     
-    <script type="module" src="js/main.js?v=202511040500"></script> 
+    <script type="module" src="js/main.js?v=202511040600"></script> 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Telegram && window.Telegram.WebApp) {
