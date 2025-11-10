@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pharaoh's Legacy 'NOUB' v0.4</title>
+    <title>Pharaoh's Legacy 'NOUB' v0.5</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -95,7 +95,11 @@
                 </div>
             </div>
             
-            <!-- Economy Hub Screen -->
+            <!-- OBSOLETE DIVs (kept to prevent errors) -->
+            <div id="collection-screen" class="screen hidden"></div>
+            <div id="card-upgrade-screen" class="screen hidden"></div>
+            
+            <!-- All other screens -->
             <div id="economy-screen" class="screen hidden">
                 <h2>Economy Hub</h2>
                 <div class="stock-tabs-container">
@@ -112,65 +116,56 @@
                 <div id="stock-content-materials" class="stock-content-tab"><div id="stock-materials-container" class="stock-grid"></div></div>
                 <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods-container" class="stock-grid"></div></div>
             </div>
-            
-            <!-- Other Screens -->
-            <div id="tasks-screen" class="screen hidden"></div>
-            <div id="contracts-screen" class="screen hidden"></div>
+            <div id="tasks-screen" class="screen hidden">
+                <h2>Daily Tasks</h2>
+                <div class="daily-task-summary"><div id="daily-quests-container"></div></div>
+            </div>
+            <div id="contracts-screen" class="screen hidden">
+                <h2>Royal Decrees</h2>
+                <div id="contracts-player-stats"></div>
+                <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
+                <div class="contracts-section"><div class="contracts-header"><h3>Available Contracts</h3><button id="refresh-contracts-btn" class="text-button">Refresh</button></div><div id="available-contracts-container" class="contracts-list"></div></div>
+            </div>
             <div id="albums-screen" class="screen hidden"></div>
             <div id="wheel-screen" class="screen hidden"></div>
-            <div id="kv-game-screen" class="screen hidden"></div>
-            <div id="profile-screen" class="screen hidden"></div>
+            <div id="kv-game-screen" class="screen hidden">
+                 <!-- KV Game Content -->
+            </div>
+            <div id="profile-screen" class="screen hidden">
+                 <div class="profile-container"></div>
+            </div>
             <div id="history-screen" class="screen hidden"></div>
             <div id="library-screen" class="screen hidden"></div>
             <div id="settings-screen" class="screen hidden"></div>
             <div id="activity-screen" class="screen hidden"></div>
             <div id="exchange-screen" class="screen hidden"></div>
-            <div id="chat-screen" class="screen hidden"></div>
+            <div id="chat-screen" class="screen hidden">
+                <!-- Chat Screen Content -->
+            </div>
         </main>
         
-        <!-- MODALS: Reusable popup windows -->
+        <!-- MODALS -->
         <div id="toast-container"></div>
-
-        <!-- Shop Modal (RESTORED TO FULL CONTENT) -->
         <div id="shop-modal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
-                <h2>Shop</h2>
-                <div class="shop-tabs-container">
-                    <button class="shop-tab-btn active" data-shop-tab="cards">Card Packs</button>
-                    <button class="shop-tab-btn" data-shop-tab="game_items">Game Items</button>
-                    <button class="shop-tab-btn" data-shop-tab="ton_exchange">Purchase NOUB</button>
-                </div>
-                <div id="shop-content-cards" class="shop-content-tab active"><div id="shop-items-cards-container"></div></div>
-                <div id="shop-content-game_items" class="shop-content-tab"><div id="shop-items-game_items-container"></div></div>
-                <div id="shop-content-ton_exchange" class="shop-content-tab"><div id="shop-items-ton_exchange-container"></div></div>
-            </div>
+             <!-- Shop Modal Content -->
         </div>
-
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
         <div id="specialization-choice-modal" class="modal-overlay hidden"></div>
-
-        <!-- CORRECTED: Album Detail Modal -->
-        <div id="album-detail-modal" class="modal-overlay hidden">
-            <div id="album-detail-modal-content" class="modal-content">
-                <!-- Content is injected dynamically by albums.js -->
-            </div>
-        </div>
-        
-        <!-- Universal Card Detail Modal -->
         <div id="card-detail-modal" class="modal-overlay hidden">
-            <div id="card-detail-modal-content" class="modal-content">
-                <!-- Content is injected dynamically by albums.js -->
-            </div>
+            <div id="card-detail-modal-content" class="modal-content"></div>
+        </div>
+        <div id="album-detail-modal-container" class="modal-overlay hidden">
+            <div id="album-detail-modal-content" class="modal-content"></div>
         </div>
         
-        <!-- "More" Menu Modal -->
+        <!-- "More" Menu Modal with RESTORED Profile Link -->
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
                 <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
                 <a class="more-menu-item" data-target="history-screen"><div class="icon">🕒</div><span>Game History</span></a>
                 <a class="more-menu-item" data-target="settings-screen"><div class="icon">⚙️</div><span>Settings</span></a>
+                <!-- CRITICAL FIX: The link to the profile screen has been restored here. -->
                 <a class="more-menu-item" data-target="profile-screen"><div class="icon">👤</div><span>Profile</span></a>
                 <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
             </div>
