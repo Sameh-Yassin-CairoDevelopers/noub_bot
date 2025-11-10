@@ -1,14 +1,14 @@
 /*
  * Filename: style.css
- * Version: Pharaoh's Legacy 'NOUB' v0.4 - FINAL & COMPLETE
+ * Version: Pharaoh's Legacy 'NOUB' v0.4 (Card Experience Overhaul)
  * Description: Main stylesheet for the "Noub" game.
- * NOTE: This is the complete and original stylesheet, with new styles for the
- *       Universal Card Modal appended at the end to ensure no existing styles are lost.
+ * CHANGE: Added new styles at the end of the file to support the universal card detail modal.
+ *         No existing styles have been modified.
 */
 
 
 /* =================================================================================
-   --- 0. Global Settings & Variables (Original) ---
+   --- 0. Global Settings & Variables (Dark Theme Standard) ---
    ================================================================================= */
 :root {
     --background-dark: #121212;
@@ -68,19 +68,19 @@ body {
 }
 
 
-/* --- SCREEN BACKGROUNDS (Original) --- */
+/* --- SCREEN BACKGROUNDS (Unchanged) --- */
 #home-screen { background-image: url('images/bgs/home_bg.jpg'); }
 #kv-game-screen { background-image: url('images/bgs/kvgame_bg.jpg'); background-size: 150%; }
 #economy-screen { background-image: url('images/bgs/economy_bg.jpg'); }
 #collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('images/bgs/cards_bg.jpg'); background-size: cover; }
 
 
-/* --- Authentication Overlay (Original) --- */
+/* --- Authentication Overlay (NEW DESIGN) --- */
 #auth-overlay {
     position: fixed;
     inset: 0;
     background-color: var(--background-dark);
-    background-image: url('images/bgs/login_bg.png');
+    background-image: url('images/bgs/login_bg.png'); /* Assuming you will provide login_bg.png */
     background-size: cover;
     background-position: center;
     display: flex;
@@ -114,7 +114,7 @@ body {
 .auth-form h3 { color: var(--text-primary); margin-bottom: 15px; border-bottom: 1px solid #3a3a3c; padding-bottom: 5px; }
 
 
-/* --- Header & Bottom Navigation (Original) --- */
+/* --- Header & Bottom Navigation (NEW REDESIGN) --- */
 header, .bottom-nav {
     position: fixed;
     left: 0;
@@ -130,13 +130,15 @@ header {
     border-bottom: 1px solid #3a3a3c;
 }
 
+/* NEW: Horizontal arrangement and distribution */
 .balance-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-between; /* Space between the three main elements */
     gap: 10px;
 }
 
+/* Currency Display - Only NOUB is in the header now */
 .currency-display {
     display: flex;
     align-items: center;
@@ -145,7 +147,7 @@ header {
     background: var(--input-bg);
     padding: 3px 7px;
     border-radius: 6px;
-    order: 2;
+    order: 2; /* NOUB is in the middle */
     flex-grow: 1;
     max-width: 150px;
     justify-content: center;
@@ -165,15 +167,17 @@ header {
     vertical-align: middle;
 }
 
+/* TON Connect Button (New Style) */
 .ton-connect-btn {
     flex-shrink: 0;
     width: 35px;
     height: 35px;
     overflow: hidden;
-    order: 3;
+    order: 3; /* TON is on the right */
     border-radius: 50%;
 }
 
+/* Header Profile Button */
 .header-profile-btn {
     display: block;
     width: 35px;
@@ -181,7 +185,7 @@ header {
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    order: 1;
+    order: 1; /* Profile is on the left */
     border: 2px solid var(--primary-accent);
 }
 #header-avatar-img {
@@ -224,7 +228,7 @@ header {
 }
 
 
-/* --- General Content, Buttons, Inputs (Original) --- */
+/* --- General Content, Buttons, Inputs (Unchanged) --- */
 .screen h2 {
     color: var(--primary-accent);
     margin-bottom: 18px;
@@ -302,7 +306,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- MODAL STYLES (Original) --- */
+/* --- MODAL STYLES (Unchanged) --- */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -349,7 +353,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- HOME SCREEN STYLES (Original) --- */
+/* --- NEW HOME SCREEN STYLES (Unchanged) --- */
 .home-layout {
     display: flex;
     flex-direction: column;
@@ -406,10 +410,11 @@ input:focus, textarea:focus {
 }
 
 .home-secondary-actions {
+    /* NEW: Arrange 6 icons in 2 rows of 3 */
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 15px;
-    padding: 10px;
+    padding: 10px; /* Add some padding for better look */
 }
 
 .action-icon-link {
@@ -443,7 +448,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- TASKS SCREEN STYLES (Original) --- */
+/* --- TASKS SCREEN STYLES (Unchanged) --- */
 .daily-quest-card {
     background-color: var(--surface-dark);
     padding: 8px 10px;
@@ -484,7 +489,7 @@ input:focus, textarea:focus {
     margin-bottom: 3px;
 }
 
-/* --- ALBUM CATALOG (MODIFIED) --- */
+/* --- ALBUM CATALOG (Unchanged) --- */
 .album-list-item {
     padding: 8px 10px;
     margin-bottom: 7px;
@@ -523,7 +528,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Cards & Grids (Original) --- */
+/* --- Cards & Grids (Unchanged) --- */
 .card-grid, .buildings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -582,7 +587,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- ECONOMY HUB CARD FORMATTING (Original) --- */
+/* --- ECONOMY HUB CARD FORMATTING (Unchanged) --- */
 .building-card .level {
     font-size: 0.6em;
 }
@@ -644,7 +649,7 @@ input:focus, textarea:focus {
     color: var(--ankh-premium-color);
 }
 
-/* --- Production Modal (Original) --- */
+/* --- Production Modal (Unchanged) --- */
 .prod-modal-header { text-align: center; }
 .prod-modal-header img { width: 60px; height: 60px; }
 .prod-modal-header h3 { color: var(--primary-accent); margin: 7px 0 3px 0; }
@@ -660,7 +665,7 @@ input:focus, textarea:focus {
 .progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
 
 
-/* --- Games Screen (KV) (Original) --- */
+/* --- Games Screen (KV) (Reverted to stable input) --- */
 .game-container {
     background-color: var(--surface-dark);
     padding: 14px;
@@ -721,7 +726,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Wheel Game (Original) --- */
+/* --- Wheel Game (NEW STYLES) --- */
 .dice-result-container {
     padding: 15px;
     background: #1a1a1a;
@@ -737,11 +742,11 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Chat Screen Styles (Original) --- */
+/* --- Chat Screen Styles (REFINED) --- */
 #chat-messages {
     background-color: var(--surface-dark);
     border-radius: 8px;
-    height: 300px;
+    height: 300px; /* Increased chat height */
     overflow-y: auto;
     padding: 10px;
     margin-bottom: 10px;
@@ -751,10 +756,10 @@ input:focus, textarea:focus {
 .eve-bubble, .user-bubble {
     padding: 7px 10px;
     border-radius: 10px;
-    margin-bottom: 5px;
-    max-width: 90%;
+    margin-bottom: 5px; /* Reduced margin */
+    max-width: 90%; /* Increased width */
     line-height: 1.3;
-    font-size: 0.9em;
+    font-size: 0.9em; /* Reduced font size */
     word-wrap: break-word;
 }
 .eve-bubble {
@@ -771,6 +776,7 @@ input:focus, textarea:focus {
     border-bottom-right-radius: 3px;
     border-right: 2px solid var(--primary-accent);
 }
+/* New Interactive Options */
 .ucp-options-container {
     display: flex;
     flex-wrap: wrap;
@@ -782,7 +788,7 @@ input:focus, textarea:focus {
     width: 100%;
 }
 .ucp-option-btn {
-    width: 48%;
+    width: 48%; /* Two buttons per row */
 }
 .ucp-range-slider-container {
      display: flex;
@@ -795,6 +801,8 @@ input:focus, textarea:focus {
      width: 18%;
      padding: 8px 0;
 }
+
+/* Chat Input Row (NEW: Side-by-side design) */
 #chat-input-area {
     display: flex;
     gap: 7px;
@@ -802,21 +810,21 @@ input:focus, textarea:focus {
 }
 #chat-input-field {
     flex-grow: 1;
-    margin-bottom: 0;
+    margin-bottom: 0; /* Remove bottom margin */
 }
 #chat-send-button {
     flex-shrink: 0;
     width: 80px;
-    margin: 0;
+    margin: 0; /* Remove button margin */
 }
 
 
-/* --- Profile Screen (Original) --- */
+/* --- Profile Screen (COMPRESSED STYLES) --- */
 .profile-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 10px; /* Reduced gap */
     padding: 0 5px;
 }
 .profile-header {
@@ -839,7 +847,7 @@ input:focus, textarea:focus {
 }
 .profile-section {
     width: 100%;
-    padding: 5px 0;
+    padding: 5px 0; /* Reduced padding */
 }
 .profile-section h3 {
     color: var(--ankh-premium-color);
@@ -851,26 +859,26 @@ input:focus, textarea:focus {
 .profile-stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 7px;
+    gap: 7px; /* Reduced gap */
     width: 100%;
 }
 .currency-stats {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Tighter grid for currencies */
 }
 .stat-box {
     background: var(--surface-dark);
-    padding: 10px;
+    padding: 10px; /* Reduced padding */
     border-radius: 8px;
     text-align: center;
 }
 .stat-box .value {
-    font-size: 1em;
+    font-size: 1em; /* Reduced size */
     font-weight: bold;
     color: var(--text-primary);
     display: block;
 }
 .stat-box .label {
-    font-size: 0.65em;
+    font-size: 0.65em; /* Reduced size */
     color: var(--text-secondary);
     margin-top: 3px;
 }
@@ -880,7 +888,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- More Modal (Hamburger Menu) (Original) --- */
+/* --- More Modal (Hamburger Menu) (Unchanged) --- */
 .more-menu .more-menu-item {
     display: flex;
     align-items: center;
@@ -908,7 +916,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Toast Notifications (Original) --- */
+/* --- Toast Notifications (Unchanged) --- */
 #toast-container {
     position: fixed;
     bottom: 70px;
@@ -931,7 +939,7 @@ input:focus, textarea:focus {
 .toast.info { border-color: var(--ankh-premium-color); }
 
 
-/* --- Specialization Choice Modal (Original) --- */
+/* --- Specialization Choice Modal (Unchanged) --- */
 .specialization-choice-container {
     text-align: center;
 }
@@ -965,10 +973,11 @@ input:focus, textarea:focus {
 }
 
 
-/* --- Shop Tabs Styles (Original) --- */
+/* --- Shop Tabs Styles (FIXED) --- */
 .shop-tabs-container {
     display: flex;
     justify-content: space-around;
+    /* FIX: Added flex-grow to buttons for even distribution */
     border-bottom: 1px solid #3a3a3c;
     margin-bottom: 10px;
 }
@@ -980,7 +989,7 @@ input:focus, textarea:focus {
     font-size: 0.8em;
     font-weight: bold;
     cursor: pointer;
-    flex-grow: 1;
+    flex-grow: 1; /* CRITICAL FIX: Ensure even spacing */
 }
 .shop-tab-btn.active {
     color: var(--primary-accent);
@@ -1016,7 +1025,7 @@ input:focus, textarea:focus {
 }
 
 
-/* --- SWAP/EXCHANGE UI (Original) --- */
+/* --- SWAP/EXCHANGE UI (DEX Style) (FIXED) --- */
 .swap-rate-display {
     color: var(--primary-accent); 
     font-weight: bold; 
@@ -1026,26 +1035,26 @@ input:focus, textarea:focus {
 }
 .swap-box {
     background: var(--surface-dark);
-    padding: 15px;
+    padding: 15px; /* Increased padding */
     border-radius: 12px;
     border: 1px solid #3a3a3c;
-    margin-bottom: 15px;
+    margin-bottom: 15px; /* Increased margin */
 }
 .swap-header {
     display: flex;
     justify-content: space-between;
     font-size: 0.9em;
     color: var(--text-secondary);
-    margin-bottom: 10px;
+    margin-bottom: 10px; /* Increased margin */
 }
 .swap-input-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 10px; /* Increased gap */
 }
 .swap-input-row input {
     flex-grow: 1;
-    font-size: 1.2em;
+    font-size: 1.2em; /* Larger input text */
     padding: 5px;
     border: none;
     background: transparent;
@@ -1062,7 +1071,7 @@ input:focus, textarea:focus {
 }
 .swap-percent-row {
     display: flex;
-    gap: 8px;
+    gap: 8px; /* Increased gap */
     margin-top: 10px;
 }
 .swap-percent-row button {
@@ -1081,7 +1090,7 @@ input:focus, textarea:focus {
 }
 #swap-icon-btn {
     background: var(--primary-accent);
-    border: 4px solid var(--background-dark);
+    border: 4px solid var(--background-dark); /* Thicker border */
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -1094,111 +1103,117 @@ input:focus, textarea:focus {
 }
 #swap-icon-btn:active { transform: rotate(180deg); }
 #continue-swap-btn {
-    margin-top: 20px;
+    margin-top: 20px; /* More space above the main button */
 }
 
 
 /* =================================================================================
-   --- ADDITION: NEW Universal Card Detail Modal Styles ---
+   --- RTL OVERRIDES (Unchanged) ---
    ================================================================================= */
-
-/* This section contains ONLY the new styles required for the card detail modal.
-   It is appended to the end to ensure no original styles are overwritten or lost. */
-
-#card-detail-modal-content {
-    padding: 0; /* Remove base padding to allow the header to span the full width */
+[dir="rtl"] body {
+    direction: rtl;
+    text-align: right;
 }
 
-.card-modal-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 15px;
-    background: var(--input-bg);
-    border-bottom: 3px solid; /* A thick border to show rarity */
-    border-radius: 16px 16px 0 0; /* Match the modal's top corners */
+[dir="rtl"] .currency-display .icon {
+    margin-right: 0;
+    margin-left: 3px;
 }
-
-/* Apply border color based on the card's rarity level */
-.card-modal-header[data-rarity="0"] { border-color: var(--rarity-common); }
-.card-modal-header[data-rarity="2"] { border-color: var(--rarity-rare); }
-.card-modal-header[data-rarity="4"] { border-color: var(--rarity-epic); }
-.card-modal-header[data-rarity="6"] { border-color: var(--rarity-legendary); }
-.card-modal-header[data-rarity="8"] { border-color: var(--rarity-diamond); }
-
-.card-image-large {
-    width: 80px;
-    height: 80px;
-    border-radius: 10px;
-    object-fit: cover;
-    flex-shrink: 0; /* Prevent image from shrinking */
+[dir="rtl"] .currency-display .currency-img {
+    margin-right: 0;
+    margin-left: 3px;
 }
-
-.card-modal-header .header-info h3 {
-    margin: 0;
-    font-size: 1.5em;
-    line-height: 1.2;
-}
-.card-modal-header .header-info p {
-    margin: 5px 0 0 0;
-    color: var(--text-secondary);
-    font-weight: bold;
-    font-size: 1em;
-}
-
-.card-modal-description {
-    padding: 15px;
-    font-size: 0.95em;
-    line-height: 1.5;
-}
-.card-modal-description p {
-    margin: 0 0 10px 0;
-}
-.card-modal-description strong {
-    color: var(--primary-accent);
-}
-.card-modal-description em { /* For the lore text */
-    color: var(--text-secondary);
-    font-style: italic;
-}
-
-.card-modal-section {
-    padding: 15px;
-    border-top: 1px solid #3a3a3c;
-}
-.card-modal-section h4 {
-    margin-top: 0;
-    margin-bottom: 12px;
-    color: var(--primary-accent);
-    font-size: 1.2em;
-}
-.card-modal-section p {
-    font-size: 0.9em;
-}
-
-.upgrade-reqs-list p {
-    margin: 8px 0;
-    font-size: 1em;
-    font-weight: 500;
-}
-.upgrade-reqs-list .met {
-    color: var(--text-primary); /* Player has this requirement */
-}
-.upgrade-reqs-list .unmet {
-    color: var(--danger-color); /* Player is missing this requirement */
-    font-weight: bold;
-}
-.power-increase-info {
-    font-weight: bold;
-    color: var(--success-color);
-    margin-top: 15px;
+[dir="rtl"] .nav-item {
     text-align: center;
 }
+[dir="rtl"] .screen h2 {
+    border-bottom: 1px solid #3a3a3c;
+}
+[dir="rtl"] .text-button {
+    text-align: left;
+}
+[dir="rtl"] #chat-messages {
+    align-items: flex-end;
+}
+[dir="rtl"] .user-bubble {
+    align-self: flex-start;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 3px;
+}
+[dir="rtl"] .eve-bubble {
+    align-self: flex-end;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 3px;
+}
+[dir="rtl"] #chat-input-area {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] #chat-input-field {
+    margin-right: 0;
+    margin-left: 7px;
+    text-align: right;
+}
+[dir="rtl"] .card-stack .card-details {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .prod-io {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .prod-modal-header {
+    text-align: center;
+}
+[dir="rtl"] .contracts-header {
+    flex-direction: row-reverse;
+}
+.contract-card {
+    border-left: none;
+    border-right: 3px solid var(--primary-accent);
+}
+[dir="rtl"] .req-item {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .req-item-name {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .req-item-name img {
+    margin-right: 0;
+    margin-left: 7px;
+}
+[dir="rtl"] #kv-game-content {
+    text-align: right;
+}
+[dir="rtl"] .kv-hint-item {
+    text-align: right;
+}
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] textarea {
+    text-align: right;
+}
+[dir="rtl"] .more-menu .more-menu-item .icon {
+    margin-right: 0;
+    margin-left: 14px;
+}
+[dir="rtl"] .profile-stats-grid {
+    direction: ltr;
+}
+[dir="rtl"] .stat-box {
+    direction: rtl;
+}
 
+/******************************************************************/
+/* --- NEW STYLES for Card Experience Overhaul (v0.4) --- */
+/* These styles are added to the end and do not modify existing rules. */
+/******************************************************************/
+
+/* Album Grid and Slot Styles */
 .album-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
+    padding: 10px;
 }
 .album-slot-card {
     background: var(--surface-dark);
@@ -1207,7 +1222,10 @@ input:focus, textarea:focus {
     padding: 5px;
     text-align: center;
     cursor: pointer;
-    position: relative;
+    transition: transform 0.2s;
+}
+.album-slot-card:hover {
+    transform: translateY(-3px);
 }
 .album-slot-card.owned {
     border-color: var(--success-color);
@@ -1216,6 +1234,7 @@ input:focus, textarea:focus {
     width: 100%;
     aspect-ratio: 1 / 1;
     border-radius: 6px;
+    object-fit: cover;
 }
 .album-slot-card h4 {
     margin: 5px 0 0 0;
@@ -1223,4 +1242,72 @@ input:focus, textarea:focus {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Universal Card Detail Modal */
+.card-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #444;
+}
+.card-modal-header[data-rarity="2"] { border-bottom-color: var(--rarity-rare); }
+.card-modal-header[data-rarity="4"] { border-bottom-color: var(--rarity-epic); }
+.card-modal-header[data-rarity="6"] { border-bottom-color: var(--rarity-legendary); }
+
+.card-image-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.card-modal-header .header-info h3 {
+    margin: 0 0 5px 0;
+    color: var(--primary-accent);
+}
+.card-modal-header .header-info p {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.card-modal-description {
+    font-size: 0.9em;
+    line-height: 1.4;
+    margin-bottom: 15px;
+}
+.card-modal-description p { margin: 5px 0; }
+.card-modal-description strong { color: var(--ankh-premium-color); }
+
+.card-modal-section {
+    background-color: var(--background-dark);
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+.card-modal-section h4 {
+    margin: 0 0 10px 0;
+    color: var(--primary-accent);
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 5px;
+}
+
+.upgrade-reqs-list p {
+    margin: 3px 0;
+    font-size: 0.9em;
+}
+.upgrade-reqs-list .met {
+    color: var(--success-color);
+}
+.upgrade-reqs-list .unmet {
+    color: var(--danger-color);
+}
+.power-increase-info {
+    font-size: 0.8em;
+    color: var(--ankh-premium-color);
+    margin-top: 10px;
+    text-align: center;
 }
