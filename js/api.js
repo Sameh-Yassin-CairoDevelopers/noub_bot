@@ -1,8 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (Activity Log Depth Fix & Ticket Unification)
+ * Version: Pharaoh's Legacy 'NOUB' v0.2.1 (UCP Save Fix)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * FIXED: fetchActivityLog LIMIT increased. getDailySpinTickets return type unified.
+ * CRITICAL FIX: The saveUCPSection function has been corrected to match the 3-column
+ * structure of the 'player_protocol_data' table, resolving the 400 Bad Request error.
 */
 
 import { supabaseClient } from './config.js';
@@ -218,9 +219,6 @@ export async function fetchSlotRewards() {
     return await supabaseClient.from('slot_rewards').select('id, prize_name, prize_type, value, weight');
 }
 
-/**
- * FIX: Unified getDailySpinTickets to return {data, error} for consistency.
- */
 export async function getDailySpinTickets(playerId) {
     return await supabaseClient.from('profiles')
         .select('spin_tickets, last_daily_spin, noub_score, ankh_premium')
@@ -256,12 +254,13 @@ export async function updateKVProgress(playerId, updateObject) {
 }
 
 
-// --- UCP-LLM Protocol API Functions (Unchanged) ---
+// --- UCP-LLM Protocol API Functions (CRITICAL UPDATE HERE) ---
 
 /**
  * Saves or updates a specific section of the player's UCP protocol.
- * CRITICAL FIX: This function now intelligently merges new data with existing data
- * in the 'section_data' JSONB column to prevent 400 Bad Request errors.
+ * CRITICAL FIX (v2): This function now intelligently merges new data with existing data
+ * in the 'section_data' JSONB column and sends an object that perfectly matches
+ * the 3-column table structure (player_id, section_key, section_data).
  */
 export async function saveUCPSection(playerId, sectionKey, newData) {
     // 1. Fetch the existing data for this section first.
@@ -279,21 +278,20 @@ export async function saveUCPSection(playerId, sectionKey, newData) {
     }
 
     // 2. Merge the new data with the old data.
-    // The '...' operator copies properties from one object to another.
     const existingData = existingEntry ? existingEntry.section_data : {};
     const mergedData = { ...existingData, ...newData };
 
-    // 3. Perform an 'upsert' with the complete, merged data object.
-    // This ensures we always send a valid, complete JSON object.
+    // 3. Perform an 'upsert' with the correct 3-column structure.
+    // We have removed the non-existent 'last_updated' column from the payload.
     return await supabaseClient
         .from('player_protocol_data')
         .upsert({ 
             player_id: playerId, 
             section_key: sectionKey, 
-            section_data: mergedData, // Send the full merged object
-            last_updated: new Date().toISOString() 
+            section_data: mergedData // This object now perfectly matches the table structure.
         });
 }
+
 export async function fetchUCPProtocol(playerId) {
     return await supabaseClient
         .from('player_protocol_data')
@@ -321,11 +319,7 @@ export async function logActivity(playerId, activityType, description) {
         });
 }
 
-/**
- * FIX: Increased LIMIT for better activity log depth (90% coverage).
- */
 export async function fetchActivityLog(playerId) {
-    // Increased limit from 50 to 500 for a deep history retrieval
     return await supabaseClient
         .from('activity_log')
         .select('id, player_id, activity_type, description, created_at')
@@ -336,16 +330,10 @@ export async function fetchActivityLog(playerId) {
 
 // --- History, Library, Albums (Unchanged) ---
 
-/**
- * NEW: Inserts a new record into the game_history table.
- */
 export async function insertGameHistory(historyObject) {
     return await supabaseClient.from('game_history').insert(historyObject);
 }
 
-/**
- * FIXED: Fetches the complete game history for the player using the correct 'date' column.
- */
 export async function fetchGameHistory(playerId) {
     return await supabaseClient
         .from('game_history')
@@ -389,4 +377,3 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
-
