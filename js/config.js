@@ -1,4 +1,3 @@
-
 /*
  * Filename: js/config.js
  * Version: Pharaoh's Legacy 'NOUB' v0.3 (Economy Overhaul)
@@ -8,6 +7,7 @@
 */
 
 // --- SUPABASE CONFIGURATION (You MUST replace these with your actual keys) ---
+
 const SUPABASE_URL = 'https://ryyiejjacfaxrfxeawcw.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5eWllamphY2ZheHJmeGVhd2N3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2Njc5ODcsImV4cCI6MjA3NTI0Mzk4N30.4AwNsECeQnRRJtnoDldYjQuPoD6OfhkCtgTJ_VJSVc4'; 
 
@@ -17,22 +17,26 @@ const TOKEN_RATES = {
     // --- NEW: Definitive Exchange Rate System ---
     // This structure defines the cost in NOUB for buying/selling other currencies.
     // The 20% conversion loss is built into these rates.
+    // Your equation: 1 NOUB = 10000 Ankh, 1 NOUB = 20 Prestige, 1 NOUB = 200 Tickets.
     //
     EXCHANGE_RATES: {
         // Prestige (Khenfesha / Scarab)
         'PRESTIGE': {
-            buy_for_noub: 1 / 20,       // Cost to buy 1 Prestige = 0.05 NOUB
-            sell_for_noub: (1 / 20) * 0.8 // NOUB received for selling 1 Prestige = 0.04 NOUB (20% loss)
+            buy_from_noub_rate: 20,       // 1 NOUB buys 20 Prestige.
+            sell_to_noub_rate: 20 / 0.8   // To get 0.8 NOUB, you need to sell 20 Prestige.
+                                          // This means 25 Prestige = 1 NOUB (sell price)
         },
         // Ankh Premium
         'ANKH': {
-            buy_for_noub: 1 / 10000,    // Cost to buy 1 Ankh = 0.0001 NOUB
-            sell_for_noub: (1 / 10000) * 0.8 // NOUB received for selling 1 Ankh = 0.00008 NOUB (20% loss)
+            buy_from_noub_rate: 10000,    // 1 NOUB buys 10000 Ankh.
+            sell_to_noub_rate: 10000 / 0.8 // To get 0.8 NOUB, you need to sell 10000 Ankh.
+                                          // This means 12500 Ankh = 1 NOUB (sell price)
         },
         // Spin Ticket
         'TICKET': {
-            buy_for_noub: 1 / 200,      // Cost to buy 1 Ticket = 0.005 NOUB
-            sell_for_noub: (1 / 200) * 0.8 // NOUB received for selling 1 Ticket = 0.004 NOUB (20% loss)
+            buy_from_noub_rate: 200,      // 1 NOUB buys 200 Tickets.
+            sell_to_noub_rate: 200 / 0.8  // To get 0.8 NOUB, you need to sell 200 Tickets.
+                                          // This means 250 Tickets = 1 NOUB (sell price)
         }
     },
     
