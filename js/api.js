@@ -258,12 +258,42 @@ export async function updateKVProgress(playerId, updateObject) {
 
 // --- UCP-LLM Protocol API Functions (Unchanged) ---
 
-export async function saveUCPSection(playerId, sectionKey, sectionData) {
+/**
+ * Saves or updates a specific section of the player's UCP protocol.
+ * CRITICAL FIX: This function now intelligently merges new data with existing data
+ * in the 'section_data' JSONB column to prevent 400 Bad Request errors.
+ */
+export async function saveUCPSection(playerId, sectionKey, newData) {
+    // 1. Fetch the existing data for this section first.
+    const { data: existingEntry, error: fetchError } = await supabaseClient
+        .from('player_protocol_data')
+        .select('section_data')
+        .eq('player_id', playerId)
+        .eq('section_key', sectionKey)
+        .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+        // PGRST116 means 'No rows found', which is okay. Any other error is a problem.
+        console.error("Error fetching existing UCP section:", fetchError);
+        return { error: fetchError };
+    }
+
+    // 2. Merge the new data with the old data.
+    // The '...' operator copies properties from one object to another.
+    const existingData = existingEntry ? existingEntry.section_data : {};
+    const mergedData = { ...existingData, ...newData };
+
+    // 3. Perform an 'upsert' with the complete, merged data object.
+    // This ensures we always send a valid, complete JSON object.
     return await supabaseClient
         .from('player_protocol_data')
-        .upsert({ player_id: playerId, section_key: sectionKey, section_data: sectionData, last_updated: new Date().toISOString() });
+        .upsert({ 
+            player_id: playerId, 
+            section_key: sectionKey, 
+            section_data: mergedData, // Send the full merged object
+            last_updated: new Date().toISOString() 
+        });
 }
-
 export async function fetchUCPProtocol(playerId) {
     return await supabaseClient
         .from('player_protocol_data')
@@ -359,3 +389,4 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
