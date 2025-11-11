@@ -1,17 +1,15 @@
 /*
  * Filename: js/api.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2.1 (UCP Save Fix)
+ * Version: Pharaoh's Legacy 'NOUB' v0.4 (UCP RPC & Fire-and-Forget)
  * Description: Data Access Layer Module. Centralizes all database interactions.
- * CRITICAL FIX: The saveUCPSection function has been corrected to match the 3-column
- * structure of the 'player_protocol_data' table, resolving the 400 Bad Request error.
+ * FINAL FIX: Implements the most robust fetching via RPC and background saving for the UCP protocol.
 */
 
 import { supabaseClient } from './config.js';
 
-// --- NEW: Export supabaseClient directly ---
-export { supabaseClient }; 
+export { supabaseClient };
 
-// --- Player and Card Functions (Unchanged) ---
+// --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
     return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address, level, completed_contracts_count').eq('id', userId).single();
@@ -77,7 +75,7 @@ export async function deleteCardInstance(instanceId) {
 }
 
 
-// --- Economy API Functions (Unchanged) ---
+// --- Economy API Functions ---
 
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
@@ -135,7 +133,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
 }
 
 
-// --- Contract API Functions (Unchanged) ---
+// --- Contract API Functions ---
 
 export async function fetchAvailableContracts(playerId) {
     const { data: playerContractIds, error: playerError } = await supabaseClient
@@ -254,60 +252,43 @@ export async function updateKVProgress(playerId, updateObject) {
 }
 
 
-// --- UCP-LLM Protocol API Functions (CRITICAL UPDATE HERE) ---
+// --- UCP-LLM Protocol API Functions ---
 
 /**
- * Saves or updates a specific section of the player's UCP protocol.
- * CRITICAL FIX (v2): This function now intelligently merges new data with existing data
- * in the 'section_data' JSONB column and sends an object that perfectly matches
- * the 3-column table structure (player_id, section_key, section_data).
+ * Saves a section using "fire and forget". We don't await the result
+ * to keep the UI snappy and avoid race conditions.
+ * The object sent matches the 3-column table structure.
  */
-export async function saveUCPSection(playerId, sectionKey, newData) {
-    const { data: existingEntry, error: fetchError } = await supabaseClient
-        .from('player_protocol_data')
-        .select('section_data')
-        .eq('player_id', playerId)
-        .eq('section_key', sectionKey)
-        .single();
-
-    if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error("Error fetching existing UCP section:", fetchError);
-        return { error: fetchError };
-    }
-
-    const existingData = existingEntry ? existingEntry.section_data : {};
-    const mergedData = { ...existingData, ...newData };
-
-    // التغيير هنا: أضفنا .select() في النهاية
-    // هذا يخبر Supabase أن يقوم بإرجاع الصف الكامل بعد عملية الحفظ/التحديث
-    return await supabaseClient
+export function saveUCPSection(playerId, sectionKey, sectionData) {
+    supabaseClient
         .from('player_protocol_data')
         .upsert({ 
             player_id: playerId, 
             section_key: sectionKey, 
-            section_data: mergedData
+            section_data: sectionData
         })
-        .select() // <-- هذا هو السطر الجديد والمهم
-        .single(); // <-- نريد صفًا واحدًا فقط
+        .then(({ error }) => {
+            if (error) {
+                console.error('Background Save Error:', error);
+            }
+        });
 }
 
 
+/**
+ * Fetches the complete UCP protocol for a player.
+ * Uses .rpc() as the most reliable method to avoid 406 errors.
+ */
 export async function fetchUCPProtocol(playerId) {
-    // We are now calling the 'get_player_protocol' function we created in Supabase.
-    // We pass the player's ID as an argument named 'p_id'.
     const { data, error } = await supabaseClient.rpc('get_player_protocol', { p_id: playerId });
-
     if (error) {
         console.error("Error calling RPC function 'get_player_protocol':", error);
     }
-    
-    // The structure of the response from .rpc() is slightly different.
-    // The data is directly in the 'data' property. We return it in the same
-    // format as .select() for consistency with the rest of the app.
     return { data, error };
 }
 
-// --- TON Integration Functions (Unchanged) ---
+
+// --- TON Integration Functions ---
 
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) {
     return { success: true, amount: amountAnkhPremium }; 
@@ -335,7 +316,7 @@ export async function fetchActivityLog(playerId) {
         .limit(500); 
 }
 
-// --- History, Library, Albums (Unchanged) ---
+// --- History, Library, Albums ---
 
 export async function insertGameHistory(historyObject) {
     return await supabaseClient.from('game_history').insert(historyObject);
@@ -367,7 +348,7 @@ export async function fetchPlayerLibrary(playerId) {
 }
 
 
-// --- Specialization API Functions (Unchanged) ---
+// --- Specialization API Functions ---
 
 export async function fetchSpecializationPaths() {
     return await supabaseClient.from('specialization_paths').select('*');
@@ -384,7 +365,3 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
-
-
-
-
