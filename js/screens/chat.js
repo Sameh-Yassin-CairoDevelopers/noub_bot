@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/chat.js
- * Version: Pharaoh's Legacy 'NOUB' v0.4.1 (Complete & Corrected Version)
- * Description: Implements a fully isolated state management for the UCP protocol journey.
- * This is the complete and unabridged version, restoring all helper functions.
+ * Version: Pharaoh's Legacy 'NOUB' v0.4.2 (Session Resume Logic)
+ * Description: Implements session resumption for the UCP protocol journey.
+ * The chat now fast-forwards to the user's last completed stage upon re-entry.
 */
 
 import { state } from '../state.js';
@@ -10,7 +10,6 @@ import * as api from '../api.js';
 import { showToast } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
-// --- Loaded Data Holders ---
 let protocolData = null;
 let eveGeneralQuestions = null;
 let hypatiaPhilosophicalQuestions = null;
@@ -20,10 +19,8 @@ let eveMentalStatePhrases = null;
 let protocolPreamble = '';
 let protocolPostamble = '';
 
-// --- DOM Element References ---
 let chatMessagesContainer, chatInputField, chatSendButton, chatActionArea;
 
-// --- Isolated State Management ---
 let sessionState = {};
 let localUcpData = {};
 
@@ -49,20 +46,13 @@ const personalities = {
 
 async function loadAllProtocolData() {
     try {
+        if (protocolData) return true; // Do not reload if data already exists
         const [protocolRes, eveGeneralRes, hypatiaPhilRes, hypatiaScaledRes, likertRes, mentalStateRes, preambleRes, postambleRes] = await Promise.all([
-            fetch('section_type_data.json'),
-            fetch('eve_general_questions.json'),
-            fetch('hypatia_philosophical_questions.json'),
-            fetch('scaled_questions.json'),
-            fetch('likert_scale_labels.json'),
-            fetch('eve_mental_state_phrases.json'),
-            fetch('protocol_preamble.txt'),
-            fetch('protocol_postamble.txt')
+            fetch('section_type_data.json'), fetch('eve_general_questions.json'), fetch('hypatia_philosophical_questions.json'),
+            fetch('scaled_questions.json'), fetch('likert_scale_labels.json'), fetch('eve_mental_state_phrases.json'),
+            fetch('protocol_preamble.txt'), fetch('protocol_postamble.txt')
         ]);
-        const checkOk = (res, file) => {
-            if (!res.ok) throw new Error(`Failed to load ${file}: ${res.statusText}`);
-            return res;
-        };
+        const checkOk = (res, file) => { if (!res.ok) throw new Error(`Failed to load ${file}: ${res.statusText}`); return res; };
         protocolData = await checkOk(protocolRes, 'section_type_data.json').json();
         eveGeneralQuestions = await checkOk(eveGeneralRes, 'eve_general_questions.json').json();
         hypatiaPhilosophicalQuestions = await checkOk(hypatiaPhilRes, 'hypatia_philosophical_questions.json').json();
@@ -231,7 +221,7 @@ function processUserAnswer(answer) {
     sessionState.isAwaitingAnswer = false;
     addMessage(state.playerProfile?.username, answer, 'user-bubble');
 
-    let sectionKeyForSave, dataKey, dataToSave;
+    let sectionKeyForSave, dataToSave;
 
     switch (sessionState.currentStage) {
         case 'AWAITING_MENTAL_STATE':
@@ -245,16 +235,14 @@ function processUserAnswer(answer) {
             const sectionKey = Object.keys(protocolData)[sessionState.mainSectionIndex];
             const field = protocolData[sectionKey].fields[sessionState.mainFieldIndex];
             sectionKeyForSave = `main_${sectionKey}`;
-            dataKey = field.jsonKey || field.name;
-            dataToSave = { [dataKey]: { question: field.label, answer: answer } };
+            dataToSave = { [field.jsonKey || field.name]: { question: field.label, answer: answer } };
             sessionState.mainFieldIndex++;
             break;
         
         case 'EVE_GENERAL':
             const eveQuestion = eveGeneralQuestions[sessionState.eveGeneralIndex];
             sectionKeyForSave = 'eve_general';
-            dataKey = eveQuestion.id;
-            dataToSave = { [dataKey]: { question: eveQuestion.question, answer: answer } };
+            dataToSave = { [eveQuestion.id]: { question: eveQuestion.question, answer: answer } };
             sessionState.eveGeneralIndex++;
             break;
         
@@ -265,16 +253,14 @@ function processUserAnswer(answer) {
         case 'HYPATIA_PHILOSOPHICAL':
             const philQuestion = hypatiaPhilosophicalQuestions[sessionState.hypatiaPhilosophicalIndex];
             sectionKeyForSave = 'hypatia_philosophical';
-            dataKey = philQuestion.id;
-            dataToSave = { [dataKey]: { question: philQuestion.question, answer: answer } };
+            dataToSave = { [philQuestion.id]: { question: philQuestion.question, answer: answer } };
             sessionState.hypatiaPhilosophicalIndex++;
             break;
 
         case 'HYPATIA_SCALED':
             const scaledQuestion = hypatiaScaledQuestions[sessionState.hypatiaScaledIndex];
             sectionKeyForSave = 'hypatia_scaled';
-            dataKey = scaledQuestion.id;
-            dataToSave = { [dataKey]: { question: scaledQuestion.text, answer: answer, axis: scaledQuestion.axis } };
+            dataToSave = { [scaledQuestion.id]: { question: scaledQuestion.text, answer: answer, axis: scaledQuestion.axis } };
             sessionState.hypatiaScaledIndex++;
             break;
     }
@@ -303,6 +289,69 @@ function handleChatSend() {
     }
 }
 
+/**
+ * NEW FUNCTION: Fast-forwards the session state based on loaded data.
+ */
+function fastForwardSessionState() {
+    const mainSectionsKeys = Object.keys(protocolData);
+    const completedMainSections = mainSectionsKeys.every(key => localUcpData[`main_${key}`]);
+    
+    if (!completedMainSections) {
+        // Find the last answered main section and field
+        for (let i = 0; i < mainSectionsKeys.length; i++) {
+            const sectionKey = `main_${mainSectionsKeys[i]}`;
+            if (!localUcpData[sectionKey]) {
+                sessionState.mainSectionIndex = i;
+                sessionState.mainFieldIndex = 0;
+                sessionState.currentStage = 'MAIN_SECTIONS';
+                return;
+            }
+            const numFields = protocolData[mainSectionsKeys[i]].fields.length;
+            const numAnswered = Object.keys(localUcpData[sectionKey]).length;
+            if (numAnswered < numFields) {
+                sessionState.mainSectionIndex = i;
+                sessionState.mainFieldIndex = numAnswered;
+                sessionState.currentStage = 'MAIN_SECTIONS';
+                return;
+            }
+        }
+    }
+
+    const completedEveGeneral = localUcpData['eve_general'] && Object.keys(localUcpData['eve_general']).length >= eveGeneralQuestions.length;
+    if (!completedEveGeneral) {
+        sessionState.eveGeneralIndex = localUcpData['eve_general'] ? Object.keys(localUcpData['eve_general']).length : 0;
+        sessionState.currentStage = 'EVE_GENERAL';
+        return;
+    }
+
+    const hasChosenHypatia = localUcpData['hypatia_philosophical'] || localUcpData['hypatia_scaled'];
+    if (!hasChosenHypatia) {
+        sessionState.currentStage = 'HYPATIA_CHOICE';
+        return;
+    }
+    
+    // Check philosophical questions
+    const completedHypatiaPhil = localUcpData['hypatia_philosophical'] && Object.keys(localUcpData['hypatia_philosophical']).length >= hypatiaPhilosophicalQuestions.length;
+    if (localUcpData['hypatia_philosophical'] && !completedHypatiaPhil) {
+        sessionState.hypatiaPhilosophicalIndex = Object.keys(localUcpData['hypatia_philosophical']).length;
+        sessionState.currentStage = 'HYPATIA_PHILOSOPHICAL';
+        sessionState.currentPersonality = 'hypatia';
+        return;
+    }
+
+    // Check scaled questions
+    const completedHypatiaScaled = localUcpData['hypatia_scaled'] && Object.keys(localUcpData['hypatia_scaled']).length >= hypatiaScaledQuestions.length;
+     if (localUcpData['hypatia_scaled'] && !completedHypatiaScaled) {
+        sessionState.hypatiaScaledIndex = Object.keys(localUcpData['hypatia_scaled']).length;
+        sessionState.currentStage = 'HYPATIA_SCALED';
+        sessionState.currentPersonality = 'hypatia';
+        return;
+    }
+
+    // If all stages are complete
+    sessionState.currentStage = 'SESSION_COMPLETE';
+}
+
 export async function renderChat() {
     chatMessagesContainer = document.getElementById('chat-messages');
     chatInputField = document.getElementById('chat-input-field');
@@ -317,13 +366,10 @@ export async function renderChat() {
     chatSendButton.onclick = handleChatSend;
     chatInputField.onkeypress = (e) => { if (e.key === 'Enter' && !chatInputField.disabled) handleChatSend(); };
 
-    if (!protocolData) {
-        const loaded = await loadAllProtocolData();
-        if (!loaded) return;
-    }
-
+    const loaded = await loadAllProtocolData();
+    if (!loaded) return;
+    
     resetSessionState();
-
     await refreshPlayerState(); 
     
     if (state.ucp instanceof Map && state.ucp.size > 0) {
@@ -331,6 +377,9 @@ export async function renderChat() {
             localUcpData[key] = value;
         });
         console.log("Chat session initialized with previously saved user data.");
+        // --- NEW: Fast-forward the session ---
+        fastForwardSessionState();
+        addMessage(personalities.eve.name, `أهلاً بك مجدداً ${state.playerProfile?.username}! لنكمل من حيث توقفنا.`);
     } else {
         console.log("Starting a fresh chat session.");
     }
