@@ -12,7 +12,8 @@ export { supabaseClient };
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address, level, completed_contracts_count').eq('id', userId).single();
+    // أضف الأعمدة الثلاثة الجديدة هنا
+    return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address, level, completed_contracts_count, ucp_task_1_claimed, ucp_task_2_claimed, ucp_task_3_claimed').eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
@@ -130,6 +131,20 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
     return await supabaseClient
         .from('player_inventory')
         .upsert({ player_id: playerId, item_id: itemId, quantity: newQuantity });
+}
+/**
+ * Updates the claim status for a specific UCP task in the user's profile.
+ * @param {string} playerId - The ID of the current player.
+ * @param {number} taskNumber - The task number (1, 2, or 3).
+ */
+export async function claimUcpTaskReward(playerId, taskNumber) {
+    const updateObject = {};
+    updateObject[`ucp_task_${taskNumber}_claimed`] = true;
+    
+    return await supabaseClient
+        .from('profiles')
+        .update(updateObject)
+        .eq('id', playerId);
 }
 
 
@@ -365,3 +380,4 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
