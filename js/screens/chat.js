@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/chat.js
- * Version: Pharaoh's Legacy 'NOUB' v0.5 (UCP Rewards & Session Resume)
- * Description: Implements a rewards system for completing UCP milestones.
- * Players now receive rewards for completing Eve's stage and the entire protocol.
+ * Version: Pharaoh's Legacy 'NOUB' v0.5 (English, Rewards Decoupled)
+ * Description: UCP protocol journey is now fully in English.
+ * Reward logic has been removed and is now handled by tasks.js.
 */
 
 import { state } from '../state.js';
@@ -10,20 +10,6 @@ import * as api from '../api.js';
 import { showToast } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
-// --- NEW: UCP Completion Rewards Configuration ---
-const UCP_HALF_COMPLETION_REWARD = {
-    noub: 1000,
-    prestige: 50,
-    tickets: 10
-};
-
-const UCP_FULL_COMPLETION_REWARD = {
-    noub: 5000,
-    prestige: 250,
-    ankh: 5
-};
-
-// --- Loaded Data Holders ---
 let protocolData = null;
 let eveGeneralQuestions = null;
 let hypatiaPhilosophicalQuestions = null;
@@ -33,10 +19,8 @@ let eveMentalStatePhrases = null;
 let protocolPreamble = '';
 let protocolPostamble = '';
 
-// --- DOM Element References ---
 let chatMessagesContainer, chatInputField, chatSendButton, chatActionArea;
 
-// --- Isolated State Management ---
 let sessionState = {};
 let localUcpData = {};
 
@@ -50,16 +34,14 @@ function resetSessionState() {
         hypatiaScaledIndex: 0,
         isAwaitingAnswer: false,
         currentPersonality: 'eve',
-        selectedMentalState: 'not_specified',
-        halfRewardGranted: localUcpData['rewards']?.halfRewardGranted || false,
-        fullRewardGranted: localUcpData['rewards']?.fullRewardGranted || false
+        selectedMentalState: 'not_specified'
     };
     localUcpData = {};
 }
 
 const personalities = {
-    eve: { name: 'إيفي 🧚', avatar: 'images/eve_avatar.png' },
-    hypatia: { name: 'هيباتيا 🦉', avatar: 'images/hypatia_avatar.png' }
+    eve: { name: 'Eve 🧚', avatar: 'images/eve_avatar.png' },
+    hypatia: { name: 'Hypatia 🦉', avatar: 'images/hypatia_avatar.png' }
 };
 
 async function loadAllProtocolData() {
@@ -83,7 +65,7 @@ async function loadAllProtocolData() {
         return true;
     } catch (error) {
         console.error("Fatal Error: Could not load required protocol data.", error);
-        showToast("خطأ فادح: لا يمكن تحميل بيانات البروتوكول!", 'error');
+        showToast("Fatal Error: Could not load protocol data!", 'error');
         return false;
     }
 }
@@ -91,7 +73,7 @@ async function loadAllProtocolData() {
 function addMessage(senderName, text, type = 'eve-bubble') {
     if (!chatMessagesContainer) return;
     const personality = personalities[sessionState.currentPersonality];
-    const sender = (type === 'user-bubble') ? (state.playerProfile?.username || 'أنت') : personality.name;
+    const sender = (type === 'user-bubble') ? (state.playerProfile?.username || 'You') : personality.name;
     const avatar = (type === 'user-bubble') ? (state.playerProfile?.avatar_url || 'images/user_avatar.png') : personality.avatar;
     const messageDiv = document.createElement('div');
     messageDiv.classList.add(type);
@@ -129,7 +111,7 @@ function renderInputArea(questionConfig) {
             });
             break;
         case 'tf':
-            ['نعم', 'لا'].forEach(opt => {
+            ['Yes', 'No'].forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'action-button small ucp-option-btn';
                 btn.textContent = opt;
@@ -141,7 +123,7 @@ function renderInputArea(questionConfig) {
         case 'textarea':
             chatInputField.style.display = 'block';
             chatSendButton.style.display = 'block';
-            chatInputField.placeholder = questionConfig.placeholder || "اكتب إجابتك هنا...";
+            chatInputField.placeholder = questionConfig.placeholder || "Type your answer here...";
             chatInputField.focus();
             break;
         default: // custom_choice
@@ -159,67 +141,12 @@ function renderInputArea(questionConfig) {
     }
 }
 
-/**
- * NEW FUNCTION: Grants a reward to the player and updates their profile.
- * @param {string} rewardType - 'half' or 'full'
- */
-async function grantUcpReward(rewardType) {
-    const reward = (rewardType === 'half') ? UCP_HALF_COMPLETION_REWARD : UCP_FULL_COMPLETION_REWARD;
-    const isHalf = (rewardType === 'half');
-
-    if ((isHalf && sessionState.halfRewardGranted) || (!isHalf && sessionState.fullRewardGranted)) {
-        console.log(`Reward for ${rewardType} completion already granted.`);
-        return;
-    }
-
-    addMessage(personalities.eve.name, `🎉 **مكافأة إنجاز!** 🎉<br>تقديرًا لجهودك في بناء بصمتك المعرفية، لقد حصلت على مكافأة!`);
-    
-    let rewardString = '';
-    const profileUpdate = {};
-
-    if (reward.noub) {
-        profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + reward.noub;
-        rewardString += `${reward.noub}🪙 `;
-    }
-    if (reward.prestige) {
-        profileUpdate.prestige = (state.playerProfile.prestige || 0) + reward.prestige;
-        rewardString += `${reward.prestige}🐞 `;
-    }
-    if (reward.tickets) {
-        profileUpdate.spin_tickets = (state.playerProfile.spin_tickets || 0) + reward.tickets;
-        rewardString += `${reward.tickets}🎟️ `;
-    }
-    if (reward.ankh) {
-        profileUpdate.ankh_premium = (state.playerProfile.ankh_premium || 0) + reward.ankh;
-        rewardString += `${reward.ankh}☥ `;
-    }
-
-    const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
-
-    if (error) {
-        showToast("خطأ أثناء منح المكافأة!", 'error');
-        return;
-    }
-
-    // Mark reward as granted
-    if (isHalf) sessionState.halfRewardGranted = true;
-    else sessionState.fullRewardGranted = true;
-
-    // Save the reward status in the protocol itself
-    if (!localUcpData['rewards']) localUcpData['rewards'] = {};
-    localUcpData['rewards'][isHalf ? 'halfRewardGranted' : 'fullRewardGranted'] = true;
-    api.saveUCPSection(state.currentUser.id, 'rewards', localUcpData['rewards']);
-
-    showToast(`+${rewardString}`, 'success');
-    await refreshPlayerState(); // Refresh to update header UI
-}
-
 function askNextQuestion() {
     sessionState.isAwaitingAnswer = true;
     let currentQuestion;
     switch (sessionState.currentStage) {
         case 'AWAITING_MENTAL_STATE':
-            currentQuestion = { question: "أهلاً بك! قبل أن نبدأ، كيف تصف حالتك الذهنية الآن؟", type: 'custom_choice', options: [{ text: "جيدة / مركز 😊", value: 'good' }, { text: "متوسطة / مشتت قليلاً 😐", value: 'average' }, { text: "سيئة / غير مركز 😟", value: 'bad' }] };
+            currentQuestion = { question: "Welcome! Before we begin, how would you describe your current mental state?", type: 'custom_choice', options: [{ text: "Good / Focused 😊", value: 'good' }, { text: "Average / A bit distracted 😐", value: 'average' }, { text: "Poor / Unfocused 😟", value: 'bad' }] };
             addMessage(personalities.eve.name, currentQuestion.question);
             renderInputArea(currentQuestion);
             break;
@@ -239,13 +166,11 @@ function askNextQuestion() {
                 return;
             }
             currentQuestion = section.fields[sessionState.mainFieldIndex];
-            addMessage(personalities.eve.name, `[قسم: ${section.title}]<br>${currentQuestion.label}`);
+            addMessage(personalities.eve.name, `[Section: ${section.title}]<br>${currentQuestion.label}`);
             renderInputArea(currentQuestion);
             break;
         case 'EVE_GENERAL':
             if (sessionState.eveGeneralIndex >= eveGeneralQuestions.length) {
-                // --- REWARD TRIGGER 1 (HALF) ---
-                grantUcpReward('half');
                 sessionState.currentStage = 'HYPATIA_CHOICE';
                 askNextQuestion();
                 return;
@@ -256,7 +181,7 @@ function askNextQuestion() {
             break;
         case 'HYPATIA_CHOICE':
             sessionState.currentPersonality = 'hypatia';
-            currentQuestion = { question: "لقد أكملت المرحلة الأساسية مع إيفي. أنا هيباتيا 🦉. سأساعدك في استكشاف أعمق. أي مسار تختار؟", type: 'custom_choice', options: [{ text: "الاستكشاف الفكري (أسئلة فلسفية)", value: 'HYPATIA_PHILOSOPHICAL' }, { text: "التحليل السلوكي (أسئلة مقياسية)", value: 'HYPATIA_SCALED' }, { text: "إنهاء جمع البيانات الآن", value: 'SESSION_COMPLETE' }] };
+            currentQuestion = { question: "You have completed the foundational stage with Eve. I am Hypatia 🦉. I will help you with a deeper exploration. Which path do you choose?", type: 'custom_choice', options: [{ text: "Intellectual Exploration (Philosophical Questions)", value: 'HYPATIA_PHILOSOPHICAL' }, { text: "Behavioral Analysis (Scaled Questions)", value: 'HYPATIA_SCALED' }, { text: "Finish data collection for now", value: 'SESSION_COMPLETE' }] };
             addMessage(personalities.hypatia.name, currentQuestion.question);
             renderInputArea(currentQuestion);
             break;
@@ -277,16 +202,14 @@ function askNextQuestion() {
                 return;
             }
             currentQuestion = { ...hypatiaScaledQuestions[sessionState.hypatiaScaledIndex], type: 'scaled' };
-            addMessage(personalities.hypatia.name, `بناءً على مقياس من 1 إلى 5، إلى أي مدى تنطبق عليك العبارة التالية؟<br><b>"${currentQuestion.text}"</b>`);
+            addMessage(personalities.hypatia.name, `On a scale of 1 to 5, to what extent does the following statement apply to you?<br><b>"${currentQuestion.text}"</b>`);
             renderInputArea(currentQuestion);
             break;
         case 'SESSION_COMPLETE':
-            // --- REWARD TRIGGER 2 (FULL) ---
-            grantUcpReward('full');
             sessionState.isAwaitingAnswer = false;
-            const finalMessage = "رائع! لقد أنجزنا رحلة بناء بروتوكولك. أصبحت بصمتك المعرفية جاهزة الآن.";
+            const finalMessage = "Excellent! We have completed your protocol-building journey. Your cognitive fingerprint is now ready.";
             addMessage(personalities[sessionState.currentPersonality].name, finalMessage);
-            addMessage(personalities[sessionState.currentPersonality].name, `<button class='action-button small' onclick='window.generateAndExportProtocol()' style="background-color: #2ecc71; margin-top: 15px;">توليد وتصدير البروتوكول النهائي</button>`);
+            addMessage(personalities[sessionState.currentPersonality].name, `<button class='action-button small' onclick='window.generateAndExportProtocol()' style="background-color: #2ecc71; margin-top: 15px;">Generate & Export Final Protocol</button>`);
             const dynamicElements = chatActionArea.querySelectorAll('.ucp-dynamic-element');
             dynamicElements.forEach(el => el.remove());
             break;
@@ -304,7 +227,7 @@ function processUserAnswer(answer) {
         case 'AWAITING_MENTAL_STATE':
             sessionState.selectedMentalState = answer;
             const greeting = eveMentalStatePhrases[answer].greetings[Math.floor(Math.random() * eveMentalStatePhrases[answer].greetings.length)];
-            addMessage(personalities.eve.name, greeting.replace('{name}', state.playerProfile?.username || 'صديقي'));
+            addMessage(personalities.eve.name, greeting.replace('{name}', state.playerProfile?.username || 'my friend'));
             sessionState.currentStage = 'MAIN_SECTIONS';
             break;
 
@@ -353,7 +276,7 @@ function processUserAnswer(answer) {
 
         api.saveUCPSection(state.currentUser.id, sectionKeyForSave, localUcpData[sectionKeyForSave]);
         
-        showToast('تم تحديث البروتوكول', 'success');
+        showToast('Protocol updated', 'success');
     }
 
     setTimeout(askNextQuestion, 300);
@@ -439,8 +362,8 @@ export async function renderChat() {
     const loaded = await loadAllProtocolData();
     if (!loaded) return;
     
+    resetSessionState();
     await refreshPlayerState(); 
-    resetSessionState(); // Reset state but keep track of granted rewards from loaded data.
     
     if (state.ucp instanceof Map && state.ucp.size > 0) {
         state.ucp.forEach((value, key) => {
@@ -448,7 +371,7 @@ export async function renderChat() {
         });
         console.log("Chat session initialized with previously saved user data.");
         fastForwardSessionState();
-        addMessage(personalities.eve.name, `أهلاً بك مجدداً ${state.playerProfile?.username}! لنكمل من حيث توقفنا.`);
+        addMessage(personalities.eve.name, `Welcome back, ${state.playerProfile?.username}! Let's continue where we left off.`);
     } else {
         console.log("Starting a fresh chat session.");
     }
@@ -457,16 +380,16 @@ export async function renderChat() {
 }
 
 window.generateAndExportProtocol = function() {
-    showToast('جارٍ توليد البروتوكول...', 'info');
-    const username = state.playerProfile.username || 'المستكشف';
+    showToast('Generating Protocol...', 'info');
+    const username = state.playerProfile.username || 'Explorer';
     let protocolText = protocolPreamble.replace(/{اسم_المستخدم_المفضل}/g, username) + '\n\n';
     
-    protocolText += "--- أقسام البيانات الأساسية ---\n\n";
+    protocolText += "--- Main Data Sections ---\n\n";
     const mainSectionKeys = Object.keys(protocolData);
     mainSectionKeys.forEach(sectionKey => {
         const ucpKey = `main_${sectionKey}`;
         if (localUcpData[ucpKey]) {
-            protocolText += `[قسم: ${protocolData[sectionKey].title}]\n`;
+            protocolText += `[Section: ${protocolData[sectionKey].title}]\n`;
             const sectionData = localUcpData[ucpKey];
             for (const dataKey in sectionData) {
                 const item = sectionData[dataKey];
@@ -477,7 +400,7 @@ window.generateAndExportProtocol = function() {
     });
 
     if (localUcpData['eve_general']) {
-        protocolText += "--- أسئلة إيفي الإبداعية ---\n\n";
+        protocolText += "--- Eve's Creative Questions ---\n\n";
         Object.values(localUcpData['eve_general']).forEach(item => {
             protocolText += `- ${item.question}: ${item.answer}\n`;
         });
@@ -485,16 +408,16 @@ window.generateAndExportProtocol = function() {
     }
 
     if (localUcpData['hypatia_philosophical'] || localUcpData['hypatia_scaled']) {
-        protocolText += "--- تحليل هيباتيا العميق ---\n\n";
+        protocolText += "--- Hypatia's Deep Analysis ---\n\n";
         if (localUcpData['hypatia_philosophical']) {
-            protocolText += "[جلسة فلسفية]\n";
+            protocolText += "[Philosophical Session]\n";
             Object.values(localUcpData['hypatia_philosophical']).forEach(item => {
                 protocolText += `- ${item.question}: ${item.answer}\n`;
             });
             protocolText += '\n';
         }
         if (localUcpData['hypatia_scaled']) {
-            protocolText += "[جلسة تحليل سلوكي]\n";
+            protocolText += "[Behavioral Analysis Session]\n";
             Object.values(localUcpData['hypatia_scaled']).forEach(item => {
                 protocolText += `- "${item.question}": ${item.answer}/5 (${likertScaleLabels[item.answer]})\n`;
             });
@@ -512,5 +435,5 @@ window.generateAndExportProtocol = function() {
     link.click();
     document.body.removeChild(link);
     
-    showToast('تم تصدير البروتوكول بنجاح!', 'success');
+    showToast('Protocol exported successfully!', 'success');
 }
