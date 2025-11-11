@@ -293,7 +293,9 @@ function askNextQuestion() {
 }
 
 /**
- * Processes the user's answer, saves it, and advances the session state.
+ * Processes the user's answer, ensures it's saved, 
+ * updates the local state, and then advances the session.
+ * This async/await structure prevents race conditions.
  */
 async function processUserAnswer(answer) {
     if (!sessionState.isAwaitingAnswer) return;
@@ -302,14 +304,17 @@ async function processUserAnswer(answer) {
     addMessage(state.playerProfile?.username, answer, 'user-bubble');
 
     let dataToSave = {};
-    let sectionKey, dataKey;
+    let sectionKeyForSave, dataKey;
+    let advanceSession = true; // سيتحكم هذا في التقدم
 
+    // ... (كل منطق switch case يبقى كما هو بالضبط) ...
     switch (sessionState.currentStage) {
         case 'AWAITING_MENTAL_STATE':
             sessionState.selectedMentalState = answer;
             const greeting = eveMentalStatePhrases[answer].greetings[Math.floor(Math.random() * eveMentalStatePhrases[answer].greetings.length)];
             addMessage(personalities.eve.name, greeting.replace('{name}', state.playerProfile?.username || 'صديقي'));
             sessionState.currentStage = 'MAIN_SECTIONS';
+            advanceSession = false; // لا نحفظ هذه الحالة، فقط نتقدم
             break;
 
         case 'MAIN_SECTIONS':
@@ -318,53 +323,73 @@ async function processUserAnswer(answer) {
             const currentMainSection = protocolData[currentMainSectionKey];
             const currentField = currentMainSection.fields[sessionState.mainFieldIndex];
             
-            sectionKey = `main_${currentMainSectionKey}`;
+            sectionKeyForSave = `main_${currentMainSectionKey}`;
             dataKey = currentField.jsonKey || currentField.name;
-            dataToSave = { question: currentField.label, answer: answer };
+            dataToSave = { [dataKey]: { question: currentField.label, answer: answer } };
             
             sessionState.mainFieldIndex++;
             break;
         
         case 'EVE_GENERAL':
             const eveQuestion = eveGeneralQuestions[sessionState.eveGeneralIndex];
-            sectionKey = 'eve_general';
+            sectionKeyForSave = 'eve_general';
             dataKey = eveQuestion.id;
-            dataToSave = { question: eveQuestion.question, answer: answer };
+            dataToSave = { [dataKey]: { question: eveQuestion.question, answer: answer } };
             sessionState.eveGeneralIndex++;
             break;
         
         case 'HYPATIA_CHOICE':
-            sessionState.currentStage = answer; // The answer IS the next stage
+            sessionState.currentStage = answer; 
+            advanceSession = false; // لا نحفظ، فقط نغير المرحلة
             break;
 
         case 'HYPATIA_PHILOSOPHICAL':
             const philQuestion = hypatiaPhilosophicalQuestions[sessionState.hypatiaPhilosophicalIndex];
-            sectionKey = 'hypatia_philosophical';
+            sectionKeyForSave = 'hypatia_philosophical';
             dataKey = philQuestion.id;
-            dataToSave = { question: philQuestion.question, answer: answer };
+            dataToSave = { [dataKey]: { question: philQuestion.question, answer: answer } };
             sessionState.hypatiaPhilosophicalIndex++;
             break;
 
         case 'HYPATIA_SCALED':
             const scaledQuestion = hypatiaScaledQuestions[sessionState.hypatiaScaledIndex];
-            sectionKey = 'hypatia_scaled';
+            sectionKeyForSave = 'hypatia_scaled';
             dataKey = scaledQuestion.id;
-            dataToSave = { question: scaledQuestion.text, answer: answer, axis: scaledQuestion.axis };
+            dataToSave = { [dataKey]: { question: scaledQuestion.text, answer: answer, axis: scaledQuestion.axis } };
             sessionState.hypatiaScaledIndex++;
             break;
     }
 
-    if (sectionKey && dataKey) {
-        // Here we're saving a simplified structure to Supabase
-        // You can make section_data more complex if needed
-        await api.saveUCPSection(state.currentUser.id, sectionKey, { [dataKey]: dataToSave });
-        await refreshPlayerState(); // Refresh the local state.ucp map
+    if (advanceSession) {
+        // --- هذا هو المنطق الجديد والمهم ---
+        showToast('... جارٍ الحفظ', 'info');
+        
+        // 1. انتظر حتى يتم الحفظ في قاعدة البيانات
+        const { data: savedData, error: saveError } = await api.saveUCPSection(state.currentUser.id, sectionKeyForSave, dataToSave);
+
+        if (saveError) {
+            console.error('Save Error:', saveError);
+            showToast('حدث خطأ أثناء الحفظ!', 'error');
+            // لا تتقدم إذا فشل الحفظ
+            sessionState.isAwaitingAnswer = true; // اسمح بإعادة المحاولة
+            return;
+        }
+
+        // 2. قم بتحديث الحالة المحلية (state.ucp) يدويًا بالبيانات التي عادت من قاعدة البيانات
+        // هذا يغنينا عن استدعاء refreshPlayerState() بالكامل هنا
+        if (savedData) {
+            // تأكد من أن state.ucp هو Map
+            if (!(state.ucp instanceof Map)) {
+                state.ucp = new Map();
+            }
+            state.ucp.set(savedData.section_key, savedData.section_data);
+            showToast('تم الحفظ بنجاح', 'success');
+        }
     }
     
-    // Use a small delay to make the conversation feel more natural
-    setTimeout(askNextQuestion, 500);
+    // 3. الآن فقط، بعد اكتمال كل شيء، انتقل للسؤال التالي
+    setTimeout(askNextQuestion, 300); // تقليل التأخير قليلاً
 }
-
 function handleChatSend() {
     const messageText = chatInputField.value.trim();
     if (messageText) {
@@ -471,3 +496,4 @@ window.generateAndExportProtocol = function() {
     
     showToast('تم تصدير البروتوكول بنجاح!', 'success');
 }
+
