@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/chat.js
- * Version: Pharaoh's Legacy 'NOUB' v0.4.2 (Session Resume Logic)
- * Description: Implements session resumption for the UCP protocol journey.
- * The chat now fast-forwards to the user's last completed stage upon re-entry.
+ * Version: Pharaoh's Legacy 'NOUB' v0.5 (UCP Rewards & Session Resume)
+ * Description: Implements a rewards system for completing UCP milestones.
+ * Players now receive rewards for completing Eve's stage and the entire protocol.
 */
 
 import { state } from '../state.js';
@@ -10,6 +10,20 @@ import * as api from '../api.js';
 import { showToast } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
+// --- NEW: UCP Completion Rewards Configuration ---
+const UCP_HALF_COMPLETION_REWARD = {
+    noub: 1000,
+    prestige: 50,
+    tickets: 10
+};
+
+const UCP_FULL_COMPLETION_REWARD = {
+    noub: 5000,
+    prestige: 250,
+    ankh: 5
+};
+
+// --- Loaded Data Holders ---
 let protocolData = null;
 let eveGeneralQuestions = null;
 let hypatiaPhilosophicalQuestions = null;
@@ -19,8 +33,10 @@ let eveMentalStatePhrases = null;
 let protocolPreamble = '';
 let protocolPostamble = '';
 
+// --- DOM Element References ---
 let chatMessagesContainer, chatInputField, chatSendButton, chatActionArea;
 
+// --- Isolated State Management ---
 let sessionState = {};
 let localUcpData = {};
 
@@ -34,7 +50,9 @@ function resetSessionState() {
         hypatiaScaledIndex: 0,
         isAwaitingAnswer: false,
         currentPersonality: 'eve',
-        selectedMentalState: 'not_specified'
+        selectedMentalState: 'not_specified',
+        halfRewardGranted: localUcpData['rewards']?.halfRewardGranted || false,
+        fullRewardGranted: localUcpData['rewards']?.fullRewardGranted || false
     };
     localUcpData = {};
 }
@@ -46,7 +64,7 @@ const personalities = {
 
 async function loadAllProtocolData() {
     try {
-        if (protocolData) return true; // Do not reload if data already exists
+        if (protocolData) return true;
         const [protocolRes, eveGeneralRes, hypatiaPhilRes, hypatiaScaledRes, likertRes, mentalStateRes, preambleRes, postambleRes] = await Promise.all([
             fetch('section_type_data.json'), fetch('eve_general_questions.json'), fetch('hypatia_philosophical_questions.json'),
             fetch('scaled_questions.json'), fetch('likert_scale_labels.json'), fetch('eve_mental_state_phrases.json'),
@@ -141,6 +159,61 @@ function renderInputArea(questionConfig) {
     }
 }
 
+/**
+ * NEW FUNCTION: Grants a reward to the player and updates their profile.
+ * @param {string} rewardType - 'half' or 'full'
+ */
+async function grantUcpReward(rewardType) {
+    const reward = (rewardType === 'half') ? UCP_HALF_COMPLETION_REWARD : UCP_FULL_COMPLETION_REWARD;
+    const isHalf = (rewardType === 'half');
+
+    if ((isHalf && sessionState.halfRewardGranted) || (!isHalf && sessionState.fullRewardGranted)) {
+        console.log(`Reward for ${rewardType} completion already granted.`);
+        return;
+    }
+
+    addMessage(personalities.eve.name, `🎉 **مكافأة إنجاز!** 🎉<br>تقديرًا لجهودك في بناء بصمتك المعرفية، لقد حصلت على مكافأة!`);
+    
+    let rewardString = '';
+    const profileUpdate = {};
+
+    if (reward.noub) {
+        profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + reward.noub;
+        rewardString += `${reward.noub}🪙 `;
+    }
+    if (reward.prestige) {
+        profileUpdate.prestige = (state.playerProfile.prestige || 0) + reward.prestige;
+        rewardString += `${reward.prestige}🐞 `;
+    }
+    if (reward.tickets) {
+        profileUpdate.spin_tickets = (state.playerProfile.spin_tickets || 0) + reward.tickets;
+        rewardString += `${reward.tickets}🎟️ `;
+    }
+    if (reward.ankh) {
+        profileUpdate.ankh_premium = (state.playerProfile.ankh_premium || 0) + reward.ankh;
+        rewardString += `${reward.ankh}☥ `;
+    }
+
+    const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
+
+    if (error) {
+        showToast("خطأ أثناء منح المكافأة!", 'error');
+        return;
+    }
+
+    // Mark reward as granted
+    if (isHalf) sessionState.halfRewardGranted = true;
+    else sessionState.fullRewardGranted = true;
+
+    // Save the reward status in the protocol itself
+    if (!localUcpData['rewards']) localUcpData['rewards'] = {};
+    localUcpData['rewards'][isHalf ? 'halfRewardGranted' : 'fullRewardGranted'] = true;
+    api.saveUCPSection(state.currentUser.id, 'rewards', localUcpData['rewards']);
+
+    showToast(`+${rewardString}`, 'success');
+    await refreshPlayerState(); // Refresh to update header UI
+}
+
 function askNextQuestion() {
     sessionState.isAwaitingAnswer = true;
     let currentQuestion;
@@ -171,6 +244,8 @@ function askNextQuestion() {
             break;
         case 'EVE_GENERAL':
             if (sessionState.eveGeneralIndex >= eveGeneralQuestions.length) {
+                // --- REWARD TRIGGER 1 (HALF) ---
+                grantUcpReward('half');
                 sessionState.currentStage = 'HYPATIA_CHOICE';
                 askNextQuestion();
                 return;
@@ -206,6 +281,8 @@ function askNextQuestion() {
             renderInputArea(currentQuestion);
             break;
         case 'SESSION_COMPLETE':
+            // --- REWARD TRIGGER 2 (FULL) ---
+            grantUcpReward('full');
             sessionState.isAwaitingAnswer = false;
             const finalMessage = "رائع! لقد أنجزنا رحلة بناء بروتوكولك. أصبحت بصمتك المعرفية جاهزة الآن.";
             addMessage(personalities[sessionState.currentPersonality].name, finalMessage);
@@ -289,15 +366,11 @@ function handleChatSend() {
     }
 }
 
-/**
- * NEW FUNCTION: Fast-forwards the session state based on loaded data.
- */
 function fastForwardSessionState() {
     const mainSectionsKeys = Object.keys(protocolData);
-    const completedMainSections = mainSectionsKeys.every(key => localUcpData[`main_${key}`]);
+    const completedMainSections = mainSectionsKeys.every(key => localUcpData[`main_${key}`] && Object.keys(localUcpData[`main_${key}`]).length >= protocolData[key].fields.length);
     
     if (!completedMainSections) {
-        // Find the last answered main section and field
         for (let i = 0; i < mainSectionsKeys.length; i++) {
             const sectionKey = `main_${mainSectionsKeys[i]}`;
             if (!localUcpData[sectionKey]) {
@@ -330,7 +403,6 @@ function fastForwardSessionState() {
         return;
     }
     
-    // Check philosophical questions
     const completedHypatiaPhil = localUcpData['hypatia_philosophical'] && Object.keys(localUcpData['hypatia_philosophical']).length >= hypatiaPhilosophicalQuestions.length;
     if (localUcpData['hypatia_philosophical'] && !completedHypatiaPhil) {
         sessionState.hypatiaPhilosophicalIndex = Object.keys(localUcpData['hypatia_philosophical']).length;
@@ -339,7 +411,6 @@ function fastForwardSessionState() {
         return;
     }
 
-    // Check scaled questions
     const completedHypatiaScaled = localUcpData['hypatia_scaled'] && Object.keys(localUcpData['hypatia_scaled']).length >= hypatiaScaledQuestions.length;
      if (localUcpData['hypatia_scaled'] && !completedHypatiaScaled) {
         sessionState.hypatiaScaledIndex = Object.keys(localUcpData['hypatia_scaled']).length;
@@ -348,7 +419,6 @@ function fastForwardSessionState() {
         return;
     }
 
-    // If all stages are complete
     sessionState.currentStage = 'SESSION_COMPLETE';
 }
 
@@ -369,15 +439,14 @@ export async function renderChat() {
     const loaded = await loadAllProtocolData();
     if (!loaded) return;
     
-    resetSessionState();
     await refreshPlayerState(); 
+    resetSessionState(); // Reset state but keep track of granted rewards from loaded data.
     
     if (state.ucp instanceof Map && state.ucp.size > 0) {
         state.ucp.forEach((value, key) => {
             localUcpData[key] = value;
         });
         console.log("Chat session initialized with previously saved user data.");
-        // --- NEW: Fast-forward the session ---
         fastForwardSessionState();
         addMessage(personalities.eve.name, `أهلاً بك مجدداً ${state.playerProfile?.username}! لنكمل من حيث توقفنا.`);
     } else {
