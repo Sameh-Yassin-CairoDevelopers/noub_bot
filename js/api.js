@@ -294,34 +294,18 @@ export async function saveUCPSection(playerId, sectionKey, newData) {
 
 
 export async function fetchUCPProtocol(playerId) {
-return await supabaseClient
-.from('player_protocol_data')
-.select('')
-.eq('player_id', playerId)
-.then(response => {
-// This is a workaround for a potential PostgREST 406 error.
-// If the initial request fails, we retry it with a header that
-// requests a simpler JSON format.
-if (response.error && response.error.code === 'PGRST116') {
-// No rows found is not an error, return as is.
-return response;
-}
-if (response.error) {
-console.warn("Initial fetchUCPProtocol failed, retrying with headers.", response.error);
-// Retry the request with a specific header
-return supabaseClient
-.from('player_protocol_data')
-.select('*')
-.eq('player_id', playerId)
-.rpc('get_player_protocol', { p_id: playerId }, {
-headers: {
-'Accept-Profile': 'public'
-}
-});
-}
-// If the initial request was successful, return it.
-return response;
-});
+    // We are now calling the 'get_player_protocol' function we created in Supabase.
+    // We pass the player's ID as an argument named 'p_id'.
+    const { data, error } = await supabaseClient.rpc('get_player_protocol', { p_id: playerId });
+
+    if (error) {
+        console.error("Error calling RPC function 'get_player_protocol':", error);
+    }
+    
+    // The structure of the response from .rpc() is slightly different.
+    // The data is directly in the 'data' property. We return it in the same
+    // format as .select() for consistency with the rest of the app.
+    return { data, error };
 }
 
 // --- TON Integration Functions (Unchanged) ---
@@ -401,5 +385,6 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
 
 
