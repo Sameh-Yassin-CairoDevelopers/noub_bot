@@ -293,12 +293,14 @@ export async function saveUCPSection(playerId, sectionKey, newData) {
 }
 
 export async function fetchUCPProtocol(playerId) {
+    // التغيير: نستخدم '*' بدلاً من تحديد الأعمدة.
+    // هذا يطلب من Supabase إرجاع الصف بأكمله كما هو.
+    // يمكن أن يحل هذا مشاكل التنسيق التي تسبب خطأ 406.
     return await supabaseClient
         .from('player_protocol_data')
-        .select('section_key, section_data')
+        .select('*') 
         .eq('player_id', playerId);
 }
-
 
 // --- TON Integration Functions (Unchanged) ---
 
@@ -377,3 +379,4 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
