@@ -292,14 +292,36 @@ export async function saveUCPSection(playerId, sectionKey, newData) {
         });
 }
 
+
 export async function fetchUCPProtocol(playerId) {
-    // التغيير: نستخدم '*' بدلاً من تحديد الأعمدة.
-    // هذا يطلب من Supabase إرجاع الصف بأكمله كما هو.
-    // يمكن أن يحل هذا مشاكل التنسيق التي تسبب خطأ 406.
-    return await supabaseClient
-        .from('player_protocol_data')
-        .select('*') 
-        .eq('player_id', playerId);
+return await supabaseClient
+.from('player_protocol_data')
+.select('')
+.eq('player_id', playerId)
+.then(response => {
+// This is a workaround for a potential PostgREST 406 error.
+// If the initial request fails, we retry it with a header that
+// requests a simpler JSON format.
+if (response.error && response.error.code === 'PGRST116') {
+// No rows found is not an error, return as is.
+return response;
+}
+if (response.error) {
+console.warn("Initial fetchUCPProtocol failed, retrying with headers.", response.error);
+// Retry the request with a specific header
+return supabaseClient
+.from('player_protocol_data')
+.select('*')
+.eq('player_id', playerId)
+.rpc('get_player_protocol', { p_id: playerId }, {
+headers: {
+'Accept-Profile': 'public'
+}
+});
+}
+// If the initial request was successful, return it.
+return response;
+});
 }
 
 // --- TON Integration Functions (Unchanged) ---
@@ -379,4 +401,5 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
 
