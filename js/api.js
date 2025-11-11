@@ -263,7 +263,6 @@ export async function updateKVProgress(playerId, updateObject) {
  * the 3-column table structure (player_id, section_key, section_data).
  */
 export async function saveUCPSection(playerId, sectionKey, newData) {
-    // 1. Fetch the existing data for this section first.
     const { data: existingEntry, error: fetchError } = await supabaseClient
         .from('player_protocol_data')
         .select('section_data')
@@ -272,24 +271,24 @@ export async function saveUCPSection(playerId, sectionKey, newData) {
         .single();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
-        // PGRST116 means 'No rows found', which is okay. Any other error is a problem.
         console.error("Error fetching existing UCP section:", fetchError);
         return { error: fetchError };
     }
 
-    // 2. Merge the new data with the old data.
     const existingData = existingEntry ? existingEntry.section_data : {};
     const mergedData = { ...existingData, ...newData };
 
-    // 3. Perform an 'upsert' with the correct 3-column structure.
-    // We have removed the non-existent 'last_updated' column from the payload.
+    // التغيير هنا: أضفنا .select() في النهاية
+    // هذا يخبر Supabase أن يقوم بإرجاع الصف الكامل بعد عملية الحفظ/التحديث
     return await supabaseClient
         .from('player_protocol_data')
         .upsert({ 
             player_id: playerId, 
             section_key: sectionKey, 
-            section_data: mergedData // This object now perfectly matches the table structure.
-        });
+            section_data: mergedData
+        })
+        .select() // <-- هذا هو السطر الجديد والمهم
+        .single(); // <-- نريد صفًا واحدًا فقط
 }
 
 
@@ -385,6 +384,7 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
 
 
 
