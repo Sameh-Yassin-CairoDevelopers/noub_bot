@@ -1,13 +1,16 @@
 /*
  * Filename: js/screens/tasks.js
- * Version: NOUB v0.5 (UCP Protocol Tasks Integration)
- * Description: Displays and manages the UCP completion tasks.
+ * Version: NOUB v0.5.1 (Unified Tasks Screen)
+ * Description: Displays both Protocol Milestones and Daily Quests in a unified view.
+ * Fixes the 409 Conflict error on library unlock.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
+// Import Daily Quest logic from contracts.js
+import { fetchDailyQuests, completeDailyQuest } from './contracts.js';
 
 const tasksContainer = document.getElementById('tasks-screen');
 
@@ -19,7 +22,8 @@ const UCP_TASKS = [
         description: 'Visit the "Chat with Eve" screen to start building your cognitive profile.',
         reward: { noub: 500, prestige: 10 },
         isClaimed: () => state.playerProfile?.ucp_task_1_claimed,
-        isCompleted: () => state.ucp?.size > 0 || Object.keys(localUcpData || {}).length > 0,
+        // Completion is now defined as having at least one entry in the protocol.
+        isCompleted: () => (state.ucp?.size > 0 || Object.keys(localUcpData || {}).length > 0),
         action: () => navigateTo('chat-screen')
     },
     {
@@ -30,7 +34,6 @@ const UCP_TASKS = [
         isClaimed: () => state.playerProfile?.ucp_task_2_claimed,
         isCompleted: () => {
             const eveGeneral = state.ucp?.get('eve_general') || localUcpData['eve_general'];
-            // This is a simplified check. A more robust check would verify the number of answers.
             return !!eveGeneral; 
         }
     },
@@ -43,21 +46,13 @@ const UCP_TASKS = [
         isCompleted: () => {
             const hypatiaPhil = state.ucp?.get('hypatia_philosophical') || localUcpData['hypatia_philosophical'];
             const hypatiaScaled = state.ucp?.get('hypatia_scaled') || localUcpData['hypatia_scaled'];
-            // Completion is defined as having data in either of Hypatia's sections.
             return !!hypatiaPhil || !!hypatiaScaled;
         }
     }
 ];
 
-// We need a local reference because state.ucp might not be populated
-// when this screen is rendered before the chat screen.
 let localUcpData = {};
 
-/**
- * Handles the logic for claiming a task reward.
- * @param {object} task - The task object from the UCP_TASKS array.
- * @param {number} taskNumber - The number of the task (1, 2, or 3).
- */
 async function claimTaskReward(task, taskNumber) {
     if (task.isClaimed() || !task.isCompleted()) {
         showToast("Task not ready to be claimed.", 'info');
@@ -68,62 +63,51 @@ async function claimTaskReward(task, taskNumber) {
     const profileUpdate = {};
     const reward = task.reward;
 
-    if (reward.noub) {
-        profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + reward.noub;
-        rewardString += `${reward.noub}🪙 `;
-    }
-    if (reward.prestige) {
-        profileUpdate.prestige = (state.playerProfile.prestige || 0) + reward.prestige;
-        rewardString += `${reward.prestige}🐞 `;
-    }
-    if (reward.tickets) {
-        profileUpdate.spin_tickets = (state.playerProfile.spin_tickets || 0) + reward.tickets;
-        rewardString += `${reward.tickets}🎟️ `;
-    }
-    if (reward.ankh) {
-        profileUpdate.ankh_premium = (state.playerProfile.ankh_premium || 0) + reward.ankh;
-        rewardString += `${reward.ankh}☥ `;
-    }
+    if (reward.noub) profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + reward.noub;
+    if (reward.prestige) profileUpdate.prestige = (state.playerProfile.prestige || 0) + reward.prestige;
+    if (reward.tickets) profileUpdate.spin_tickets = (state.playerProfile.spin_tickets || 0) + reward.tickets;
+    if (reward.ankh) profileUpdate.ankh_premium = (state.playerProfile.ankh_premium || 0) + reward.ankh;
 
-    // Update the player's main currency profile
     const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
     if (profileError) {
         showToast("Error granting reward!", 'error');
         return;
     }
 
-    // Mark the task as claimed in the database
     const { error: claimError } = await api.claimUcpTaskReward(state.currentUser.id, taskNumber);
     if (claimError) {
         showToast("Error saving claim status!", 'error');
-        // Note: In a real-world scenario, you'd handle reverting the profile update here.
         return;
     }
 
     // --- Special Reward for Task 3 ---
     if (taskNumber === 3) {
-        // Unlock the Horus section in the library
-        const { error: unlockError } = await api.supabaseClient.from('player_library').insert({
+        // Use .upsert() to prevent a 409 Conflict error.
+        const { error: unlockError } = await api.supabaseClient.from('player_library').upsert({
             player_id: state.currentUser.id,
-            entry_key: 'god_horus' // Make sure this key matches an entry in your library data
+            entry_key: 'god_horus'
         });
         if (!unlockError) {
             showToast("New Library Entry Unlocked: The Great Ennead: Horus!", 'success');
+        } else {
+            console.error("Library unlock error:", unlockError);
         }
     }
 
+    Object.keys(reward).forEach(key => rewardString += `${reward[key]}${key === 'noub' ? '🪙' : key === 'prestige' ? '🐞' : key === 'tickets' ? '🎟️' : '☥'} `);
     showToast(`Reward Claimed: +${rewardString}`, 'success');
-    await refreshPlayerState(); // This will re-fetch the profile with the new claimed status
-    renderTasks(); // Re-render the tasks screen
+    await refreshPlayerState();
+    renderTasks();
 }
 
+/**
+ * Renders both UCP Milestones and Daily Quests.
+ */
 export async function renderTasks() {
     if (!state.currentUser || !tasksContainer) return;
 
-    // Refresh player state to get the latest task claim statuses
     await refreshPlayerState();
     
-    // We also need the UCP data to check for completion status
     const { data: ucpData } = await api.fetchUCPProtocol(state.currentUser.id);
     localUcpData = {};
     if (ucpData) {
@@ -132,23 +116,19 @@ export async function renderTasks() {
         });
     }
 
-    // For task 1, visiting the chat is enough. We mark it complete here.
-    if (!state.playerProfile.ucp_task_1_claimed && (localUcpData['main_personal'] || state.ucp?.has('main_personal'))) {
-        // If the task isn't claimed but the user has started the protocol,
-        // we can consider the "visit" part complete.
-    }
+    const container = document.getElementById('daily-quests-container');
+    if (!container) return;
 
-    const dailyQuestsContainer = document.getElementById('daily-quests-container');
-    if (!dailyQuestsContainer) return;
-
-    dailyQuestsContainer.innerHTML = '<h3>Protocol Milestones</h3>';
-    
+    // --- Render Protocol Milestones ---
+    container.innerHTML = '<h3>Protocol Milestones</h3>';
     UCP_TASKS.forEach((task, index) => {
         const taskNumber = index + 1;
+        const card = document.createElement('div');
+        card.className = 'daily-quest-card';
         const isCompleted = task.isCompleted();
         const isClaimed = task.isClaimed();
-
         let buttonHTML;
+
         if (isClaimed) {
             buttonHTML = `<button class="action-button small" disabled>Claimed</button>`;
         } else if (isCompleted) {
@@ -156,25 +136,69 @@ export async function renderTasks() {
         } else {
             buttonHTML = `<button class="action-button small go-btn">Go</button>`;
         }
-        
-        const card = document.createElement('div');
-        card.className = 'daily-quest-card';
+
         card.innerHTML = `
-            <div class="quest-details">
-                <h4>${task.title}</h4>
-                <p>${task.description}</p>
-            </div>
-            <div class="quest-action">
-                ${buttonHTML}
-            </div>
+            <div class="quest-details"><h4>${task.title}</h4><p>${task.description}</p></div>
+            <div class="quest-action">${buttonHTML}</div>
         `;
-        
+
         if (!isClaimed && isCompleted) {
             card.querySelector('.claim-btn').onclick = () => claimTaskReward(task, taskNumber);
         } else if (!isClaimed && !isCompleted && task.action) {
             card.querySelector('.go-btn').onclick = task.action;
         }
         
-        dailyQuestsContainer.appendChild(card);
+        container.appendChild(card);
+    });
+
+    // --- Render Daily Quests ---
+    const dailyTitle = document.createElement('h3');
+    dailyTitle.textContent = 'Daily Quests';
+    dailyTitle.style.marginTop = '20px';
+    container.appendChild(dailyTitle);
+
+    const quests = fetchDailyQuests();
+    if (!quests || quests.length === 0) {
+        container.innerHTML += '<p>No daily tasks available. Check back tomorrow!</p>';
+        return;
+    }
+    
+    quests.forEach(quest => {
+        const isTaskCompleted = quest.current >= quest.target;
+        const buttonText = quest.completed ? 'Claimed' : (isTaskCompleted ? 'Claim' : 'Working...');
+        const buttonDisabled = !isTaskCompleted || quest.completed;
+        const progressPercent = Math.min(100, (quest.current / quest.target) * 100);
+
+        const card = document.createElement('div');
+        card.className = 'daily-quest-card';
+        card.innerHTML = `
+            <div class="quest-details">
+                <h4>${quest.title}</h4>
+                <p>Progress: ${quest.current} / ${quest.target}</p>
+                <div class="progress-bar">
+                    <div class="progress-bar-inner" style="width: ${progressPercent}%;"></div>
+                </div>
+            </div>
+            <div class="quest-action">
+                <div class="reward">+${quest.reward} 🪙</div>
+                <button class="action-button small claim-btn" ${buttonDisabled ? 'disabled' : ''}>${buttonText}</button>
+            </div>
+        `;
+        
+        const claimBtn = card.querySelector('.claim-btn');
+        if (!buttonDisabled) {
+            claimBtn.onclick = async () => {
+                claimBtn.disabled = true;
+                const success = await completeDailyQuest(quest.id, quest.reward); 
+                if (success) {
+                    showToast(`Claimed ${quest.reward} NOUB!`, 'success');
+                    renderTasks(); 
+                } else {
+                     showToast('Error claiming reward or already claimed!', 'error');
+                     claimBtn.disabled = false;
+                }
+            };
+        }
+        container.appendChild(card);
     });
 }
