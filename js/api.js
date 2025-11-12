@@ -82,9 +82,23 @@ export async function fetchPlayerFactories(playerId) {
     return await supabaseClient
         .from('player_factories')
         .select(`
-            id, level, production_start_time,
+            id,
+            level,
+            production_start_time,
+            assigned_card_instance_id, 
+            player_cards (
+                instance_id,
+                level,
+                cards ( name, image_url, power_score )
+            ),
             factories!inner (
-                id, name, output_item_id, base_production_time, type, image_url, specialization_path_id,
+                id,
+                name,
+                output_item_id,
+                base_production_time,
+                type,
+                image_url,
+                specialization_path_id,
                 items!factories_output_item_id_fkey (id, name, type, image_url, base_value),
                 factory_recipes (
                     input_quantity,
@@ -94,7 +108,6 @@ export async function fetchPlayerFactories(playerId) {
         `)
         .eq('player_id', playerId);
 }
-
 export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
     return await supabaseClient
         .from('player_factories')
@@ -380,4 +393,5 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
 
