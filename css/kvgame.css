@@ -1,0 +1,94 @@
+/* Filename: kvgame.css - Styles for the KV game and Wheel of Fortune screens. */
+
+.game-container {
+    background-color: var(--surface-dark);
+    padding: 14px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.balance-info {
+    font-weight: bold;
+    color: var(--ankh-premium-color);
+    margin: 10px 0;
+}
+
+/* KV Game Specifics */
+#kv-game-content h3 {
+    color: var(--kv-gate-color);
+    margin-top: 0;
+    padding-top: 0;
+}
+.kv-hint-item {
+    background-color: #1a1a1a;
+    color: var(--text-secondary);
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-bottom: 5px;
+    text-align: left;
+}
+.kv-hint-item span {
+    font-weight: bold;
+    color: var(--kv-gate-color);
+}
+.kv-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 10px;
+}
+#kv-guess-input {
+    width: 100%;
+    padding: 8px;
+    font-size: 0.9em;
+    text-align: center;
+    background: var(--background-dark);
+    border: 1px solid var(--primary-accent);
+    color: var(--text-primary);
+    border-radius: 6px;
+}
+.game-status-message {
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+.game-status-message.win { background-color: rgba(52, 199, 89, 0.2); color: var(--success-color); }
+.game-status-message.lose { background-color: rgba(255, 69, 58, 0.2); color: var(--danger-color); }
+.game-status-message.info { background-color: rgba(41, 182, 246, 0.2); color: var(--ankh-premium-color); }
+
+
+#kv-timer-display, #kv-attempts-display {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+#kv-progress-info {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+}
+
+#kv-use-item-button-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+/* Wheel Game (Dice) Specifics */
+.dice-result-container {
+    padding: 15px;
+    background: #1a1a1a;
+    border-radius: 10px;
+    margin: 20px auto;
+    width: 150px;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5); /* Gold glow */
+}
+.dice-result-container .icon-lg {
+    font-size: 4em;
+    color: var(--primary-accent);
+    display: block;
+}

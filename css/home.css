@@ -1,0 +1,93 @@
+/* Filename: home.css - Styles for the home screen layout and icons. */
+
+.home-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 25px; 
+}
+
+.home-section h3 {
+    text-align: left;
+    font-size: 1.1em;
+    color: var(--primary-accent);
+    margin-bottom: 12px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #3a3a3c;
+}
+
+.home-featured-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.action-card-link {
+    background-color: var(--surface-dark);
+    border-radius: 12px;
+    padding: 15px;
+    text-decoration: none;
+    color: var(--text-primary);
+    text-align: center;
+    border: 1px solid #3a3a3c;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.action-card-link:hover {
+    background-color: #2a2a2e;
+    transform: translateY(-3px);
+}
+
+.action-card-link .icon-box.large {
+    width: 60px;
+    height: 60px;
+    font-size: 32px;
+    margin: 0 auto 10px auto;
+    border-width: 2px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+}
+
+.action-card-link span {
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.home-secondary-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    padding: 10px;
+}
+
+.action-icon-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.home-secondary-actions .icon-box {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    background: var(--surface-dark);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 5px;
+    border: 1px solid #3a3a3c;
+    transition: background-color 0.3s;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+}
+
+.home-secondary-actions .action-icon-link:hover .icon-box {
+    background-color: #2a2a2e;
+}

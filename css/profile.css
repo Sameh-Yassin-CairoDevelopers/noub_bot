@@ -1,0 +1,78 @@
+/* Filename: profile.css - Styles for the user profile screen. */
+
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 0 5px;
+}
+.profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.profile-header .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-accent);
+}
+.profile-header h2 {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    font-size: 1.5em;
+}
+.player-level {
+    font-size: 1em;
+    color: var(--text-secondary);
+    margin-top: -5px;
+    background-color: var(--surface-dark);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+.profile-section {
+    width: 100%;
+    padding: 5px 0;
+}
+.profile-section h3 {
+    color: var(--ankh-premium-color);
+    font-size: 1.1em;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 5px;
+}
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+.currency-stats {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+}
+.stat-box {
+    background: var(--surface-dark);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+}
+.stat-box .value {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 5px;
+}
+.stat-box .label {
+    font-size: 0.75em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+.specialization-box .value {
+    color: var(--success-color);
+    font-size: 1.1em;
+}

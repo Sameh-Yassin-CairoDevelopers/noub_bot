@@ -1,0 +1,113 @@
+/* Filename: _base.css - Contains global resets, base styles for body, text, and common elements. */
+
+{
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background-color: var(--background-dark);
+    color: var(--text-primary);
+    padding: 50px 10px 65px 10px;
+    min-height: 100vh;
+    font-size: 0.95em;
+}
+
+.hidden { display: none !important; }
+
+.screen {
+    animation: fadeIn 0.3s ease-in-out;
+    background-color: var(--background-dark);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: calc(100vh - 115px);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(7px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.screen h2 {
+    color: var(--primary-accent);
+    margin-bottom: 18px;
+    border-bottom: 1px solid #3a3a3c;
+    padding-bottom: 7px;
+}
+
+.error-message {
+    color: var(--danger-color);
+}
+
+.action-button {
+    width: 95%;
+    max-width: 250px;
+    margin-top: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-family: inherit;
+    font-size: 0.9em;
+    cursor: pointer;
+    color: #121212;
+    background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    box-shadow: 0 2px 0 #9e7f2c;
+}
+
+.action-button:disabled {
+    background: var(--text-secondary);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.action-button:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: none;
+}
+.action-button.danger {
+    background: var(--danger-color);
+    color: white;
+}
+.action-button.small {
+    padding: 5px 8px;
+    font-size: 0.8em;
+    width: auto;
+    max-width: none;
+    display: inline-block;
+}
+.text-button {
+    background: none;
+    border: none;
+    color: var(--ankh-premium-color);
+    cursor: pointer;
+    font-size: 0.8em;
+    padding: 3px;
+}
+
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    background: var(--input-bg);
+    border: 1px solid #3a3a3c;
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.9em;
+    box-sizing: border-box;
+}
+input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-accent);
+}
+
+/* Screen Specific Backgrounds */
+#home-screen { background-image: url('../images/bgs/home_bg.jpg'); }
+#kv-game-screen { background-image: url('../images/bgs/kvgame_bg.jpg'); background-size: 150%; }
+#economy-screen { background-image: url('../images/bgs/economy_bg.jpg'); }
+#collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('../images/bgs/cards_bg.jpg'); background-size: cover; }

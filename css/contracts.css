@@ -1,0 +1,49 @@
+/* Filename: contracts.css - Styles specific to the contracts screen. */
+
+.contracts-section h3 {
+    font-size: 1.1em;
+    color: var(--primary-accent);
+    margin-bottom: 10px;
+}
+
+.contracts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.contracts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.contract-card {
+    background-color: var(--surface-dark);
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-accent);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.contract-card:hover {
+    background-color: #2a2a2e;
+}
+
+.contract-card h4 {
+    margin: 0 0 5px 0;
+    font-size: 0.95em;
+}
+
+.contract-rewards {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+}
+.contract-rewards span {
+    font-weight: bold;
+    color: var(--noub-color);
+}
+.contract-rewards span + span {
+    margin-left: 10px;
+}

@@ -1,0 +1,33 @@
+/*
+ * Filename: main.css
+ * Description: Main stylesheet that imports all other partial CSS files.
+*/
+
+/* 1. Variables and Base Styles */
+@import url('_variables.css');
+@import url('_base.css');
+
+/* 2. Layout Structure */
+@import url('_layout.css');
+
+/* 3. Reusable Components */
+@import url('_components.css');
+
+/* 4. Authentication Screen */
+@import url('_auth.css');
+
+/* 5. Specific Screen Styles */
+@import url('home.css');
+@import url('economy.css');
+@import url('tasks.css');
+@import url('collection.css');
+@import url('contracts.css');
+@import url('kvgame.css');
+@import url('chat.css');
+@import url('profile.css');
+@import url('shop.css');
+@import url('exchange.css');
+@import url('more_menu.css');
+
+/* 99. Right-to-Left Overrides (Last) */
+@import url('_rtl.css');

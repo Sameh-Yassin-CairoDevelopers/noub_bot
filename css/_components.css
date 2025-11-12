@@ -1,0 +1,108 @@
+/* Filename: _components.css - Styles for reusable components like modals, cards, etc. */
+
+/* --- MODAL STYLES --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+}
+
+.modal-content {
+    position: relative;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--surface-dark);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    padding: 14px;
+    width: 100%;
+    max-width: none;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-top: 2px solid var(--primary-accent);
+    box-shadow: 0 -3px 10px rgba(0,0,0,0.5);
+    animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 7px;
+    right: 10px;
+    font-size: 1.5em;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+}
+
+/* --- TOAST NOTIFICATIONS --- */
+#toast-container {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+}
+.toast {
+    background-color: var(--surface-dark);
+    color: var(--text-primary);
+    padding: 8px 14px;
+    border-radius: 18px;
+    margin-bottom: 7px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+    font-size: 0.8em;
+    border-left: 3px solid;
+}
+.toast.success { border-color: var(--success-color); }
+.toast.error { border-color: var(--danger-color); }
+.toast.info { border-color: var(--ankh-premium-color); }
+
+/* --- CARDS & GRIDS --- */
+.card-grid, .buildings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+}
+
+.card-stack, .building-card {
+    background-color: var(--surface-dark);
+    border-radius: 8px;
+    padding: 5px;
+    position: relative;
+    border: 1px solid #3a3a3c;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s;
+}
+.card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
+.card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
+.card-stack[data-rarity="4"] { border-color: var(--rarity-epic); }
+.card-stack[data-rarity="6"] { border-color: var(--rarity-legendary); }
+.card-stack[data-rarity="8"] { border-color: var(--rarity-diamond); }
+
+.card-stack .card-image, .building-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    object-fit: cover;
+    margin-bottom: 5px;
+}
+
+.card-stack h4, .building-card h4 {
+    margin: 2px 0;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

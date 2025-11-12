@@ -1,0 +1,30 @@
+/* Filename: _variables.css - Contains all CSS custom properties (variables). */
+
+:root {
+    --background-dark: #121212;
+    --surface-dark: #1e1e1e;
+    --primary-accent: #D4AF37; /* Gold/Bronze */
+    --text-primary: #ffffff;
+    --text-secondary: #aaaaaa;
+    --noub-color: #f39c12;
+    --ankh-premium-color: #29b6f6;
+    --success-color: #34c759;
+    --danger-color: #ff453a;
+    --ton-color: #0088cc;
+    --input-bg: #2a2a2e;
+    --kv-gate-color: #f7d794;
+    --chat-eve-color: #f0f0f0;
+    --chat-user-color: #d4edda;
+    
+    /* Rarity Colors */
+    --rarity-common: #7f8c8d;
+    --rarity-rare: #3498db;
+    --rarity-epic: #9b59b6;
+    --rarity-legendary: #f39c12;
+    --rarity-diamond: #f1c40f;
+    
+    /* KV Game Colors */
+    --kv-bull-color: var(--success-color); /* Green for Correct Position */
+    --kv-cow-color: var(--noub-color); /* Gold/Orange for Correct Digit, Wrong Position */
+    --kv-miss-color: var(--text-secondary); /* Grey for Miss */
+}

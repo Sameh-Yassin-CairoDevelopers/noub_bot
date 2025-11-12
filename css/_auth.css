@@ -1,0 +1,59 @@
+/* Filename: _auth.css - Styles for the authentication overlay and forms. */
+
+#auth-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: var(--background-dark);
+    background-image: url('../images/bgs/login_bg.png');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.auth-container {
+    background-color: rgba(30, 30, 30, 0.9);
+    padding: 25px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 350px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border: 1px solid var(--primary-accent);
+}
+.auth-header { 
+    margin-bottom: 20px; 
+}
+.auth-header .auth-logo {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 10px;
+}
+.auth-header h2 {
+    color: var(--primary-accent);
+    margin: 0;
+    font-size: 1.5em;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.auth-form h3 { 
+    color: var(--text-primary); 
+    margin-bottom: 15px; 
+    border-bottom: 1px solid #3a3a3c; 
+    padding-bottom: 5px; 
+}
+
+.auth-error {
+    color: var(--danger-color);
+    margin-bottom: 10px;
+    font-size: 0.9em;
+    min-height: 1.2em;
+}
+
+.switch-form {
+    margin-top: 15px;
+    font-size: 0.9em;
+    cursor: pointer;
+    color: var(--ankh-premium-color);
+}

@@ -1,0 +1,77 @@
+/* Filename: economy.css - Styles for the economy hub, production, stockpile, etc. */
+
+.building-card .level {
+    font-size: 0.6em;
+}
+.building-card .status {
+    font-size: 0.6em;
+    margin-top: 2px;
+}
+
+.stock-tabs-container {
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 1px solid #3a3a3c;
+    margin-bottom: 10px;
+}
+.stock-tab-btn {
+    padding: 7px 10px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 0.8em;
+    font-weight: bold;
+    cursor: pointer;
+}
+.stock-tab-btn.active {
+    color: var(--primary-accent);
+    border-bottom: 1px solid var(--primary-accent);
+}
+.stock-content-tab { display: none; }
+.stock-content-tab.active { display: block; }
+
+.stock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 10px;
+}
+
+.stock-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--surface-dark);
+    padding: 7px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid #3a3a3c;
+}
+.stock-item img {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 3px;
+}
+.stock-item .details h4 {
+    margin: 0 0 2px 0;
+    font-size: 0.8em;
+}
+.stock-item .quantity {
+    font-size: 0.8em;
+    font-weight: bold;
+    color: var(--ankh-premium-color);
+}
+
+/* Production Modal */
+.prod-modal-header { text-align: center; }
+.prod-modal-header img { width: 60px; height: 60px; }
+.prod-modal-header h3 { color: var(--primary-accent); margin: 7px 0 3px 0; }
+.prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 10px; border-radius: 7px; }
+.prod-item { text-align: center; }
+.prod-item img { width: 35px; height: 35px; }
+.prod-item p { margin: 3px 0 0 0; }
+.prod-item .label { font-size: 0.7em; color: var(--text-secondary); }
+.arrow { font-size: 1.5em; color: var(--primary-accent); }
+.prod-timer { text-align: center; margin-top: 14px; }
+.prod-timer .time-left { font-size: 1.3em; font-weight: bold; letter-spacing: 1px; }
+.progress-bar { background-color: #444; border-radius: 3px; height: 7px; overflow: hidden; margin-top: 7px; }
+.progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }

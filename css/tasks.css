@@ -1,0 +1,41 @@
+/* Filename: tasks.css - Styles for the daily tasks / quests screen. */
+
+.daily-quest-card {
+    background-color: var(--surface-dark);
+    padding: 8px 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 7px;
+}
+.quest-details {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+.quest-details h4 {
+    margin: 0 0 3px 0;
+    font-size: 0.9em;
+}
+.quest-details p {
+    font-size: 0.7em;
+    color: var(--text-secondary);
+    margin: 0 0 3px 0;
+}
+.quest-details .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #444;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.quest-action {
+    text-align: center;
+    flex-shrink: 0;
+}
+.quest-action .reward {
+    color: var(--primary-accent);
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 3px;
+}

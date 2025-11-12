@@ -1,0 +1,85 @@
+/* Filename: exchange.css - Styles for the currency exchange/swap screen. */
+
+.swap-rate-display {
+    color: var(--primary-accent); 
+    font-weight: bold; 
+    font-size: 1.1em;
+    padding: 5px 0;
+    margin: 0;
+}
+.swap-box {
+    background: var(--surface-dark);
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #3a3a3c;
+    margin-bottom: 15px;
+}
+.swap-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+.swap-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.swap-input-row input {
+    flex-grow: 1;
+    font-size: 1.2em;
+    padding: 5px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    margin: 0;
+}
+.swap-input-row select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid #3a3a3c;
+    font-size: 0.9em;
+}
+.swap-percent-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+.swap-percent-row button {
+    padding: 5px 10px;
+    font-size: 0.8em;
+    background: #3a3a3c;
+    color: var(--text-primary);
+    border-radius: 6px;
+    border: none;
+    flex-grow: 1;
+}
+.swap-icon-container {
+    text-align: center;
+    margin: -22px 0 -10px 0;
+    z-index: 10;
+    position: relative;
+}
+#swap-icon-btn {
+    background: var(--primary-accent);
+    border: 4px solid var(--background-dark);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+#swap-icon-btn:active { 
+    transform: rotate(180deg); 
+}
+#continue-swap-btn {
+    margin-top: 15px;
+}

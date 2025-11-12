@@ -1,0 +1,60 @@
+/* Filename: _rtl.css - Contains all Right-to-Left (RTL) style overrides. */
+
+[dir="rtl"] body {
+    direction: rtl;
+    text-align: right;
+}
+
+[dir="rtl"] .currency-display .icon,
+[dir="rtl"] .currency-display .currency-img {
+    margin-right: 0;
+    margin-left: 3px;
+}
+
+[dir="rtl"] .screen h2 {
+    border-bottom: 1px solid #3a3a3c;
+}
+
+[dir="rtl"] #chat-messages {
+    align-items: flex-end;
+}
+[dir="rtl"] .user-bubble {
+    align-self: flex-start;
+    border-bottom-left-radius: 18px; /* Reset */
+    border-bottom-right-radius: 4px; /* Tail on the left */
+}
+[dir="rtl"] .eve-bubble {
+    align-self: flex-end;
+    border-bottom-right-radius: 18px; /* Reset */
+    border-bottom-left-radius: 4px; /* Tail on the right */
+}
+
+[dir="rtl"] .card-stack .card-details {
+    flex-direction: row-reverse;
+}
+[dir="rtl"] .prod-io {
+    flex-direction: row-reverse;
+}
+
+.contract-card {
+    border-left: none;
+    border-right: 3px solid var(--primary-accent);
+}
+[dir="rtl"] .contracts-header {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] textarea {
+    text-align: right;
+}
+[dir="rtl"] .more-menu .more-menu-item .icon {
+    margin-right: 0;
+    margin-left: 14px;
+}
+[dir="rtl"] .profile-stats-grid {
+    direction: ltr; /* Grids often look better LTR even in RTL */
+}
+[dir="rtl"] .stat-box {
+    direction: rtl;
+}
