@@ -81,19 +81,32 @@ async function claimTaskReward(task, taskNumber) {
     }
 
     // --- Special Reward for Task 3 ---
-    if (taskNumber === 3) {
-        // Use .upsert() to prevent a 409 Conflict error.
-        const { error: unlockError } = await api.supabaseClient.from('player_library').upsert({
-            player_id: state.currentUser.id,
-            entry_key: 'god_horus'
-        });
-        if (!unlockError) {
-            showToast("New Library Entry Unlocked: The Great Ennead: Horus!", 'success');
-        } else {
-            console.error("Library unlock error:", unlockError);
-        }
-    }
+// --- Special Reward for Task 3 ---
+if (taskNumber === 3) {
+    const libraryEntry = {
+        player_id: state.currentUser.id,
+        entry_key: 'god_horus'
+    };
 
+    // Use a more explicit .upsert() with an 'onConflict' option.
+    // This tells Supabase: "If a row with this combination of player_id and entry_key
+    // already exists, just ignore the conflict and do nothing."
+    // This is the most robust way to prevent the 409 error.
+    const { error: unlockError } = await api.supabaseClient
+        .from('player_library')
+        .upsert(libraryEntry, { onConflict: 'player_id, entry_key', ignoreDuplicates: true });
+
+    if (!unlockError) {
+        // This toast will now only show on the VERY FIRST successful claim.
+        // On subsequent (ignored) claims, there is no error, but also no data is returned,
+        // so we can add a check if needed, but for now, this is cleaner.
+        showToast("New Library Entry Unlocked: The Great Ennead: Horus!", 'success');
+    } else {
+        // This will now only log truly unexpected errors.
+        console.error("Library unlock error:", unlockError);
+        showToast("An error occurred while unlocking the library item.", 'error');
+    }
+    
     Object.keys(reward).forEach(key => rewardString += `${reward[key]}${key === 'noub' ? '🪙' : key === 'prestige' ? '🐞' : key === 'tickets' ? '🎟️' : '☥'} `);
     showToast(`Reward Claimed: +${rewardString}`, 'success');
     await refreshPlayerState();
@@ -202,3 +215,4 @@ export async function renderTasks() {
         container.appendChild(card);
     });
 }
+
