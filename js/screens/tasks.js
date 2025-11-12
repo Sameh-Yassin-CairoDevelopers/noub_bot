@@ -106,6 +106,7 @@ if (taskNumber === 3) {
         console.error("Library unlock error:", unlockError);
         showToast("An error occurred while unlocking the library item.", 'error');
     }
+}
     
     Object.keys(reward).forEach(key => rewardString += `${reward[key]}${key === 'noub' ? '🪙' : key === 'prestige' ? '🐞' : key === 'tickets' ? '🎟️' : '☥'} `);
     showToast(`Reward Claimed: +${rewardString}`, 'success');
@@ -215,4 +216,5 @@ export async function renderTasks() {
         container.appendChild(card);
     });
 }
+
 
