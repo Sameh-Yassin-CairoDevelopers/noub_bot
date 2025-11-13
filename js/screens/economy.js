@@ -402,7 +402,7 @@ async function openExpertSelectionModal(playerFactoryId) {
     selectionModal.querySelectorAll('.card-stack').forEach(cardElement => {
         cardElement.onclick = async () => {
             const cardInstanceId = cardElement.dataset.instanceId;
-            await assignExpert(playerFactoryId, parseInt(cardInstanceId));
+            await assignExpert(playerFactoryId, cardInstanceId); // Pass it as a string
             closeModal('expert-selection-modal');
             closeModal('production-modal');
         };
@@ -556,3 +556,4 @@ export async function renderStock() {
         if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
+
