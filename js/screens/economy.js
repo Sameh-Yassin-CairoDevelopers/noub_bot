@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/economy.js
- * Version: Pharaoh's Legacy 'NOUB' v0.6 (Expert Assignment System)
+ * Version: Pharaoh's Legacy 'NOUB' v0.6.1 (Unique Expert Assignment)
  * Description: View Logic Module for Production and Stockpile screens.
- * NEW: Implements the expert card assignment system to factories.
+ * FIX: Prevents assigning the same expert card to multiple factories by filtering the selection list.
 */
 
 import { state } from '../state.js';
@@ -367,13 +367,30 @@ function openProductionModal(playerFactory, outputItem) {
 
 
 async function openExpertSelectionModal(playerFactoryId) {
-    const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
-    if (error || !playerCards) {
-        showToast("Could not load your cards.", 'error');
+    // --- THIS FUNCTION IS NOW UPDATED ---
+    // 1. Fetch all player cards AND all player factories to know which cards are busy
+    const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
+        api.fetchPlayerCards(state.currentUser.id),
+        api.fetchPlayerFactories(state.currentUser.id)
+    ]);
+
+    if (cardsError || factoriesError || !playerCards) {
+        showToast("Could not load required data.", 'error');
         return;
     }
 
-    let cardsHTML = playerCards.map(card => `
+    // 2. Find out which card instances are already assigned
+    const assignedCardIds = new Set(
+        playerFactories
+            .map(factory => factory.assigned_card_instance_id)
+            .filter(id => id !== null)
+    );
+
+    // 3. Filter the playerCards list to show only unassigned cards
+    const availableCards = playerCards.filter(card => !assignedCardIds.has(card.instance_id));
+
+    // 4. Create the modal HTML with the grid of AVAILABLE cards
+    let cardsHTML = availableCards.map(card => `
         <div class="card-stack" data-instance-id="${card.instance_id}" style="cursor: pointer;">
             <img src="${card.cards.image_url || 'images/default_card.png'}" class="card-image">
             <h4>${card.cards.name}</h4>
@@ -395,14 +412,14 @@ async function openExpertSelectionModal(playerFactoryId) {
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeModal('expert-selection-modal')">&times;</button>
             <h2>Select an Expert</h2>
-            <div class="card-grid">${cardsHTML || '<p>You have no cards to assign.</p>'}</div>
+            <div class="card-grid">${cardsHTML || '<p>No available experts to assign.</p>'}</div>
         </div>
     `;
 
     selectionModal.querySelectorAll('.card-stack').forEach(cardElement => {
         cardElement.onclick = async () => {
             const cardInstanceId = cardElement.dataset.instanceId;
-            await assignExpert(playerFactoryId, cardInstanceId); // Pass it as a string
+            await assignExpert(playerFactoryId, cardInstanceId);
             closeModal('expert-selection-modal');
             closeModal('production-modal');
         };
@@ -420,7 +437,7 @@ async function assignExpert(playerFactoryId, cardInstanceId) {
 
     if (error) {
         showToast("Failed to assign expert!", 'error');
-        console.error(error);
+        console.error("Assign Expert Error:", error);
     } else {
         showToast("Expert assigned successfully!", 'success');
         await refreshPlayerState();
@@ -552,8 +569,7 @@ export async function renderStock() {
 
     if (!hasStock) {
         if (stockResourcesContainer.innerHTML === '') stockResourcesContainer.innerHTML = '<p style="text-align:center;">No resources found.</p>';
-        if (stockMaterialsContainer.innerHTML === '') stockMaterialsContainer.innerHTML = '<p style-align:center;">No materials found.</p>';
+        if (stockMaterialsContainer.innerHTML === '') stockMaterialsContainer.innerHTML = '<p style="text-align:center;">No materials found.</p>';
         if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
-
