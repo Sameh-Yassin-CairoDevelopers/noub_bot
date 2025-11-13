@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/economy.js
- * Version: Pharaoh's Legacy 'NOUB' v0.6.1 (Unique Expert Assignment)
- * Description: View Logic Module for Production and Stockpile screens.
- * FIX: Prevents assigning the same expert card to multiple factories by filtering the selection list.
+ * Version: Pharaoh's Legacy 'NOUB' v0.7 (Expert Effects & UI Indicators)
+ * Description: Implements the functional effects of assigned expert cards (e.g., time reduction)
+ * and adds a visual indicator to factories that have an expert assigned.
 */
 
 import { state } from '../state.js';
@@ -11,6 +11,14 @@ import { showToast, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
 import { executeFactoryUpgrade } from './upgrade.js';
+
+// --- NEW: Expert Card Effects Dictionary ---
+const EXPERT_EFFECTS = {
+    'Imhotep': { type: 'TIME_REDUCTION_PERCENT', value: 10 },
+    'Osiris (Underworld)': { type: 'TIME_REDUCTION_PERCENT', value: 20 },
+    'Ptah (Creator)': { type: 'EXTRA_RESOURCE_CHANCE', value: 15 }
+    // Add more card names and their effects here...
+};
 
 const resourcesContainer = document.getElementById('resources-container');
 const workshopsContainer = document.getElementById('workshops-container');
@@ -22,9 +30,7 @@ const stockGoodsContainer = document.getElementById('stock-goods-container');
 
 const ONE_MINUTE = 60000;
 const ONE_SECOND = 1000;
-
 const SPECIALIZATION_UNLOCK_LEVEL = 15;
-
 const FACTORY_UPGRADE_COST = 500; 
 const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
 const FACTORY_UPGRADE_QTY = 10; 
@@ -36,22 +42,15 @@ const SPECIALIZATION_FACTORY_MAP = {
     3: [13, 14, 15]
 };
 
-
-// --- Specialization Logic ---
-
 async function handleSelectSpecialization(pathId) {
     if (!state.currentUser) return;
-    
     showToast('Unlocking specialization path...', 'info');
-
     const { error: unlockError } = await api.unlockSpecialization(state.currentUser.id, pathId);
-
     if (unlockError) {
         showToast('Error unlocking specialization!', 'error');
         console.error("Unlock Specialization Error:", unlockError);
         return;
     }
-    
     const factoryIdsToSeed = SPECIALIZATION_FACTORY_MAP[pathId];
     if (factoryIdsToSeed && factoryIdsToSeed.length > 0) {
         const factoryPromises = factoryIdsToSeed.map(factoryId => {
@@ -64,7 +63,6 @@ async function handleSelectSpecialization(pathId) {
         await Promise.all(factoryPromises);
         showToast(`New factories seeded for path ${pathId}!`, 'success');
     }
-    
     showToast('Specialization path unlocked! Refreshing data...', 'success');
     await refreshPlayerState(); 
     window.closeModal('specialization-choice-modal');
@@ -74,21 +72,17 @@ async function handleSelectSpecialization(pathId) {
 async function renderSpecializationChoice() {
     const modal = document.getElementById('specialization-choice-modal');
     if (!modal) return;
-
     const { data: paths, error } = await api.fetchSpecializationPaths();
     if (error || !paths) {
         showToast('Could not load specialization paths.', 'error');
         return;
     }
-    
     const selectedPaths = state.specializations || new Map();
     const pathsToDisplay = paths.filter(p => !selectedPaths.has(p.id));
-
     if (pathsToDisplay.length === 0) {
         showToast("No new specialization paths available.", 'info');
         return;
     }
-
     const modalHTML = `
         <div class="modal-content specialization-choice-container">
             <h2>Choose Your Path</h2>
@@ -106,18 +100,12 @@ async function renderSpecializationChoice() {
             </div>
         </div>
     `;
-
     modal.innerHTML = modalHTML;
-    
     document.querySelectorAll('.specialization-card').forEach(card => {
         card.onclick = () => handleSelectSpecialization(card.dataset.pathId);
     });
-
     openModal('specialization-choice-modal');
 }
-
-
-// --- Utility Functions ---
 
 function formatTime(ms) {
     if (ms < 0) return '00:00';
@@ -129,9 +117,6 @@ function formatTime(ms) {
     if (hours > 0) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
     return `${pad(minutes)}:${pad(seconds)}`;
 }
-
-
-// --- Production Logic ---
 
 async function handleStartProduction(factoryId, recipes) {
     if (!state.currentUser) return;
@@ -168,20 +153,43 @@ async function handleStartProduction(factoryId, recipes) {
 async function handleClaimProduction(playerFactory, outputItem) {
     if (!state.currentUser || !outputItem) return;
     const factory = playerFactory.factories;
-    const productionTimeMs = factory.base_production_time * ONE_MINUTE; 
+    const assignedCard = playerFactory.player_cards;
+
+    let productionTimeMs = factory.base_production_time * ONE_MINUTE;
+    if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
+        const effect = EXPERT_EFFECTS[assignedCard.cards.name];
+        if (effect.type === 'TIME_REDUCTION_PERCENT') {
+            productionTimeMs -= productionTimeMs * (effect.value / 100);
+        }
+    }
+    
     const timeElapsed = new Date().getTime() - new Date(playerFactory.production_start_time).getTime();
     if (timeElapsed < productionTimeMs) {
         showToast('Production is not finished yet.', 'info');
         return;
     }
+
     showToast('Claiming resources...', 'info');
-    const quantityProduced = 1;
+
+    let quantityProduced = 1;
+    if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
+        const effect = EXPERT_EFFECTS[assignedCard.cards.name];
+        if (effect.type === 'EXTRA_RESOURCE_CHANCE') {
+            if (Math.random() * 100 < effect.value) {
+                quantityProduced += 1;
+                showToast(`Expert's Blessing! You received an extra ${outputItem.name}!`, 'success');
+            }
+        }
+    }
+    
     const currentQty = state.inventory.get(outputItem.id)?.qty || 0;
     const newQuantity = currentQty + quantityProduced;
+    
     const [claimResult] = await Promise.all([
         api.claimProduction(state.currentUser.id, playerFactory.id, outputItem.id, newQuantity),
         outputItem.type === 'RESOURCE' ? trackDailyActivity('resources', quantityProduced, outputItem.name) : null
     ]);
+
     if (claimResult.error) {
         showToast('Error claiming production!', 'error');
         return;
@@ -192,28 +200,34 @@ async function handleClaimProduction(playerFactory, outputItem) {
     window.closeModal('production-modal');
 }
 
-
-// --- Production & Expert UI Render ---
-
 function updateProductionCard(factory, outputItem) {
     const cardId = `factory-card-${factory.id}`;
     const card = document.getElementById(cardId);
     if (!card) return;
+
+    const assignedCard = factory.player_cards;
     const startTime = factory.production_start_time;
-    const masterTime = factory.factories.base_production_time * ONE_MINUTE;
+    
+    let masterTime = factory.factories.base_production_time * ONE_MINUTE;
+    if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
+        const effect = EXPERT_EFFECTS[assignedCard.cards.name];
+        if (effect.type === 'TIME_REDUCTION_PERCENT') {
+            masterTime -= masterTime * (effect.value / 100);
+        }
+    }
+    
     if (startTime) {
         const timeElapsed = new Date().getTime() - new Date(startTime).getTime();
         const timeLeft = masterTime - timeElapsed;
         const statusEl = card.querySelector('.status');
         const progressEl = card.querySelector('.progress-bar-inner');
+
         if (timeLeft <= 0) {
             statusEl.textContent = `Ready: ${outputItem.name}`;
             progressEl.style.width = '100%';
-            card.onclick = () => openProductionModal(factory, outputItem);
         } else {
             statusEl.textContent = `Time: ${formatTime(timeLeft)}`;
             progressEl.style.width = `${(timeElapsed / masterTime) * 100}%`;
-            card.onclick = () => openProductionModal(factory, outputItem);
             if (!card.dataset.timerRunning) {
                 card.dataset.timerRunning = 'true';
                 setTimeout(() => {
@@ -225,14 +239,23 @@ function updateProductionCard(factory, outputItem) {
     } else {
         card.querySelector('.status').textContent = 'Ready to Start';
         card.querySelector('.progress-bar-inner').style.width = '0%';
-        card.onclick = () => openProductionModal(factory, outputItem);
     }
+    card.onclick = () => openProductionModal(factory, outputItem);
 }
 
 function openProductionModal(playerFactory, outputItem) {
     const factory = playerFactory.factories;
-    const masterTime = factory.base_production_time * ONE_MINUTE;
+    let masterTime = factory.base_production_time * ONE_MINUTE; // Use let to modify it
     const startTime = playerFactory.production_start_time;
+    const assignedCard = playerFactory.player_cards;
+
+    // Apply time reduction for display in the modal title
+    if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
+        const effect = EXPERT_EFFECTS[assignedCard.cards.name];
+        if (effect.type === 'TIME_REDUCTION_PERCENT') {
+            masterTime -= masterTime * (effect.value / 100);
+        }
+    }
     
     let canStart = true;
     const requirementsHTML = factory.factory_recipes.map(recipe => {
@@ -266,7 +289,6 @@ function openProductionModal(playerFactory, outputItem) {
         buttonHTML = `<button id="start-prod-btn" class="action-button" ${canStart ? '' : 'disabled'}>Start Production</button>`;
     }
 
-    const assignedCard = playerFactory.player_cards;
     let expertSectionHTML = `
         <div id="expert-assignment-section" style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;">
             <h4 style="color:var(--primary-accent); margin-bottom: 5px;">Assigned Expert</h4>
@@ -345,17 +367,16 @@ function openProductionModal(playerFactory, outputItem) {
 
     if (document.getElementById('start-prod-btn')) {
         document.getElementById('start-prod-btn').onclick = () => handleStartProduction(playerFactory.id, factory.factory_recipes);
-    } else if (document.getElementById('claim-prod-btn')) {
+    }
+    if (document.getElementById('claim-prod-btn')) {
         document.getElementById('claim-prod-btn').onclick = () => handleClaimProduction(playerFactory, outputItem);
     }
-    
     if (document.getElementById('assign-expert-btn')) {
         document.getElementById('assign-expert-btn').onclick = () => openExpertSelectionModal(playerFactory.id);
     }
     if (document.getElementById('unassign-expert-btn')) {
         document.getElementById('unassign-expert-btn').onclick = () => unassignExpert(playerFactory.id);
     }
-    
     const upgradeFactoryBtn = document.getElementById('upgrade-factory-btn');
     if(upgradeFactoryBtn && canUpgrade) {
         upgradeFactoryBtn.onclick = () => {
@@ -365,41 +386,24 @@ function openProductionModal(playerFactory, outputItem) {
     }
 }
 
-
 async function openExpertSelectionModal(playerFactoryId) {
-    // --- THIS FUNCTION IS NOW UPDATED ---
-    // 1. Fetch all player cards AND all player factories to know which cards are busy
     const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
         api.fetchPlayerCards(state.currentUser.id),
         api.fetchPlayerFactories(state.currentUser.id)
     ]);
-
     if (cardsError || factoriesError || !playerCards) {
         showToast("Could not load required data.", 'error');
         return;
     }
-
-    // 2. Find out which card instances are already assigned
-    const assignedCardIds = new Set(
-        playerFactories
-            .map(factory => factory.assigned_card_instance_id)
-            .filter(id => id !== null)
-    );
-
-    // 3. Filter the playerCards list to show only unassigned cards
+    const assignedCardIds = new Set(playerFactories.map(f => f.assigned_card_instance_id).filter(id => id !== null));
     const availableCards = playerCards.filter(card => !assignedCardIds.has(card.instance_id));
-
-    // 4. Create the modal HTML with the grid of AVAILABLE cards
     let cardsHTML = availableCards.map(card => `
         <div class="card-stack" data-instance-id="${card.instance_id}" style="cursor: pointer;">
             <img src="${card.cards.image_url || 'images/default_card.png'}" class="card-image">
             <h4>${card.cards.name}</h4>
-            <div class="card-details">
-                <span class="card-level">LVL ${card.level}</span>
-            </div>
+            <div class="card-details"><span class="card-level">LVL ${card.level}</span></div>
         </div>
     `).join('');
-
     let selectionModal = document.getElementById('expert-selection-modal');
     if (!selectionModal) {
         selectionModal = document.createElement('div');
@@ -407,7 +411,6 @@ async function openExpertSelectionModal(playerFactoryId) {
         selectionModal.className = 'modal-overlay hidden';
         document.body.appendChild(selectionModal);
     }
-
     selectionModal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeModal('expert-selection-modal')">&times;</button>
@@ -415,7 +418,6 @@ async function openExpertSelectionModal(playerFactoryId) {
             <div class="card-grid">${cardsHTML || '<p>No available experts to assign.</p>'}</div>
         </div>
     `;
-
     selectionModal.querySelectorAll('.card-stack').forEach(cardElement => {
         cardElement.onclick = async () => {
             const cardInstanceId = cardElement.dataset.instanceId;
@@ -424,7 +426,6 @@ async function openExpertSelectionModal(playerFactoryId) {
             closeModal('production-modal');
         };
     });
-
     openModal('expert-selection-modal');
 }
 
@@ -465,13 +466,9 @@ async function unassignExpert(playerFactoryId) {
 
 export async function renderProduction() {
     if (!state.currentUser || !state.playerProfile) return;
-
-    if (state.playerProfile.level === undefined) {
-         await refreshPlayerState();
-    }
+    if (state.playerProfile.level === undefined) await refreshPlayerState();
     
     const hasSpecialization = state.specializations && state.specializations.size > 0;
-    
     if (state.playerProfile.level >= SPECIALIZATION_UNLOCK_LEVEL && !hasSpecialization) {
         renderSpecializationChoice();
         return;
@@ -479,7 +476,6 @@ export async function renderProduction() {
     
     resourcesContainer.innerHTML = 'Loading resources buildings...';
     workshopsContainer.innerHTML = 'Loading crafting workshops...';
-
     const { data: factories, error } = await api.fetchPlayerFactories(state.currentUser.id);
 
     if (error) {
@@ -501,7 +497,11 @@ export async function renderProduction() {
         card.className = 'building-card';
         card.id = `factory-card-${playerFactory.id}`;
 
+        const hasExpert = !!playerFactory.player_cards;
+        const expertIndicator = hasExpert ? '<span class="expert-indicator" style="position: absolute; top: 5px; right: 5px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold);">✨</span>' : '';
+
         card.innerHTML = `
+            ${expertIndicator}
             <img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}">
             <h4></h4>
             <div class="level"></div>
@@ -510,14 +510,9 @@ export async function renderProduction() {
         `;
         card.querySelector('h4').textContent = factory.name;
         card.querySelector('.level').textContent = `Level: ${playerFactory.level}`;
-
-        card.onclick = () => openProductionModal(playerFactory, outputItem); 
         
-        if (factory.type === 'RESOURCE') {
-            resourcesContainer.appendChild(card);
-        } else {
-            workshopsContainer.appendChild(card);
-        }
+        const targetContainer = factory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
+        targetContainer.appendChild(card);
         
         updateProductionCard(playerFactory, outputItem);
     });
