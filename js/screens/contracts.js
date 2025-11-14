@@ -161,7 +161,6 @@ async function updateContractCompletionCount(playerId) {
 async function handleDeliverContract(playerContract, contractRequirements) {
     showToast('Delivering goods...');
 
-    // CRITICAL: Check Cooldown Time
     const acceptedTime = new Date(playerContract.accepted_at).getTime();
     const now = Date.now();
     const elapsedTime = now - acceptedTime;
@@ -172,7 +171,6 @@ async function handleDeliverContract(playerContract, contractRequirements) {
         return;
     }
     
-    // Check if player has enough resources (second check for safety)
     let allRequirementsMet = true;
     contractRequirements.forEach(req => {
         const playerQty = state.inventory.get(req.items.id)?.qty || 0;
@@ -184,7 +182,6 @@ async function handleDeliverContract(playerContract, contractRequirements) {
          return;
     }
 
-
     const consumePromises = contractRequirements.map(req => {
         const currentQty = state.inventory.get(req.items.id)?.qty || 0;
         const newQty = currentQty - req.quantity;
@@ -195,14 +192,12 @@ async function handleDeliverContract(playerContract, contractRequirements) {
 
     const contractDetails = playerContract.contracts;
     
-    // 1. Calculate Standard Rewards
     let totalNoubReward = contractDetails.reward_score;
     const newTotals = {
         noub_score: (state.playerProfile.noub_score || 0) + totalNoubReward,
         prestige: (state.playerProfile.prestige || 0) + contractDetails.reward_prestige
     };
 
-    // 2. Complete Contract in DB
     const { error: contractError } = await api.completeContract(state.currentUser.id, playerContract.id, newTotals);
         
     if (contractError) {
@@ -211,17 +206,18 @@ async function handleDeliverContract(playerContract, contractRequirements) {
          return;
     }
 
-    // 3. Update Completion Count & Check for Bonus
     const { bonusNoub } = await updateContractCompletionCount(state.currentUser.id);
     totalNoubReward += bonusNoub;
 
-    // 4. Final Refresh and Toast
+    // --- NEW: Track progress for tasks ---
+    // This will track progress for tasks like "Complete 1 Contract"
+    await trackTaskProgress('contract_complete');
+
     await refreshPlayerState();
     showToast(`Contract Completed! Rewards: +${totalNoubReward} 🪙, +${contractDetails.reward_prestige} 🐞`, 'success');
     window.closeModal('contract-detail-modal');
     renderActiveContracts();
 }
-
 /**
  * NEW: Helper function to display player's current currencies.
  */
@@ -437,3 +433,4 @@ async function handleRefreshContracts() {
 
     refreshBtn.disabled = false;
 }
+
