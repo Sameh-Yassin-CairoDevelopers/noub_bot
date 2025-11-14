@@ -1,8 +1,8 @@
 /*
  * Filename: js/screens/economy.js
- * Version: Pharaoh's Legacy 'NOUB' v0.7 (Expert Effects & UI Indicators)
- * Description: Implements the functional effects of assigned expert cards (e.g., time reduction)
- * and adds a visual indicator to factories that have an expert assigned.
+ * Version: Pharaoh's Legacy 'NOUB' v0.8 (Card Level Scaling Effects)
+ * Description: Expert card effects now scale with the card's level,
+ * making card upgrades a meaningful strategic choice.
 */
 
 import { state } from '../state.js';
@@ -12,12 +12,24 @@ import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
 import { executeFactoryUpgrade } from './upgrade.js';
 
-// --- NEW: Expert Card Effects Dictionary ---
+// --- UPDATED: Expert Card Effects Dictionary (with Level Scaling) ---
 const EXPERT_EFFECTS = {
-    'Imhotep': { type: 'TIME_REDUCTION_PERCENT', value: 10 },
-    'Osiris (Underworld)': { type: 'TIME_REDUCTION_PERCENT', value: 20 },
-    'Ptah (Creator)': { type: 'EXTRA_RESOURCE_CHANCE', value: 15 }
-    // Add more card names and their effects here...
+    'Imhotep': {
+        type: 'TIME_REDUCTION_PERCENT',
+        // LVL 1: 10%, LVL 2: 12%, LVL 3: 15%, LVL 4: 18%, LVL 5: 22%
+        values: [10, 12, 15, 18, 22] 
+    },
+    'Osiris (Underworld)': {
+        type: 'TIME_REDUCTION_PERCENT',
+        // LVL 1: 20%, LVL 2: 24%, LVL 3: 28%, LVL 4: 33%, LVL 5: 40%
+        values: [20, 24, 28, 33, 40]
+    },
+    'Ptah (Creator)': {
+        type: 'EXTRA_RESOURCE_CHANCE',
+        // LVL 1: 15%, LVL 2: 17%, LVL 3: 20%, LVL 4: 24%, LVL 5: 30%
+        values: [15, 17, 20, 24, 30]
+    }
+    // You can now define scaling values for every card.
 };
 
 const resourcesContainer = document.getElementById('resources-container');
@@ -158,8 +170,12 @@ async function handleClaimProduction(playerFactory, outputItem) {
     let productionTimeMs = factory.base_production_time * ONE_MINUTE;
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
-        if (effect.type === 'TIME_REDUCTION_PERCENT') {
-            productionTimeMs -= productionTimeMs * (effect.value / 100);
+        const cardLevel = assignedCard.level;
+        if (cardLevel > 0 && effect.values && effect.values.length >= cardLevel) {
+            const effectValue = effect.values[cardLevel - 1];
+            if (effect.type === 'TIME_REDUCTION_PERCENT') {
+                productionTimeMs -= productionTimeMs * (effectValue / 100);
+            }
         }
     }
     
@@ -174,10 +190,14 @@ async function handleClaimProduction(playerFactory, outputItem) {
     let quantityProduced = 1;
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
-        if (effect.type === 'EXTRA_RESOURCE_CHANCE') {
-            if (Math.random() * 100 < effect.value) {
-                quantityProduced += 1;
-                showToast(`Expert's Blessing! You received an extra ${outputItem.name}!`, 'success');
+        const cardLevel = assignedCard.level;
+        if (cardLevel > 0 && effect.values && effect.values.length >= cardLevel) {
+            const effectValue = effect.values[cardLevel - 1];
+            if (effect.type === 'EXTRA_RESOURCE_CHANCE') {
+                if (Math.random() * 100 < effectValue) {
+                    quantityProduced += 1;
+                    showToast(`Expert's Blessing! You received an extra ${outputItem.name}!`, 'success');
+                }
             }
         }
     }
@@ -211,8 +231,12 @@ function updateProductionCard(factory, outputItem) {
     let masterTime = factory.factories.base_production_time * ONE_MINUTE;
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
-        if (effect.type === 'TIME_REDUCTION_PERCENT') {
-            masterTime -= masterTime * (effect.value / 100);
+        const cardLevel = assignedCard.level;
+        if (cardLevel > 0 && effect.values && effect.values.length >= cardLevel) {
+            const effectValue = effect.values[cardLevel - 1];
+            if (effect.type === 'TIME_REDUCTION_PERCENT') {
+                masterTime -= masterTime * (effectValue / 100);
+            }
         }
     }
     
@@ -245,15 +269,18 @@ function updateProductionCard(factory, outputItem) {
 
 function openProductionModal(playerFactory, outputItem) {
     const factory = playerFactory.factories;
-    let masterTime = factory.base_production_time * ONE_MINUTE; // Use let to modify it
+    let masterTime = factory.base_production_time * ONE_MINUTE;
     const startTime = playerFactory.production_start_time;
     const assignedCard = playerFactory.player_cards;
 
-    // Apply time reduction for display in the modal title
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
-        if (effect.type === 'TIME_REDUCTION_PERCENT') {
-            masterTime -= masterTime * (effect.value / 100);
+        const cardLevel = assignedCard.level;
+        if (cardLevel > 0 && effect.values && effect.values.length >= cardLevel) {
+            const effectValue = effect.values[cardLevel - 1];
+            if (effect.type === 'TIME_REDUCTION_PERCENT') {
+                masterTime -= masterTime * (effectValue / 100);
+            }
         }
     }
     
