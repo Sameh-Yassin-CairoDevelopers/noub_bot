@@ -474,6 +474,9 @@ async function assignExpert(playerFactoryId, cardInstanceId) {
         showToast("Failed to assign expert!", 'error');
         console.error("Assign Expert Error:", error);
     } else {
+        // -- ADD THIS LINE --
+        await trackTaskProgress('assign_expert'); 
+
         showToast("Expert assigned successfully!", 'success');
         await refreshPlayerState();
         renderProduction();
@@ -602,5 +605,6 @@ export async function renderStock() {
         if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
+
 
 
