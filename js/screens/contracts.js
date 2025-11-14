@@ -11,6 +11,8 @@ import * as api from '../api.js';
 import { showToast, updateHeaderUI, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { TOKEN_RATES } from '../config.js';
+// ... (ضمن قائمة import)
+import { trackTaskProgress } from './tasks.js';
 // REMOVED: import { trackDailyActivity } from './contracts.js'; // Self-import for trackDailyActivity
 
 
@@ -433,4 +435,5 @@ async function handleRefreshContracts() {
 
     refreshBtn.disabled = false;
 }
+
 
