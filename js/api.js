@@ -12,8 +12,14 @@ export { supabaseClient };
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    // أضف الأعمدة الثلاثة الجديدة هنا
-    return await supabaseClient.from('profiles').select('id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, last_daily_spin, ton_address, level, completed_contracts_count, ucp_task_1_claimed, ucp_task_2_claimed, ucp_task_3_claimed').eq('id', userId).single();
+    return await supabaseClient.from('profiles').select(`
+        id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, 
+        last_daily_spin, ton_address, level, completed_contracts_count, 
+        ucp_task_1_claimed, ucp_task_2_claimed, ucp_task_3_claimed,
+        daily_tasks_progress, daily_track_progress, last_daily_reset,
+        weekly_tasks_progress, weekly_track_progress, last_weekly_reset,
+        kv_milestones_claimed
+    `).eq('id', userId).single();
 }
 
 export async function fetchPlayerCards(playerId) {
@@ -393,5 +399,6 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
 
 
