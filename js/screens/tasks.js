@@ -219,6 +219,56 @@ async function renderMilestoneTrack(container) {
 
     container.appendChild(trackDiv);
 }
+/**
+ * Central function to track progress for daily and weekly tasks.
+ * @param {string} taskType - The type of action (e.g., 'production_claim', 'contract_complete').
+ * @param {number} amount - The amount to add to the progress (usually 1).
+ */
+async function trackTaskProgress(taskType, amount = 1) {
+    if (!state.currentUser) return;
+
+    // TODO: Implement daily/weekly reset logic here based on last_reset dates.
+    // For now, we will just increment the progress.
+
+    let dailyProgress = state.playerProfile.daily_tasks_progress || {};
+    let weeklyProgress = state.playerProfile.weekly_tasks_progress || {};
+    let needsUpdate = false;
+
+    const allTasks = [...DAILY_TASKS, ...WEEKLY_TASKS];
+    
+    // This is a simplified mapping. A more robust system might use a 'type' property in the task definition.
+    if (taskType === 'production_claim') {
+        // Find tasks related to production
+        const prodTasks = allTasks.filter(t => t.id.includes('claim') || t.id.includes('produce'));
+        prodTasks.forEach(task => {
+            const progressContainer = task.id.startsWith('daily') ? dailyProgress : weeklyProgress;
+            progressContainer[task.id] = (progressContainer[task.id] || 0) + amount;
+            needsUpdate = true;
+        });
+    } else if (taskType === 'contract_complete') {
+        const contractTasks = allTasks.filter(t => t.id.includes('contract'));
+        contractTasks.forEach(task => {
+            const progressContainer = task.id.startsWith('daily') ? dailyProgress : weeklyProgress;
+            progressContainer[task.id] = (progressContainer[task.id] || 0) + amount;
+            needsUpdate = true;
+        });
+    }
+    // Add more else if blocks for other task types like 'assign_expert', 'upgrade_building'
+
+    if (needsUpdate) {
+        // Update the progress in the database
+        await api.updatePlayerProfile(state.currentUser.id, {
+            daily_tasks_progress: dailyProgress,
+            weekly_tasks_progress: weeklyProgress
+        });
+        // Refresh the state to reflect the new progress
+        await refreshPlayerState();
+        // If the tasks screen is currently active, re-render it
+        if (!tasksContainer.classList.contains('hidden')) {
+            renderTasks();
+        }
+    }
+}
 
 export async function renderTasks() {
     if (!state.currentUser || !tasksContainer) return;
@@ -253,3 +303,4 @@ export async function renderTasks() {
     container.appendChild(weeklyTitle);
     WEEKLY_TASKS.forEach(task => renderTaskCard(container, task, 'weekly'));
 }
+
