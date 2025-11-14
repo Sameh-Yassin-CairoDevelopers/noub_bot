@@ -11,6 +11,8 @@ import { showToast, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
 import { executeFactoryUpgrade } from './upgrade.js';
+// ... (ضمن قائمة import)
+import { renderTasks, trackTaskProgress } from './tasks.js'; // أضف trackTaskProgress
 
 // --- UPDATED: Expert Card Effects Dictionary (with Level Scaling) ---
 const EXPERT_EFFECTS = {
@@ -595,3 +597,4 @@ export async function renderStock() {
         if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
+
