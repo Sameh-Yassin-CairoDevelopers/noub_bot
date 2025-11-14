@@ -88,12 +88,17 @@ const KV_MILESTONE_REWARDS = [
 ];
 
 function renderTaskCard(container, task, type) {
-    const isCompleted = task.isCompleted ? task.isCompleted() : false;
     const isClaimed = task.isClaimed ? task.isClaimed() : false;
     
-    // Placeholder for real progress tracking
-    const currentProgress = 0; 
+    const progressContainer = type === 'daily' 
+        ? state.playerProfile.daily_tasks_progress 
+        : state.playerProfile.weekly_tasks_progress;
+        
+    const currentProgress = (progressContainer && progressContainer[task.id]) ? progressContainer[task.id] : 0;
     const target = task.target || 0;
+
+    // isCompleted is now based on real progress
+    const isCompleted = task.isCompleted ? task.isCompleted() : (target > 0 && currentProgress >= target);
 
     let buttonHTML;
     if (isClaimed) {
@@ -130,14 +135,16 @@ function renderTaskCard(container, task, type) {
     `;
 
     if (!isClaimed && isCompleted) {
-        card.querySelector('.claim-btn').onclick = () => showToast(`Claiming reward for ${task.title}...`, 'success');
+        card.querySelector('.claim-btn').onclick = () => {
+            // TODO: Implement the full claim logic for these tasks
+            showToast(`Claiming reward for ${task.title}...`, 'success');
+        };
     } else if (!isClaimed && !isCompleted && task.action) {
         card.querySelector('.go-btn').onclick = task.action;
     }
     
     container.appendChild(card);
 }
-
 function renderRewardTrack(container, title, stages, progress) {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'reward-track';
@@ -303,4 +310,5 @@ export async function renderTasks() {
     container.appendChild(weeklyTitle);
     WEEKLY_TASKS.forEach(task => renderTaskCard(container, task, 'weekly'));
 }
+
 
