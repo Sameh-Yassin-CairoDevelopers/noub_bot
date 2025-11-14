@@ -216,6 +216,11 @@ async function handleClaimProduction(playerFactory, outputItem) {
         showToast('Error claiming production!', 'error');
         return;
     }
+
+    // --- NEW: Track progress for tasks ---
+    // This will track progress for tasks like "Claim Production 3 Times" and "Produce 10 Clay Jars"
+    await trackTaskProgress('production_claim', quantityProduced);
+
     showToast(`Claimed ${quantityProduced} x ${outputItem.name}!`, 'success');
     await refreshPlayerState();
     renderProduction();
@@ -597,4 +602,5 @@ export async function renderStock() {
         if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
+
 
