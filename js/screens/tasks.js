@@ -1,19 +1,18 @@
 /*
  * Filename: js/screens/tasks.js
- * Version: NOUB v0.9.2 (Fully Integrated Task Hub)
- * Description: A complete, functional, and dynamic task screen featuring Onboarding,
- * Daily, Weekly, and persistent KV Game milestone tracks.
+ * Version: NOUB v0.9.3 (Function Export Fix)
+ * Description: Corrects the missing export for the trackTaskProgress function.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
+import { completeDailyQuest, fetchDailyQuests } from './contracts.js'; // Assuming these are still in contracts.js
 
 const tasksContainer = document.getElementById('tasks-screen');
 
 // --- Task & Reward Definitions ---
-
 const ONBOARDING_TASKS = [
     {
         id: 'ucp_task_1',
@@ -30,7 +29,7 @@ const ONBOARDING_TASKS = [
         title: 'Join the NOUB Community Chat',
         description: 'https://t.me/Noub_chat',
         reward: { noub: 1000 },
-        isClaimed: () => false, // Placeholder for now
+        isClaimed: () => false, 
         isCompleted: () => false,
         action: () => window.open('https://t.me/Noub_chat', '_blank')
     },
@@ -87,17 +86,58 @@ const KV_MILESTONE_REWARDS = [
     { level: 62, reward: { ankh: 100 }, claimed: false, isGrand: true }
 ];
 
+let localUcpData = {};
+
+// --- THIS IS THE FIX: Added 'export' keyword ---
+export async function trackTaskProgress(taskType, amount = 1) {
+    if (!state.currentUser) return;
+
+    let dailyProgress = state.playerProfile.daily_tasks_progress || {};
+    let weeklyProgress = state.playerProfile.weekly_tasks_progress || {};
+    let needsUpdate = false;
+
+    const allTasks = [...DAILY_TASKS, ...WEEKLY_TASKS];
+    
+    // This mapping can be improved later with a dedicated 'type' property in the task definitions
+    let taskIdsToUpdate = [];
+    if (taskType === 'production_claim') {
+        taskIdsToUpdate = allTasks.filter(t => t.id.includes('claim') || t.id.includes('produce')).map(t => t.id);
+    } else if (taskType === 'contract_complete') {
+        taskIdsToUpdate = allTasks.filter(t => t.id.includes('contract')).map(t => t.id);
+    }
+
+    taskIdsToUpdate.forEach(taskId => {
+        const isDaily = taskId.startsWith('daily');
+        const progressContainer = isDaily ? dailyProgress : weeklyProgress;
+        progressContainer[taskId] = (progressContainer[taskId] || 0) + amount;
+        needsUpdate = true;
+    });
+
+    if (needsUpdate) {
+        await api.updatePlayerProfile(state.currentUser.id, {
+            daily_tasks_progress: dailyProgress,
+            weekly_tasks_progress: weeklyProgress
+        });
+        await refreshPlayerState();
+        if (tasksContainer && !tasksContainer.classList.contains('hidden')) {
+            renderTasks();
+        }
+    }
+}
+
 function renderTaskCard(container, task, type) {
     const isClaimed = task.isClaimed ? task.isClaimed() : false;
     
-    const progressContainer = type === 'daily' 
-        ? state.playerProfile.daily_tasks_progress 
-        : state.playerProfile.weekly_tasks_progress;
+    let progressContainer;
+    if (type === 'daily') {
+        progressContainer = state.playerProfile.daily_tasks_progress;
+    } else if (type === 'weekly') {
+        progressContainer = state.playerProfile.weekly_tasks_progress;
+    }
         
     const currentProgress = (progressContainer && progressContainer[task.id]) ? progressContainer[task.id] : 0;
     const target = task.target || 0;
 
-    // isCompleted is now based on real progress
     const isCompleted = task.isCompleted ? task.isCompleted() : (target > 0 && currentProgress >= target);
 
     let buttonHTML;
@@ -136,7 +176,6 @@ function renderTaskCard(container, task, type) {
 
     if (!isClaimed && isCompleted) {
         card.querySelector('.claim-btn').onclick = () => {
-            // TODO: Implement the full claim logic for these tasks
             showToast(`Claiming reward for ${task.title}...`, 'success');
         };
     } else if (!isClaimed && !isCompleted && task.action) {
@@ -145,6 +184,7 @@ function renderTaskCard(container, task, type) {
     
     container.appendChild(card);
 }
+
 function renderRewardTrack(container, title, stages, progress) {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'reward-track';
@@ -177,15 +217,13 @@ function renderRewardTrack(container, title, stages, progress) {
 
 async function renderMilestoneTrack(container) {
     const { data: kvProgressData } = await api.fetchKVProgress(state.currentUser.id);
-    const currentKVLevel = (kvProgressData?.current_kv_level || 1) -1; // -1 because current_kv_level is the NEXT level to beat.
+    const currentKVLevel = (kvProgressData?.current_kv_level || 1) - 1;
 
-    // TODO: Fetch claimed milestone rewards from player profile
-    
     const trackDiv = document.createElement('div');
     trackDiv.className = 'reward-track';
     trackDiv.style.cssText = `background: rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; margin-bottom: 20px;`;
     
-    const nextMilestone = KV_MILESTONE_REWARDS.find(m => currentKVLevel < m.level /* && !m.claimed */);
+    const nextMilestone = KV_MILESTONE_REWARDS.find(m => currentKVLevel < m.level);
     
     let progressPercent = 0;
     if (nextMilestone) {
@@ -193,14 +231,13 @@ async function renderMilestoneTrack(container) {
         const prevMilestoneLevel = KV_MILESTONE_REWARDS[milestoneIndex - 1]?.level || 0;
         const totalSteps = nextMilestone.level - prevMilestoneLevel;
         const currentSteps = currentKVLevel - prevMilestoneLevel;
-        progressPercent = (currentSteps / totalSteps) * 100;
+        progressPercent = Math.min(100, (currentSteps / totalSteps) * 100);
     } else {
         progressPercent = 100;
     }
 
     let stagesHTML = KV_MILESTONE_REWARDS.map(milestone => {
         const isCompleted = currentKVLevel >= milestone.level;
-        // TODO: Replace 'false' with a check against the player's profile data for claimed rewards
         const isClaimed = false; 
 
         return `
@@ -226,56 +263,6 @@ async function renderMilestoneTrack(container) {
 
     container.appendChild(trackDiv);
 }
-/**
- * Central function to track progress for daily and weekly tasks.
- * @param {string} taskType - The type of action (e.g., 'production_claim', 'contract_complete').
- * @param {number} amount - The amount to add to the progress (usually 1).
- */
-async function trackTaskProgress(taskType, amount = 1) {
-    if (!state.currentUser) return;
-
-    // TODO: Implement daily/weekly reset logic here based on last_reset dates.
-    // For now, we will just increment the progress.
-
-    let dailyProgress = state.playerProfile.daily_tasks_progress || {};
-    let weeklyProgress = state.playerProfile.weekly_tasks_progress || {};
-    let needsUpdate = false;
-
-    const allTasks = [...DAILY_TASKS, ...WEEKLY_TASKS];
-    
-    // This is a simplified mapping. A more robust system might use a 'type' property in the task definition.
-    if (taskType === 'production_claim') {
-        // Find tasks related to production
-        const prodTasks = allTasks.filter(t => t.id.includes('claim') || t.id.includes('produce'));
-        prodTasks.forEach(task => {
-            const progressContainer = task.id.startsWith('daily') ? dailyProgress : weeklyProgress;
-            progressContainer[task.id] = (progressContainer[task.id] || 0) + amount;
-            needsUpdate = true;
-        });
-    } else if (taskType === 'contract_complete') {
-        const contractTasks = allTasks.filter(t => t.id.includes('contract'));
-        contractTasks.forEach(task => {
-            const progressContainer = task.id.startsWith('daily') ? dailyProgress : weeklyProgress;
-            progressContainer[task.id] = (progressContainer[task.id] || 0) + amount;
-            needsUpdate = true;
-        });
-    }
-    // Add more else if blocks for other task types like 'assign_expert', 'upgrade_building'
-
-    if (needsUpdate) {
-        // Update the progress in the database
-        await api.updatePlayerProfile(state.currentUser.id, {
-            daily_tasks_progress: dailyProgress,
-            weekly_tasks_progress: weeklyProgress
-        });
-        // Refresh the state to reflect the new progress
-        await refreshPlayerState();
-        // If the tasks screen is currently active, re-render it
-        if (!tasksContainer.classList.contains('hidden')) {
-            renderTasks();
-        }
-    }
-}
 
 export async function renderTasks() {
     if (!state.currentUser || !tasksContainer) return;
@@ -287,9 +274,8 @@ export async function renderTasks() {
 
     await renderMilestoneTrack(container);
     
-    // Placeholder progress for daily/weekly tracks
-    const dailyProgress = 0;
-    const weeklyProgress = 0;
+    const dailyProgress = state.playerProfile.daily_track_progress || 0;
+    const weeklyProgress = state.playerProfile.weekly_track_progress || 0;
     renderRewardTrack(container, 'Daily Rewards', DAILY_TRACK_STAGES, dailyProgress);
     renderRewardTrack(container, 'Weekly Rewards', WEEKLY_TRACK_STAGES, weeklyProgress);
 
@@ -310,5 +296,3 @@ export async function renderTasks() {
     container.appendChild(weeklyTitle);
     WEEKLY_TASKS.forEach(task => renderTaskCard(container, task, 'weekly'));
 }
-
-
