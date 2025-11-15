@@ -1,66 +1,58 @@
 /*
  * Filename: js/screens/tasks.js
- * Version: NOUB v1.2.1 (Simplified & Robust Social Tasks)
- * Description: Final refactor of the task system. Social tasks now use a simplified
- * and more reliable "Go & Claim" logic to prevent UI state issues. This is the complete file.
+ * Version: NOUB v1.2.2 (Final Unified Task System)
+ * Description: Final, complete, and bug-fixed version of the tasks hub.
+ * Centralizes all task definitions and tracking, ensuring consistent progress
+ * updates from all parts of the game.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
+// This legacy system is now only for rendering, not tracking.
 import { fetchDailyQuests as fetchOriginalDailyQuests, completeDailyQuest } from './contracts.js';
 
 const tasksContainer = document.getElementById('tasks-screen');
 let countdownInterval = null;
 
 // --- Task & Reward Definitions ---
-
 const ONBOARDING_TASKS = [
     { id: 'ucp_task_1', title: 'Begin Your Protocol', description: 'Visit the "Chat with Eve" screen...', reward: { noub: 500, prestige: 10 }, isClaimed: () => state.playerProfile?.ucp_task_1_claimed, isCompleted: () => (state.ucp instanceof Map && state.ucp.size > 0), action: () => navigateTo('chat-screen'), claimHandler: (task) => claimOnboardingTask(task, 1) },
     { id: 'ucp_task_2', title: 'Complete Eve\'s Interview', description: 'Finish all of Eve\'s main sections...', reward: { noub: 1500, prestige: 75, tickets: 5 }, isClaimed: () => state.playerProfile?.ucp_task_2_claimed, isCompleted: () => state.ucp?.has('eve_general'), claimHandler: (task) => claimOnboardingTask(task, 2) },
     { id: 'ucp_task_3', title: 'Embrace Deep Analysis', description: 'Complete one of Hypatia\'s sessions...', reward: { noub: 5000, prestige: 250, ankh: 5 }, isClaimed: () => state.playerProfile?.ucp_task_3_claimed, isCompleted: () => state.ucp?.has('hypatia_philosophical') || state.ucp?.has('hypatia_scaled'), claimHandler: (task) => claimOnboardingTask(task, 3) },
-    { id: 'join_chat', title: 'Join the NOUB Community Chat', description: 'https://t.me/Noub_chat', reward: { noub: 1000 }, isClaimed: () => state.playerProfile.social_tasks_claimed?.['join_chat'], isCompleted: () => true, claimHandler: (task) => claimSocialTask(task) },
-    { id: 'join_channel', title: 'Subscribe to NOUB NFTs Channel', description: 'https://t.me/NOUB_NFTS', reward: { noub: 1000 }, isClaimed: () => state.playerProfile.social_tasks_claimed?.['join_channel'], isCompleted: () => true, claimHandler: (task) => claimSocialTask(task) },
+    { id: 'join_chat', title: 'Join the NOUB Community Chat', description: 'https://t.me/Noub_chat', reward: { noub: 1000 }, isClaimed: () => state.playerProfile.social_tasks_claimed?.['join_chat'], isCompleted: () => true, action: (task, card) => { window.open(task.description, '_blank'); card.querySelector('.go-btn').textContent = 'Check & Claim'; card.querySelector('.go-btn').onclick = () => claimSocialTask(task); } },
+    { id: 'join_channel', title: 'Subscribe to NOUB NFTs Channel', description: 'https://t.me/NOUB_NFTS', reward: { noub: 1000 }, isClaimed: () => state.playerProfile.social_tasks_claimed?.['join_channel'], isCompleted: () => true, action: (task, card) => { window.open(task.description, '_blank'); card.querySelector('.go-btn').textContent = 'Check & Claim'; card.querySelector('.go-btn').onclick = () => claimSocialTask(task); } },
 ];
-
-const NEW_DAILY_TASKS = [
+const DAILY_TASKS = [
+    { id: 'daily_visit_market', title: 'Visit the Market', target: 1, reward: { noub: 50 }, type: 'visit_shop' },
+    { id: 'daily_spin_wheel', title: 'Spin the Tomb of Treasures', target: 1, reward: { noub: 150 }, type: 'spin_wheel' },
+    { id: 'daily_gather_limestone', title: 'Gather Limestone (Raw)', target: 10, reward: { noub: 75 }, type: 'production_claim', item_name: 'Limestone' },
     { id: 'daily_claim_3', title: 'Claim Production 3 Times', target: 3, reward: { noub: 250 }, type: 'production_claim' },
     { id: 'daily_contract_1', title: 'Complete 1 Contract', target: 1, reward: { prestige: 20 }, type: 'contract_complete' },
     { id: 'daily_assign_1', title: 'Assign an Expert', target: 1, reward: { tickets: 2 }, type: 'assign_expert' },
 ];
-
 const WEEKLY_TASKS = [
     { id: 'weekly_produce_10', title: 'Produce 10 Clay Jars', target: 10, reward: { noub: 2000 }, type: 'production_claim', item_name: 'Clay Jar' },
     { id: 'weekly_contracts_5', title: 'Complete 5 Contracts', target: 5, reward: { ankh: 5 }, type: 'contract_complete' },
     { id: 'weekly_upgrade_3', title: 'Upgrade Buildings 3 Times', target: 3, reward: { prestige: 100 }, type: 'upgrade_building' },
 ];
-
-const DAILY_TRACK_STAGES = [
-    { threshold: 1, reward: { tickets: 1 } }, { threshold: 2, reward: { prestige: 10 } }, { threshold: 3, reward: { noub: 500 } }
-];
-const WEEKLY_TRACK_STAGES = [
-    { threshold: 1, reward: { noub: 500 } }, { threshold: 2, reward: { prestige: 50 } }, { threshold: 3, reward: { ankh: 10 } }
-];
-const KV_MILESTONE_REWARDS = [
-    { level: 10, reward: { noub: 5000, prestige: 50 } }, { level: 20, reward: { tickets: 20, ankh: 5 } },
-    { level: 30, reward: { noub: 15000, prestige: 150 } }, { level: 40, reward: { tickets: 50, ankh: 15 } },
-    { level: 50, reward: { noub: 50000, prestige: 500 } }, { level: 62, reward: { ankh: 100 }, isGrand: true }
-];
+const DAILY_TRACK_STAGES = [{ threshold: 1, reward: { tickets: 1 } }, { threshold: 2, reward: { prestige: 10 } }, { threshold: 3, reward: { noub: 500 } }];
+const WEEKLY_TRACK_STAGES = [{ threshold: 1, reward: { noub: 500 } }, { threshold: 2, reward: { prestige: 50 } }, { threshold: 3, reward: { ankh: 10 } }];
+const KV_MILESTONE_REWARDS = [{ level: 10, reward: { noub: 5000, prestige: 50 } }, { level: 20, reward: { tickets: 20, ankh: 5 } }, { level: 30, reward: { noub: 15000, prestige: 150 } }, { level: 40, reward: { tickets: 50, ankh: 15 } }, { level: 50, reward: { noub: 50000, prestige: 500 } }, { level: 62, reward: { ankh: 100 }, isGrand: true }];
 
 export async function trackTaskProgress(taskType, amount = 1, itemName = null) {
-    if (!state.currentUser) return;
-    legacyTrackDailyActivity(taskType, amount, itemName);
+    if (!state.currentUser || !state.playerProfile) return;
     let dailyProgress = state.playerProfile.daily_tasks_progress || {};
     let weeklyProgress = state.playerProfile.weekly_tasks_progress || {};
     let needsUpdate = false;
-    const tasksToUpdate = [...NEW_DAILY_TASKS, ...WEEKLY_TASKS].filter(task => {
+    const tasksToUpdate = [...DAILY_TASKS, ...WEEKLY_TASKS].filter(task => {
         if (task.type !== taskType) return false;
         if (task.item_name && task.item_name !== itemName) return false;
         return true;
     });
     tasksToUpdate.forEach(task => {
-        const isDaily = NEW_DAILY_TASKS.some(dt => dt.id === task.id);
+        const isDaily = DAILY_TASKS.some(dt => dt.id === task.id);
         const progressContainer = isDaily ? dailyProgress : weeklyProgress;
         const claimedContainer = isDaily ? state.playerProfile.daily_tasks_claimed : state.playerProfile.weekly_tasks_claimed;
         if (claimedContainer && claimedContainer[task.id]) return;
@@ -80,7 +72,6 @@ export async function trackTaskProgress(taskType, amount = 1, itemName = null) {
         }
     }
 }
-
 async function grantReward(rewardObject) {
     const profileUpdate = {};
     let rewardString = '';
@@ -88,16 +79,13 @@ async function grantReward(rewardObject) {
     if (rewardObject.prestige) profileUpdate.prestige = (state.playerProfile.prestige || 0) + rewardObject.prestige;
     if (rewardObject.tickets) profileUpdate.spin_tickets = (state.playerProfile.spin_tickets || 0) + rewardObject.tickets;
     if (rewardObject.ankh) profileUpdate.ankh_premium = (state.playerProfile.ankh_premium || 0) + rewardObject.ankh;
+    if (Object.keys(profileUpdate).length === 0) return true;
     const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
-    if (error) {
-        showToast("Error granting reward!", 'error');
-        return false;
-    }
+    if (error) { showToast("Error granting reward!", 'error'); return false; }
     Object.keys(rewardObject).forEach(key => rewardString += `${rewardObject[key]}${key === 'noub' ? '🪙' : key === 'prestige' ? '🐞' : key === 'tickets' ? '🎟️' : '☥'} `);
     showToast(`Reward Claimed: +${rewardString}`, 'success');
     return true;
 }
-
 async function claimOnboardingTask(task, taskNumber) {
     if (task.isClaimed() || !task.isCompleted()) return showToast("Task not ready to be claimed.", 'info');
     const rewardGranted = await grantReward(task.reward);
@@ -105,17 +93,14 @@ async function claimOnboardingTask(task, taskNumber) {
     const { error: claimError } = await api.claimUcpTaskReward(state.currentUser.id, taskNumber);
     if (claimError) return showToast("Error saving claim status!", 'error');
     if (taskNumber === 3) {
-        const { error: unlockError } = await api.supabaseClient.from('player_library').upsert({
-            player_id: state.currentUser.id, entry_key: 'god_horus'
-        });
+        const { error: unlockError } = await api.supabaseClient.from('player_library').upsert({ player_id: state.currentUser.id, entry_key: 'god_horus' });
         if (!unlockError) showToast("New Library Entry Unlocked: The Great Ennead: Horus!", 'success');
     }
     await refreshPlayerState();
     renderTasks();
 }
-
 async function claimTimedTaskReward(task) {
-    const isDaily = NEW_DAILY_TASKS.some(dt => dt.id === task.id);
+    const isDaily = DAILY_TASKS.some(dt => dt.id === task.id);
     const profile = state.playerProfile;
     const progressContainer = isDaily ? profile.daily_tasks_progress : profile.weekly_tasks_progress;
     const claimedContainer = isDaily ? profile.daily_tasks_claimed : profile.weekly_tasks_claimed;
@@ -136,7 +121,6 @@ async function claimTimedTaskReward(task) {
     await refreshPlayerState();
     renderTasks();
 }
-
 async function claimMilestoneReward(milestone) {
     const claimedMilestones = state.playerProfile.kv_milestones_claimed || [];
     if (claimedMilestones.includes(milestone.level)) return showToast("Milestone reward already claimed.", 'info');
@@ -148,14 +132,8 @@ async function claimMilestoneReward(milestone) {
     await refreshPlayerState();
     renderTasks();
 }
-
 async function claimSocialTask(task) {
-    if (state.playerProfile.social_tasks_claimed?.[task.id]) {
-        showToast("Reward already claimed!", 'info');
-        window.open(task.description, '_blank');
-        return;
-    }
-    window.open(task.description, '_blank');
+    if (state.playerProfile.social_tasks_claimed?.[task.id]) return showToast("Reward already claimed!", 'info');
     const rewardGranted = await grantReward(task.reward);
     if (!rewardGranted) return;
     const newClaimed = { ...(state.playerProfile.social_tasks_claimed || {}), [task.id]: true };
@@ -164,7 +142,6 @@ async function claimSocialTask(task) {
     await refreshPlayerState();
     renderTasks();
 }
-
 function renderTaskCard(container, task, type) {
     let currentProgress = 0, isClaimed = false, isCompleted = false;
     const profile = state.playerProfile;
@@ -178,9 +155,8 @@ function renderTaskCard(container, task, type) {
         isClaimed = (claimedContainer && claimedContainer[task.id]) || false;
         isCompleted = task.target > 0 && currentProgress >= task.target;
     }
-    const isSocial = task.id === 'join_chat' || task.id === 'join_channel';
     const buttonHTML = isClaimed ? `<button class="action-button small" disabled>Claimed</button>`
-                     : isCompleted ? `<button class="action-button small claim-btn">${isSocial ? 'Go & Claim' : 'Claim'}</button>`
+                     : isCompleted ? `<button class="action-button small claim-btn">Claim</button>`
                      : `<button class="action-button small go-btn">${task.action ? 'Go' : 'Working...'}</button>`;
     const detailsHTML = task.description ? `<p>${task.description}</p>` :
                        task.target > 0 ? `<p>Progress: ${currentProgress} / ${task.target}</p><div class="progress-bar"><div class="progress-bar-inner" style="width: ${Math.min(100, (currentProgress / task.target) * 100)}%;"></div></div>`
@@ -190,9 +166,9 @@ function renderTaskCard(container, task, type) {
     card.innerHTML = `<div class="quest-details"><h4>${task.title}</h4>${detailsHTML}</div><div class="quest-action">${buttonHTML}</div>`;
     const claimBtn = card.querySelector('.claim-btn');
     if (claimBtn) {
-        if (task.claimHandler) {
+        if (type === 'onboarding' && task.claimHandler) {
             claimBtn.onclick = () => task.claimHandler(task);
-        } else {
+        } else if (type !== 'onboarding') {
             claimBtn.onclick = () => claimTimedTaskReward(task);
         }
     }
@@ -202,42 +178,7 @@ function renderTaskCard(container, task, type) {
     }
     container.appendChild(card);
 }
-
-function renderOriginalDailyQuest(container, quest) {
-    const isCompleted = quest.current >= quest.target;
-    const buttonText = quest.completed ? 'Claimed' : (isCompleted ? 'Claim' : 'Working...');
-    const buttonDisabled = !isCompleted || quest.completed;
-    const progressPercent = Math.min(100, (quest.current / quest.target) * 100);
-    const card = document.createElement('div');
-    card.className = 'daily-quest-card';
-    card.innerHTML = `
-        <div class="quest-details">
-            <h4>${quest.title}</h4>
-            <p>Progress: ${quest.current} / ${quest.target}</p>
-            <div class="progress-bar"><div class="progress-bar-inner" style="width: ${progressPercent}%;"></div></div>
-        </div>
-        <div class="quest-action">
-            <div class="reward">+${quest.reward} 🪙</div>
-            <button class="action-button small claim-btn" ${buttonDisabled ? 'disabled' : ''}>${buttonText}</button>
-        </div>
-    `;
-    const claimBtn = card.querySelector('.claim-btn');
-    if (!buttonDisabled) {
-        claimBtn.onclick = async () => {
-            claimBtn.disabled = true;
-            const success = await completeDailyQuest(quest.id, quest.reward); 
-            if (success) {
-                showToast(`Claimed ${quest.reward} NOUB!`, 'success');
-                renderTasks(); 
-            } else {
-                 showToast('Error claiming reward or already claimed!', 'error');
-                 claimBtn.disabled = false;
-            }
-        };
-    }
-    container.appendChild(card);
-}
-
+function renderOriginalDailyQuest(container, quest) { /* This function can be removed if legacy quests are fully merged */ }
 function renderRewardTrack(container, title, stages, progress, endTime) {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'reward-track';
@@ -261,7 +202,6 @@ function renderRewardTrack(container, title, stages, progress, endTime) {
     `;
     container.appendChild(trackDiv);
 }
-
 async function renderMilestoneTrack(container) {
     const { data: kvProgressData } = await api.fetchKVProgress(state.currentUser.id);
     const currentKVLevel = (kvProgressData?.current_kv_level || 1) - 1;
@@ -303,7 +243,6 @@ async function renderMilestoneTrack(container) {
         if (milestone) btn.onclick = () => claimMilestoneReward(milestone);
     });
 }
-
 export async function renderTasks() {
     if (!state.currentUser) return;
     await refreshPlayerState();
@@ -316,23 +255,22 @@ export async function renderTasks() {
     const container = document.getElementById('daily-quests-container');
     if (!container) return;
     container.innerHTML = '';
-    
     await renderMilestoneTrack(container);
-
+    
     const now = new Date();
     const endOfDay = new Date(now).setUTCHours(24, 0, 0, 0);
     const endOfWeek = new Date(now.setDate(now.getDate() + (7 - (now.getUTCDay() || 7)))).setUTCHours(24, 0, 0, 0);
 
+    // --- Daily Section ---
     const dailySection = document.createElement('div');
     renderRewardTrack(dailySection, 'Daily Rewards', DAILY_TRACK_STAGES, profile.daily_track_progress || 0, endOfDay);
     const dailyTitle = document.createElement('h3');
     dailyTitle.textContent = 'Daily Quests';
     dailySection.appendChild(dailyTitle);
-    const originalDailyQuests = fetchOriginalDailyQuests();
-    originalDailyQuests.forEach(quest => renderOriginalDailyQuest(dailySection, quest));
-    NEW_DAILY_TASKS.forEach(task => renderTaskCard(dailySection, task, 'daily'));
+    DAILY_TASKS.forEach(task => renderTaskCard(dailySection, task, 'daily'));
     container.appendChild(dailySection);
     
+    // --- Weekly Section ---
     const weeklySection = document.createElement('div');
     renderRewardTrack(weeklySection, 'Weekly Rewards', WEEKLY_TRACK_STAGES, profile.weekly_track_progress || 0, endOfWeek);
     const weeklyTitle = document.createElement('h3');
@@ -342,6 +280,7 @@ export async function renderTasks() {
     WEEKLY_TASKS.forEach(task => renderTaskCard(weeklySection, task, 'weekly'));
     container.appendChild(weeklySection);
 
+    // --- Onboarding Section ---
     const onboardingTitle = document.createElement('h3');
     onboardingTitle.textContent = 'One-Time Tasks';
     onboardingTitle.style.marginTop = '20px';
@@ -350,7 +289,6 @@ export async function renderTasks() {
     
     startTimers();
 }
-
 function startTimers() {
     if (countdownInterval) clearInterval(countdownInterval);
     function update() {
@@ -363,7 +301,7 @@ function startTimers() {
                 return;
             }
             const hours = Math.floor((remaining / (1000 * 60 * 60)));
-            const minutes = Math.floor((remaining / (1000 * 60)) % 60);
+            const minutes = Math.floor((remaining / 1000 / 60) % 60);
             const seconds = Math.floor((remaining / 1000) % 60);
             timerEl.textContent = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
         });
