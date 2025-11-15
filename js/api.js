@@ -11,24 +11,26 @@ export { supabaseClient };
 
 // --- Player and Card Functions ---
 
+/**
+ * Fetches the complete player profile using a dedicated RPC function.
+ * FINAL SOLUTION: This is the most robust method to fetch a large number of columns,
+ * avoiding URL length limitations that can cause a 400 Bad Request error with .select().
+ */
 export async function fetchProfile(userId) {
-    // FIX: Instead of a long template literal, we use a single comma-separated string.
-    // This is more robust and avoids URL encoding issues that can cause a 400 Bad Request.
-    const columns = `
-        id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, 
-        last_daily_spin, ton_address, level, completed_contracts_count, avatar_url,
-        ucp_task_1_claimed, ucp_task_2_claimed, ucp_task_3_claimed, social_tasks_claimed,
-        daily_tasks_progress, daily_tasks_claimed, daily_track_progress, last_daily_reset,
-        weekly_tasks_progress, weekly_tasks_claimed, weekly_track_progress, last_weekly_reset,
-        kv_milestones_claimed
-    `;
+    const { data, error } = await supabaseClient.rpc('get_player_profile', { p_id: userId });
 
-    return await supabaseClient
-        .from('profiles')
-        .select(columns)
-        .eq('id', userId)
-        .single();
+    if (error) {
+        console.error("Error calling RPC function 'get_player_profile':", error);
+        // Return the error in the expected format
+        return { data: null, error };
+    }
+
+    // The structure of the response from .rpc() is an array of results.
+    // Since we expect only one profile, we return the first element.
+    // This mimics the behavior of .single() from the previous implementation.
+    return { data: data ? data[0] : null, error: null };
 }
+
 export async function fetchPlayerCards(playerId) {
     return await supabaseClient.from('player_cards').select('instance_id, level, card_id, power_score, cards(id, name, rarity_level, image_url, power_score, description, lore)').eq('player_id', playerId);
 }
@@ -406,6 +408,7 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
 
 
 
