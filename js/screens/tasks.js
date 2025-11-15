@@ -225,6 +225,7 @@ async function claimSocialTask(task) {
  * @param {object} task - The task object to render.
  * @param {string} type - 'onboarding', 'daily', or 'weekly'.
  */
+
 function renderTaskCard(container, task, type) {
     let currentProgress = 0, isClaimed = false, isCompleted = false;
     const profile = state.playerProfile;
@@ -263,7 +264,14 @@ function renderTaskCard(container, task, type) {
     
     const goBtn = card.querySelector('.go-btn');
     if (goBtn && task.action) {
-        goBtn.onclick = () => task.action(task, card);
+        // --- THIS IS THE CORRECTED LOGIC ---
+        // For social tasks, the action function itself handles the logic.
+        // For other tasks, it's a simple navigation.
+        if (task.id === 'join_chat' || task.id === 'join_channel') {
+             goBtn.onclick = () => task.action(task, card);
+        } else {
+             goBtn.onclick = task.action;
+        }
     }
     
     container.appendChild(card);
@@ -466,3 +474,4 @@ function startTimers() {
     update();
     countdownInterval = setInterval(update, 1000);
 }
+
