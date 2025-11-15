@@ -12,16 +12,23 @@ export { supabaseClient };
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
-    return await supabaseClient.from('profiles').select(`
+    // FIX: Instead of a long template literal, we use a single comma-separated string.
+    // This is more robust and avoids URL encoding issues that can cause a 400 Bad Request.
+    const columns = `
         id, created_at, username, noub_score, ankh_premium, prestige, spin_tickets, 
         last_daily_spin, ton_address, level, completed_contracts_count, avatar_url,
         ucp_task_1_claimed, ucp_task_2_claimed, ucp_task_3_claimed, social_tasks_claimed,
         daily_tasks_progress, daily_tasks_claimed, daily_track_progress, last_daily_reset,
         weekly_tasks_progress, weekly_tasks_claimed, weekly_track_progress, last_weekly_reset,
         kv_milestones_claimed
-    `).eq('id', userId).single();
-}
+    `;
 
+    return await supabaseClient
+        .from('profiles')
+        .select(columns)
+        .eq('id', userId)
+        .single();
+}
 export async function fetchPlayerCards(playerId) {
     return await supabaseClient.from('player_cards').select('instance_id, level, card_id, power_score, cards(id, name, rarity_level, image_url, power_score, description, lore)').eq('player_id', playerId);
 }
@@ -399,6 +406,7 @@ export async function unlockSpecialization(playerId, pathId) {
         is_active: true
     });
 }
+
 
 
 
