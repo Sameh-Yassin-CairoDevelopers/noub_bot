@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/projects.js
- * Version: NOUB v1.3.2 (Multi-Project & Delivery Logic)
- * Description: Implements the full UI and logic for the Great Projects screen.
- * This version supports managing multiple active projects, viewing available
- * projects, displaying countdown timers, and handling resource delivery.
+ * Version: NOUB v1.3.4 (Final Project Filtering & Logic)
+ * Description: Final complete and corrected version for the Great Projects screen.
+ * This version correctly filters out projects the player is already participating in
+ * and includes all necessary helper and logic functions for a complete user flow.
 */
 
 import { state } from '../state.js';
@@ -15,33 +15,20 @@ import { refreshPlayerState } from '../auth.js';
 const projectsContainer = document.getElementById('projects-container');
 let projectCountdownInterval = null;
 
+
 // --- Helper Functions ---
 
 /**
- * A generic function to grant a reward object to the current player.
- * @param {object} rewardObject - The reward to grant (e.g., { noub: 500, prestige: 10 }).
- * @returns {Promise<boolean>} - True if successful, false otherwise.
+ * Formats milliseconds into a human-readable string (Xd Yh Zm).
+ * @param {number} ms - The duration in milliseconds.
+ * @returns {string} - The formatted time string.
  */
-async function grantReward(rewardObject) {
-    const profileUpdate = {};
-    let rewardString = '';
-
-    if (rewardObject.noub) profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + rewardObject.noub;
-    if (rewardObject.prestige) profileUpdate.prestige = (state.playerProfile.prestige || 0) + rewardObject.prestige;
-    if (rewardObject.tickets) profileUpdate.spin_tickets = (state.playerProfile.spin_tickets || 0) + rewardObject.tickets;
-    if (rewardObject.ankh) profileUpdate.ankh_premium = (state.playerProfile.ankh_premium || 0) + rewardObject.ankh;
-    
-    if (Object.keys(profileUpdate).length === 0) return true;
-
-    const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
-    if (error) {
-        showToast("Error granting reward!", 'error');
-        return false;
-    }
-
-    Object.keys(rewardObject).forEach(key => rewardString += `${rewardObject[key]}${key === 'noub' ? '🪙' : key === 'prestige' ? '🐞' : key === 'tickets' ? '🎟️' : '☥'} `);
-    showToast(`Reward Claimed: +${rewardString}`, 'success');
-    return true;
+function formatTime(ms) {
+    if (ms <= 0) return "Finished";
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((ms / 1000 / 60) % 60);
+    return `${days}d ${hours}h ${minutes}m`;
 }
 
 
@@ -55,7 +42,7 @@ async function grantReward(rewardObject) {
 async function handleSubscribe(project) {
     const playerProfile = state.playerProfile;
 
-    // 1. Validate subscription requirements
+    // 1. Validate subscription requirements against the player's current state.
     if ((playerProfile.noub_score || 0) < project.cost_noub) {
         return showToast(`Not enough NOUB. Required: ${project.cost_noub}`, 'error');
     }
@@ -68,7 +55,7 @@ async function handleSubscribe(project) {
 
     showToast("Subscribing to project...", 'info');
 
-    // 2. Deduct subscription costs
+    // 2. Atomically deduct subscription costs from the player's profile.
     const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, {
         noub_score: playerProfile.noub_score - project.cost_noub,
         prestige: playerProfile.prestige - project.cost_prestige
@@ -78,7 +65,7 @@ async function handleSubscribe(project) {
         return showToast("Failed to deduct subscription costs.", 'error');
     }
 
-    // 3. Create the player's project instance in the database
+    // 3. Create the player's project instance in the database.
     const { error: subscribeError } = await api.subscribeToProject(state.currentUser.id, project.id);
     if (subscribeError) {
         // In a production environment, logic to refund the costs should be implemented here.
@@ -87,10 +74,10 @@ async function handleSubscribe(project) {
 
     showToast(`Successfully subscribed to "${project.name}"!`, 'success');
     
-    // 4. Refresh state and UI
+    // 4. Refresh global state and re-render the UI to reflect the new active project.
     await refreshPlayerState();
     window.closeModal('project-detail-modal');
-    renderProjects(); // Re-render the screen to show the new active project.
+    renderProjects();
 }
 
 /**
@@ -113,14 +100,14 @@ async function handleDeliver(projectInstanceId, itemId, amount) {
     const newProgress = { ...(activeProject.progress || {}) };
     newProgress[itemId] = (newProgress[itemId] || 0) + amount;
 
-    // Perform database updates in parallel for efficiency
+    // Perform database updates in parallel for efficiency.
     const [{ error: deliverError }, { error: inventoryError }] = await Promise.all([
         api.deliverToProject(projectInstanceId, newProgress),
         api.updateItemQuantity(state.currentUser.id, parseInt(itemId), playerItem.qty - amount)
     ]);
 
     if (deliverError || inventoryError) {
-        // Error handling should be more robust in production (e.g., retries or rollbacks)
+        // Error handling should be more robust in production (e.g., retries or rollbacks).
         return showToast("Failed to deliver resources.", 'error');
     }
 
@@ -140,7 +127,6 @@ async function handleDeliver(projectInstanceId, itemId, amount) {
 function renderProjectCard(container, project) {
     const playerLevel = state.playerProfile.level || 1;
     const canSubscribe = playerLevel >= project.min_player_level;
-
     const card = document.createElement('div');
     card.className = 'project-card';
     card.style.cssText = `background: ${canSubscribe ? 'var(--surface-dark)' : '#2d2d2d'}; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid ${canSubscribe ? 'var(--primary-accent)' : '#555'}; opacity: ${canSubscribe ? '1' : '0.6'};`;
@@ -287,30 +273,24 @@ function startProjectTimers() {
             const durationDays = parseInt(timerEl.dataset.durationDays);
             const endTime = startTime + (durationDays * 24 * 60 * 60 * 1000);
             const remaining = endTime - Date.now();
-            if (remaining <= 0) {
-                timerEl.textContent = "Finished";
-                return;
-            }
-            const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
-            const minutes = Math.floor((remaining / 1000 / 60) % 60);
-            timerEl.textContent = `${days}d ${hours}h ${minutes}m`;
+            timerEl.textContent = formatTime(remaining);
         });
     }
     update();
-    projectCountdownInterval = setInterval(update, 60000); // Update every minute is sufficient
+    projectCountdownInterval = setInterval(update, 60000);
 }
 
 
 /**
  * Main render function for the Great Projects screen.
- * It fetches all necessary data and decides which view to display.
+ * It fetches all necessary data and intelligently decides which view to display.
  */
 export async function renderProjects() {
     if (!state.currentUser || !projectsContainer) return;
     projectsContainer.innerHTML = '<p>Loading project status...</p>';
 
-    // We need a master list of all items to display names correctly
+    // A master list of all item definitions is required to display requirement names.
+    // We cache this in the state to avoid re-fetching on every render.
     if (!state.masterItems || state.masterItems.size === 0) {
         state.masterItems = new Map();
         const { data: allItems } = await api.fetchAllItems(); 
@@ -329,7 +309,7 @@ export async function renderProjects() {
         return;
     }
     
-    state.playerProjects = playerProjects;
+    state.playerProjects = playerProjects; // Cache for access in functions like handleDeliver
     projectsContainer.innerHTML = '';
 
     const activeProjects = playerProjects.filter(p => p.status === 'active');
@@ -340,10 +320,12 @@ export async function renderProjects() {
         projectsContainer.appendChild(activeTitle);
         activeProjects.forEach(project => renderActiveProjectView(projectsContainer, project));
     }
-
-    // --- THIS IS THE CORRECTED FILTERING LOGIC ---
-    const activeProjectIds = new Set(activeProjects.map(p => p.project_id));
-    const availableProjects = allProjects.filter(masterProj => !activeProjectIds.has(masterProj.id));
+    
+    // --- CORRECTED FILTERING LOGIC ---
+    // Create a set of IDs for all projects the player has ever interacted with (active or not)
+    const playerProjectIds = new Set(playerProjects.map(p => p.project_id));
+    // Filter the master list to only show projects the player has NOT interacted with
+    const availableProjects = allProjects.filter(masterProj => !playerProjectIds.has(masterProj.id));
 
     if (availableProjects.length > 0) {
         const availableTitle = document.createElement('h3');
