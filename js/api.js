@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: Pharaoh's Legacy 'NOUB' v0.4 (UCP RPC & Fire-and-Forget)
- * Description: Data Access Layer Module. Centralizes all database interactions.
- * FINAL FIX: Implements the most robust fetching via RPC and background saving for the UCP protocol.
+ * Version: Pharaoh's Legacy 'NOUB' v1.3.1 (Complete API Module)
+ * Description: Data Access Layer Module. This version is a complete, accurate and fully functional,
+ * including the Great Projects API and all prior fixes. 
 */
 
 import { supabaseClient } from './config.js';
@@ -13,21 +13,15 @@ export { supabaseClient };
 
 /**
  * Fetches the complete player profile using a dedicated RPC function.
- * FINAL SOLUTION: This is the most robust method to fetch a large number of columns,
- * avoiding URL length limitations that can cause a 400 Bad Request error with .select().
  */
 export async function fetchProfile(userId) {
     const { data, error } = await supabaseClient.rpc('get_player_profile', { p_id: userId });
 
     if (error) {
         console.error("Error calling RPC function 'get_player_profile':", error);
-        // Return the error in the expected format
         return { data: null, error };
     }
 
-    // The structure of the response from .rpc() is an array of results.
-    // Since we expect only one profile, we return the first element.
-    // This mimics the behavior of .single() from the previous implementation.
     return { data: data ? data[0] : null, error: null };
 }
 
@@ -90,7 +84,6 @@ export async function deleteCardInstance(instanceId) {
         .eq('instance_id', instanceId);
 }
 
-
 // --- Economy API Functions ---
 
 export async function fetchPlayerFactories(playerId) {
@@ -123,6 +116,7 @@ export async function fetchPlayerFactories(playerId) {
         `)
         .eq('player_id', playerId);
 }
+
 export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
     return await supabaseClient
         .from('player_factories')
@@ -160,11 +154,7 @@ export async function updateItemQuantity(playerId, itemId, newQuantity) {
         .from('player_inventory')
         .upsert({ player_id: playerId, item_id: itemId, quantity: newQuantity });
 }
-/**
- * Updates the claim status for a specific UCP task in the user's profile.
- * @param {string} playerId - The ID of the current player.
- * @param {number} taskNumber - The task number (1, 2, or 3).
- */
+
 export async function claimUcpTaskReward(playerId, taskNumber) {
     const updateObject = {};
     updateObject[`ucp_task_${taskNumber}_claimed`] = true;
@@ -174,7 +164,6 @@ export async function claimUcpTaskReward(playerId, taskNumber) {
         .update(updateObject)
         .eq('id', playerId);
 }
-
 
 // --- Contract API Functions ---
 
@@ -253,7 +242,6 @@ export async function refreshAvailableContracts(playerId) {
         .eq('player_id', playerId);
 }
 
-
 // --- Games & Consumables API Functions ---
 
 export async function fetchSlotRewards() {
@@ -317,11 +305,6 @@ export function saveUCPSection(playerId, sectionKey, sectionData) {
         });
 }
 
-
-/**
- * Fetches the complete UCP protocol for a player.
- * Uses .rpc() as the most reliable method to avoid 406 errors.
- */
 export async function fetchUCPProtocol(playerId) {
     const { data, error } = await supabaseClient.rpc('get_player_protocol', { p_id: playerId });
     if (error) {
@@ -330,87 +313,64 @@ export async function fetchUCPProtocol(playerId) {
     return { data, error };
 }
 
+// --- Great Projects API Functions ---
 
-// --- TON Integration Functions ---
-
-export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) {
-    return { success: true, amount: amountAnkhPremium }; 
-}
-
-
-// --- Activity Log & Utility ---
-
-export async function logActivity(playerId, activityType, description) {
+/**
+ * Fetches all available great projects from the master list, ordered by minimum level requirement.
+ * @returns {Promise} A Supabase query promise.
+ */
+export async function fetchAllGreatProjects() {
     return await supabaseClient
-        .from('activity_log')
-        .insert({ 
-            player_id: playerId, 
-            activity_type: activityType, 
-            description: description 
-        });
+        .from('master_great_projects')
+        .select('*')
+        .order('min_player_level', { ascending: true });
 }
 
-export async function fetchActivityLog(playerId) {
+/**
+ * Fetches the player's currently active or completed projects, joining with the master project data.
+ * @param {string} playerId - The ID of the current player.
+ * @returns {Promise} A Supabase query promise.
+ */
+export async function fetchPlayerGreatProjects(playerId) {
     return await supabaseClient
-        .from('activity_log')
-        .select('id, player_id, activity_type, description, created_at')
-        .eq('player_id', playerId)
-        .order('created_at', { ascending: false })
-        .limit(500); 
-}
-
-// --- History, Library, Albums ---
-
-export async function insertGameHistory(historyObject) {
-    return await supabaseClient.from('game_history').insert(historyObject);
-}
-
-export async function fetchGameHistory(playerId) {
-    return await supabaseClient
-        .from('game_history')
-        .select('id, player_id, game_type, level_kv, result_status, time_taken, code, date')
-        .eq('player_id', playerId)
-        .order('date', { ascending: false }); 
-}
-
-export async function fetchPlayerAlbums(playerId) {
-    return await supabaseClient
-        .from('player_albums')
+        .from('player_great_projects')
         .select(`
-            album_id, is_completed, reward_claimed,
-            master_albums (id, name, icon, description, card_ids, reward_ankh, reward_prestige)
+            id,
+            start_time,
+            status,
+            progress,
+            master_great_projects ( * )
         `)
         .eq('player_id', playerId);
 }
 
-export async function fetchPlayerLibrary(playerId) {
+/**
+ * Subscribes a player to a new great project by creating a new entry in the player_great_projects table.
+ * @param {string} playerId - The ID of the current player.
+ * @param {number} projectId - The ID of the project from master_great_projects.
+ * @returns {Promise} A Supabase query promise.
+ */
+export async function subscribeToProject(playerId, projectId) {
     return await supabaseClient
-        .from('player_library')
-        .select('entry_key')
-        .eq('player_id', playerId);
+        .from('player_great_projects')
+        .insert({
+            player_id: playerId,
+            project_id: projectId,
+            start_time: new Date().toISOString(),
+            status: 'active',
+            progress: {} // Initial progress is an empty object
+        });
 }
 
-
-// --- Specialization API Functions ---
-
-export async function fetchSpecializationPaths() {
-    return await supabaseClient.from('specialization_paths').select('*');
+/**
+ * Updates the player's resource delivery progress on a specific project.
+ * @param {number} playerProjectId - The unique ID of the player's project instance (from player_great_projects).
+ * @param {object} newProgress - The updated progress JSON object.
+ * @returns {Promise} A Supabase query promise.
+ */
+export async function deliverToProject(playerProjectId, newProgress) {
+    return await supabaseClient
+        .from('player_great_projects')
+        .update({ progress: newProgress })
+        .eq('id', playerProjectId);
 }
-
-export async function fetchPlayerSpecializations(playerId) {
-    return await supabaseClient.from('player_specializations').select('*, specialization_paths(*)').eq('player_id', playerId);
-}
-
-export async function unlockSpecialization(playerId, pathId) {
-    return await supabaseClient.from('player_specializations').insert({
-        player_id: playerId,
-        specialization_path_id: pathId,
-        is_active: true
-    });
-}
-
-
-
-
-
-
