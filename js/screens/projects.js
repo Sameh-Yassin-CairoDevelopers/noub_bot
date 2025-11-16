@@ -310,11 +310,13 @@ export async function renderProjects() {
     if (!state.currentUser || !projectsContainer) return;
     projectsContainer.innerHTML = '<p>Loading project status...</p>';
 
-    // A master list of all items is required to display requirement names correctly.
-    state.masterItems = new Map();
-    const { data: allItems } = await api.fetchAllItems(); 
-    if(allItems) {
-        allItems.forEach(item => state.masterItems.set(item.id, item));
+    // We need a master list of all items to display names correctly
+    if (!state.masterItems || state.masterItems.size === 0) {
+        state.masterItems = new Map();
+        const { data: allItems } = await api.fetchAllItems(); 
+        if(allItems) {
+            allItems.forEach(item => state.masterItems.set(item.id, item));
+        }
     }
 
     const [{ data: allProjects, error: allProjectsError }, { data: playerProjects, error: playerProjectsError }] = await Promise.all([
@@ -327,7 +329,7 @@ export async function renderProjects() {
         return;
     }
     
-    state.playerProjects = playerProjects; // Store for access in other functions like handleDeliver
+    state.playerProjects = playerProjects;
     projectsContainer.innerHTML = '';
 
     const activeProjects = playerProjects.filter(p => p.status === 'active');
@@ -339,9 +341,10 @@ export async function renderProjects() {
         activeProjects.forEach(project => renderActiveProjectView(projectsContainer, project));
     }
 
-    const availableProjects = allProjects.filter(masterProj => 
-        !playerProjects.some(playerProj => playerProj.project_id === masterProj.id)
-    );
+    // --- THIS IS THE CORRECTED FILTERING LOGIC ---
+    const activeProjectIds = new Set(activeProjects.map(p => p.project_id));
+    const availableProjects = allProjects.filter(masterProj => !activeProjectIds.has(masterProj.id));
+
     if (availableProjects.length > 0) {
         const availableTitle = document.createElement('h3');
         availableTitle.textContent = "Available Projects";
