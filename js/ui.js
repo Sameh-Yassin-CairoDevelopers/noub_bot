@@ -20,6 +20,8 @@ import * as wheelModule from './screens/wheel.js';
 import * as exchangeModule from './screens/exchange.js';
 import * as activityModule from './screens/activity.js';
 import * as tasksModule from './screens/tasks.js';
+// ... (بعد import * as tasksModule from './screens/tasks.js';)
+import * as projectsModule from './screens/projects.js';
 
 // Other screen imports
 import { renderProfile } from './screens/profile.js';
@@ -42,7 +44,8 @@ export const renderWheel = wheelModule.renderWheel;
 export const renderActivity = activityModule.renderActivity;
 export const renderExchange = exchangeModule.renderExchange;
 export const renderTasks = tasksModule.renderTasks;
-
+// ... (بعد export const renderTasks = tasksModule.renderTasks;)
+export const renderProjects = projectsModule.renderProjects;
 
 // Make utility functions globally available for onclick attributes in HTML
 window.closeModal = function(modalId) {
@@ -223,3 +226,4 @@ export function setupEventListeners() {
         });
     });
 }
+
