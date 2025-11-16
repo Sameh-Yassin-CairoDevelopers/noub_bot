@@ -141,6 +141,11 @@ export function navigateTo(targetId) {
         case 'activity-screen':
             activityModule.renderActivity();
             break;
+                // --- NEW CASE FOR PROJECTS ---
+        case 'projects-screen':
+            projectsModule.renderProjects();
+            break;
+
     }
 }
 
@@ -226,4 +231,5 @@ export function setupEventListeners() {
         });
     });
 }
+
 
