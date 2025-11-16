@@ -1,9 +1,9 @@
 /*
  * Filename: js/ui.js
- * Version: NOUB v1.4 (Game Juice & Effects Module)
- * Description: UI Controller Module. This version is expanded to handle all UI logic,
- * navigation, and the management of "Game Juice" effects such as sound playback,
- * visual animations, and haptic feedback, respecting user preferences stored in localStorage.
+ * Version: NOUB v1.5 (Centralized Card Management & Project Navigation)
+ * Description: UI Controller Module. This version streamlines the UI by removing
+ * the separate 'upgrade' screen navigation and integrating the new 'projects' screen.
+ * It also contains the core functions for Game Juice effects.
 */
 
 // --- Core Imports ---
@@ -11,9 +11,8 @@ import { state } from './state.js';
 import { ASSET_PATHS } from './config.js';
 
 // --- Screen Module Imports ---
-// This pattern allows us to call the render functions of each screen module.
 import * as collectionModule from './screens/collection.js';
-import * as upgradeModule from './screens/upgrade.js';
+// import * as upgradeModule from './screens/upgrade.js'; // DEPRECATED: Upgrade logic is now in collection.js
 import * as historyModule from './screens/history.js';
 import * as libraryModule from './screens/library.js';
 import * as settingsModule from './screens/settings.js';
@@ -22,7 +21,7 @@ import * as wheelModule from './screens/wheel.js';
 import * as exchangeModule from './screens/exchange.js';
 import * as activityModule from './screens/activity.js';
 import * as tasksModule from './screens/tasks.js';
-import * as projectsModule from './screens/projects.js'; // Import for new screen
+import * as projectsModule from './screens/projects.js';
 import { renderProfile } from './screens/profile.js';
 import { openShopModal } from './screens/shop.js';
 import { renderProduction } from './screens/economy.js';
@@ -32,9 +31,9 @@ import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js';
 
 
-// --- Re-exporting render functions for standardized access from main.js ---
+// --- Re-exporting render functions for standardized access ---
 export const renderCollection = collectionModule.renderCollection;
-export const renderUpgrade = upgradeModule.renderUpgrade;
+// export const renderUpgrade = upgradeModule.renderUpgrade; // DEPRECATED
 export const renderHistory = historyModule.renderHistory;
 export const renderLibrary = libraryModule.renderLibrary;
 export const renderSettings = settingsModule.renderSettings;
@@ -43,57 +42,48 @@ export const renderWheel = wheelModule.renderWheel;
 export const renderActivity = activityModule.renderActivity;
 export const renderExchange = exchangeModule.renderExchange;
 export const renderTasks = tasksModule.renderTasks;
-export const renderProjects = projectsModule.renderProjects; // Export for new screen
+export const renderProjects = projectsModule.renderProjects;
 
 
-// --- NEW: Game Juice & Effects Helper Functions ---
+// --- Game Juice & Effects Helper Functions ---
 
-// A simple cache to store loaded Audio objects, preventing re-downloading of sound files.
 const audioCache = new Map();
 
 /**
  * Plays a sound effect if sounds are enabled in settings.
- * It uses a cache to improve performance on subsequent plays.
- * @param {string} soundName - The name of the sound file (e.g., 'claim_reward') without the extension.
+ * @param {string} soundName - The name of the sound file (e.g., 'claim_reward').
  */
 export function playSound(soundName) {
-    // Respect the user's preference stored in localStorage.
     if (localStorage.getItem('soundEnabled') !== 'true') return;
-
     let audio = audioCache.get(soundName);
     if (!audio) {
         audio = new Audio(`audio/${soundName}.mp3`);
         audioCache.set(soundName, audio);
     }
-    // Ensure the sound can play from the beginning if it was already playing.
     audio.currentTime = 0;
     audio.play().catch(error => console.error(`Error playing sound '${soundName}':`, error));
 }
 
 /**
- * Displays a visual effect (e.g., a GIF) as a screen overlay for a short duration.
- * @param {string} effectName - The name of the effect file (e.g., 'reward_major') without the extension.
- * @param {number} [duration=2500] - The duration in milliseconds to show the effect.
+ * Displays a visual effect (GIF) overlay.
+ * @param {string} effectName - The name of the effect file (e.g., 'reward_major').
+ * @param {number} [duration=2500] - Duration in milliseconds.
  */
 export function showVisualEffect(effectName, duration = 2500) {
-    // Respect the user's preference stored in localStorage.
     if (localStorage.getItem('animationEnabled') !== 'true') return;
-
     const container = document.getElementById('visual-effect-container');
     const img = document.getElementById('visual-effect-img');
     if (!container || !img) return;
-
     img.src = `images/effects/${effectName}.gif`;
     container.classList.remove('hidden');
-
     setTimeout(() => {
         container.classList.add('hidden');
-        img.src = ''; // Clear src to stop the GIF from consuming resources in the background.
+        img.src = '';
     }, duration);
 }
 
 /**
- * Triggers haptic feedback on the Telegram app if the API is available.
+ * Triggers haptic feedback on the Telegram app.
  * @param {string} [type='light'] - The impact style: 'light', 'medium', 'heavy', 'rigid', 'soft'.
  */
 export function triggerHaptic(type = 'light') {
@@ -115,10 +105,6 @@ export function triggerNotificationHaptic(notificationType = 'success') {
 
 // --- Core UI Utility Functions ---
 
-/**
- * Hides a modal overlay. Exposed to window for use in inline onclick attributes in HTML.
- * @param {string} modalId - The ID of the modal to close.
- */
 window.closeModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -126,23 +112,14 @@ window.closeModal = function(modalId) {
     }
 }
 
-/**
- * Displays a modal overlay.
- * @param {string} modalId - The ID of the modal to open.
- */
 export function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('hidden');
     }
 }
-window.openModal = openModal; // Also expose to window for legacy onclick attributes if any.
+window.openModal = openModal;
 
-/**
- * Displays a short-lived toast notification message.
- * @param {string} message - The text to display.
- * @param {string} [type='info'] - The type of toast: 'info', 'success', or 'error'.
- */
 export function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
     if (!toastContainer) return;
@@ -152,14 +129,13 @@ export function showToast(message, type = 'info') {
     toastContainer.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
-window.showToast = showToast; // Expose globally for convenience.
+window.showToast = showToast;
 
 const contentContainer = document.getElementById('content-container');
 const navItems = document.querySelectorAll('.nav-item');
 
 /**
  * The main navigation router for the application.
- * Hides all screens and shows the target screen, then calls its render function.
  * @param {string} targetId - The ID of the screen to navigate to.
  */
 export function navigateTo(targetId) {
@@ -173,7 +149,6 @@ export function navigateTo(targetId) {
         targetNavItem.classList.add('active');
     }
 
-    // Play a standard click sound for navigation
     playSound('click');
     triggerHaptic('soft');
 
@@ -183,9 +158,9 @@ export function navigateTo(targetId) {
         case 'economy-screen': renderProduction(); break;
         case 'albums-screen': albumsModule.renderAlbums(); break;
         case 'tasks-screen': tasksModule.renderTasks(); break;
-        case 'projects-screen': projectsModule.renderProjects(); break; // UPDATED
+        case 'projects-screen': projectsModule.renderProjects(); break;
         case 'contracts-screen': renderActiveContracts(); renderAvailableContracts(); break;
-        case 'card-upgrade-screen': upgradeModule.renderUpgrade(); break;
+        // case 'card-upgrade-screen': upgradeModule.renderUpgrade(); break; // DEPRECATED
         case 'kv-game-screen': renderKVGame(); break;
         case 'profile-screen': renderProfile(); break;
         case 'chat-screen': renderChat(); break;
@@ -199,7 +174,7 @@ export function navigateTo(targetId) {
 }
 
 /**
- * Updates the main header UI with the player's currency and avatar.
+ * Updates the main header UI with player data.
  * @param {object} profile - The player's profile object from the state.
  */
 export function updateHeaderUI(profile) {
@@ -214,9 +189,6 @@ export function updateHeaderUI(profile) {
     }
 }
 
-/**
- * Sets up all primary navigation event listeners for the application.
- */
 function setupNavEvents() {
     document.querySelectorAll('.bottom-nav a[data-target]').forEach(item => {
         item.addEventListener('click', () => navigateTo(item.dataset.target));
@@ -246,9 +218,6 @@ function setupNavEvents() {
     });
 }
 
-/**
- * Sets up event listeners for the items within the "More" (hamburger) menu modal.
- */
 function setupMoreMenuEvents() {
     const handleMoreClick = (event) => {
         event.preventDefault();
@@ -271,7 +240,6 @@ export function setupEventListeners() {
     setupNavEvents();
     setupMoreMenuEvents();
 
-    // Event listeners for stockpile tabs in the economy screen
     const stockTabs = document.querySelectorAll('.stock-tab-btn');
     stockTabs.forEach(tab => {
         tab.addEventListener('click', () => {
