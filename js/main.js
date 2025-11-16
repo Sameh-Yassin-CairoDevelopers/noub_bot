@@ -32,7 +32,8 @@ import './screens/wheel.js';
 import './screens/exchange.js'; 
 import './screens/activity.js'; 
 import './screens/tasks.js';
-
+// ... (بعد import './screens/tasks.js';)
+import './screens/projects.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -50,3 +51,4 @@ document.addEventListener('DOMContentLoaded', () => {
     handleInitialSession();
 
 });
+
