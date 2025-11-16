@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pharaoh's Legacy 'NOUB' v0.2</title>
+    <title>Pharaoh's Legacy 'NOUB' v1.3</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -63,14 +63,8 @@
                     <div class="home-section">
                         <h3>Games & Challenges</h3>
                         <div class="home-featured-actions">
-                            <a class="action-card-link" data-target="kv-game-screen">
-                                <div class="icon-box large">🗝️</div>
-                                <span>KV Game</span>
-                            </a>
-                            <a class="action-card-link" data-target="wheel-screen">
-                                <div class="icon-box large">🎡</div>
-                                <span>Wheel of Fortune</span>
-                            </a>
+                            <a class="action-card-link" data-target="kv-game-screen"><div class="icon-box large">🗝️</div><span>KV Game</span></a>
+                            <a class="action-card-link" data-target="wheel-screen"><div class="icon-box large">🎡</div><span>Wheel of Fortune</span></a>
                         </div>
                     </div>
                     <div class="home-section">
@@ -132,29 +126,19 @@
             <div id="kv-game-screen" class="screen hidden">
                 <h2>Valley of the Kings - Crack the Code</h2>
                 <div id="kv-game-content" class="game-container">
-                    <!-- Intro content (Initial view) -->
                     <div id="kv-game-intro-content">
                          <h2 style="margin-top: 0; padding-top: 0;"><span id="kv-level-name-display">KV Gate Name</span></h2>
                          <button id="kv-start-btn" class="action-button small" style="width: 200px;">Load Game</button>
                     </div>
-                    
-                    <!-- CRITICAL: Active game controls content (This must exist in the HTML) -->
                     <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
-                        <!-- Progress/Timer/Attempts -->
                         <div id="kv-progress-info" class="game-status-message">
                             <div id="kv-timer-display">Time Left: 0s</div><div id="kv-attempts-display">Attempts Left: 0</div>
                         </div>
                         <div id="kv-message-label" style="margin-bottom: 10px;">Enter the secret code.</div>
-                        
-                        <!-- Input Field -->
                         <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
                             <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
                         </div>
-                        
-                        <!-- Hints List -->
                         <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;"></ul>
-                        
-                        <!-- Action Buttons -->
                         <div class="kv-controls-grid">
                             <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
                             <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
@@ -187,6 +171,15 @@
                     <button id="chat-send-button" class="action-button small">Send</button>
                 </div>
             </div>
+
+            <!-- NEW: Great Projects Screen -->
+            <div id="projects-screen" class="screen hidden">
+                <h2>Great Projects</h2>
+                <div id="projects-container">
+                    <!-- Projects will be rendered here by projects.js -->
+                </div>
+            </div>
+            
         </main>
         
         <div id="shop-modal" class="modal-overlay hidden">
@@ -203,6 +196,7 @@
                 <div id="shop-content-ton_exchange" class="shop-content-tab"><div id="shop-items-ton_exchange-container"></div></div>
             </div>
         </div>
+
         <div id="toast-container"></div>
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
@@ -211,6 +205,11 @@
         </div>
         <div id="specialization-choice-modal" class="modal-overlay hidden"></div>
         
+        <!-- NEW: Great Project Detail Modal -->
+        <div id="project-detail-modal" class="modal-overlay hidden">
+            <!-- Content will be injected by projects.js -->
+        </div>
+
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
                 <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
@@ -225,6 +224,8 @@
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
         <a class="nav-item" data-target="economy-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
         <a class="nav-item" data-target="collection-screen" title="My Cards"><div class="icon">🏛️</div><span>My Cards</span></a>
+        <!-- NEW: Button for Great Projects -->
+        <a class="nav-item" data-target="projects-screen" title="Great Projects"><div class="icon">🏗️</div><span>Projects</span></a>
         <a class="nav-item" data-target="tasks-screen" title="Tasks"><div class="icon">📜</div><span>Tasks</span></a>
         <a class="nav-item" id="bottom-shop-btn" title="Shop"><div class="icon">💰</div><span>Shop</span></a>
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
@@ -249,6 +250,3 @@
     </script>
 </body>
 </html>
-
-
-
