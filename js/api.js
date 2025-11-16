@@ -158,6 +158,13 @@ export async function fetchUCPProtocol(playerId) {
     if (error) console.error("Error calling RPC function 'get_player_protocol':", error);
     return { data, error };
 }
+/**
+ * Fetches a master list of all items in the game.
+ * Used to resolve item names from item_id.
+ */
+export async function fetchAllItems() {
+    return await supabaseClient.from('items').select('id, name');
+}
 
 
 // --- TON Integration, Activity Log, History, Library, Albums ---
@@ -190,3 +197,4 @@ export async function subscribeToProject(playerId, projectId) {
 export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
+
