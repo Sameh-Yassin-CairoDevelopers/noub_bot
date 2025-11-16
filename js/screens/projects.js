@@ -7,7 +7,7 @@
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, openModal, closeModal } from '../ui.js';
+import { showToast, openModal } from '../ui.js'; // <-- السطر المصحح
 import { refreshPlayerState } from '../auth.js';
 
 const projectsContainer = document.getElementById('projects-container');
