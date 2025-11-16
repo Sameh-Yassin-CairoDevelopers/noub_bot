@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/settings.js
- * Version: NOUB 0.0.8 (SETTINGS MODULE - FIX: Avatar Selection & Saving)
- * Description: View Logic Module for the Player Settings screen.
- * NEW: Implements functional avatar selection and saving to 'avatar_url' column.
+ * Version: NOUB v1.4 (Game Settings & Preferences)
+ * Description: View Logic Module for the Player Settings screen. This version
+ * implements functional avatar selection, username changes, and introduces
+ * toggles for sound and animation effects, saving these preferences to localStorage.
 */
 
 import { state } from '../state.js';
@@ -10,9 +11,10 @@ import * as api from '../api.js';
 import { showToast, updateHeaderUI } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
+// --- Module-level State & Constants ---
 const settingsContainer = document.getElementById('settings-screen');
 
-// --- MASTER AVATAR DATA (Reference list) ---
+// Master list of available avatars. In a larger game, this could be fetched from a database.
 const MASTER_AVATARS = [
     { id: 'default_explorer', name: 'Default Explorer', image_url: 'images/user_avatar.png', is_unlocked: true, level_req: 0 },
     { id: 'pharaoh_mask', name: 'Pharaoh Mask', image_url: 'images/pharaoh_mask.png', is_unlocked: false, level_req: 10 },
@@ -20,32 +22,41 @@ const MASTER_AVATARS = [
     { id: 'anubis_icon', name: 'Anubis Icon', image_url: 'images/anubis_icon.png', is_unlocked: false, level_req: 62 },
 ];
 
-let selectedAvatarUrl = 'images/user_avatar.png'; // Track selected avatar locally
+let selectedAvatarUrl = 'images/user_avatar.png'; // Local state to track the user's selection before saving.
+
+
+// --- Core UI Logic for Settings Sub-components ---
 
 /**
- * Handles the click event for selecting an avatar.
+ * Updates the visual state of a settings toggle button based on its value in localStorage.
+ * @param {string} key - The localStorage key ('soundEnabled' or 'animationEnabled').
+ * @param {HTMLElement} button - The button element to update.
  */
-function handleAvatarSelect(event) {
-    const avatarItem = event.currentTarget;
-    const isUnlocked = avatarItem.dataset.unlocked === 'true';
-
-    if (!isUnlocked) {
-        const cost = avatarItem.dataset.cost;
-        showToast(`This avatar is locked! Requires ${cost}.`, 'error');
-        return;
-    }
-
-    // Deselect all and select the current one
-    document.querySelectorAll('.avatar-item').forEach(item => item.classList.remove('selected'));
-    avatarItem.classList.add('selected');
-    selectedAvatarUrl = avatarItem.dataset.imageUrl;
-
-    document.getElementById('save-avatar-btn').disabled = false;
-    showToast(`Selected: ${avatarItem.dataset.name}`, 'info');
+function updateToggleButton(key, button) {
+    const isEnabled = localStorage.getItem(key) === 'true';
+    const settingName = key.replace('Enabled', '');
+    button.textContent = `${settingName.charAt(0).toUpperCase() + settingName.slice(1)}: ${isEnabled ? 'ON' : 'OFF'}`;
+    button.style.backgroundColor = isEnabled ? 'var(--success-color)' : 'var(--danger-color)';
 }
 
 /**
- * Renders the Avatar Selection Grid based on player status.
+ * Handles the click event for a settings toggle button, updating the preference in localStorage.
+ * @param {string} key - The localStorage key to toggle.
+ * @param {HTMLElement} button - The button element that was clicked.
+ */
+function handleToggle(key, button) {
+    const currentValue = localStorage.getItem(key) === 'true';
+    localStorage.setItem(key, !currentValue); // Invert the boolean value
+    updateToggleButton(key, button);
+    const settingName = key.replace('Enabled', '');
+    showToast(`${settingName.charAt(0).toUpperCase() + settingName.slice(1)} settings updated.`, 'info');
+}
+
+/**
+ * Renders the grid of available and locked avatars for the player to choose from.
+ * @param {number} playerLevel - The current level of the player.
+ * @param {number} playerAnkhPremium - The player's current Ankh Premium balance.
+ * @param {string} currentAvatarUrl - The URL of the player's currently equipped avatar.
  */
 function renderAvatarSelection(playerLevel, playerAnkhPremium, currentAvatarUrl) {
     const avatarGrid = document.getElementById('avatar-selection-grid');
@@ -53,22 +64,18 @@ function renderAvatarSelection(playerLevel, playerAnkhPremium, currentAvatarUrl)
     avatarGrid.innerHTML = '';
 
     MASTER_AVATARS.forEach(avatar => {
-        let isUnlocked = avatar.is_unlocked || (avatar.level_req && playerLevel >= avatar.level_req);
-        let statusText = isUnlocked ? 'UNLOCKED' : (avatar.level_req ? `LVL ${avatar.level_req} Req.` : `${avatar.ankh_cost} ☥`);
-        let cost = avatar.ankh_cost ? `${avatar.ankh_cost} Ankh` : (avatar.level_req ? `Level ${avatar.level_req}` : 'N/A');
-        
-        // This is simplified. In a real app, you'd check a separate 'player_avatars' table.
-        // For now, only check level/cost and assume unlocked ones are always available.
+        const isUnlocked = avatar.is_unlocked || (avatar.level_req && playerLevel >= avatar.level_req);
+        const statusText = isUnlocked ? 'UNLOCKED' : (avatar.level_req ? `LVL ${avatar.level_req} Req.` : `${avatar.ankh_cost} ☥`);
+        const cost = avatar.ankh_cost ? `${avatar.ankh_cost} Ankh` : (avatar.level_req ? `Level ${avatar.level_req}` : 'N/A');
         
         const isCurrentlySelected = currentAvatarUrl === avatar.image_url;
-
         const avatarElement = document.createElement('div');
         avatarElement.className = `card-stack avatar-item ${isCurrentlySelected ? 'selected' : ''}`;
-        avatarElement.setAttribute('data-avatar-id', avatar.id);
-        avatarElement.setAttribute('data-image-url', avatar.image_url);
-        avatarElement.setAttribute('data-unlocked', isUnlocked);
-        avatarElement.setAttribute('data-name', avatar.name);
-        avatarElement.setAttribute('data-cost', cost);
+        avatarElement.dataset.avatarId = avatar.id;
+        avatarElement.dataset.imageUrl = avatar.image_url;
+        avatarElement.dataset.unlocked = isUnlocked;
+        avatarElement.dataset.name = avatar.name;
+        avatarElement.dataset.cost = cost;
         
         avatarElement.innerHTML = `
             <img src="${avatar.image_url || 'images/user_avatar.png'}" alt="${avatar.name}" class="card-image">
@@ -79,61 +86,45 @@ function renderAvatarSelection(playerLevel, playerAnkhPremium, currentAvatarUrl)
         if (isUnlocked) {
             avatarElement.addEventListener('click', handleAvatarSelect);
         } else if (avatar.ankh_cost) {
-            // Purchase logic for premium avatars could go here
             avatarElement.addEventListener('click', () => {
-                showToast(`Unlock ${avatar.name} for ${avatar.ankh_cost} Ankh Premium!`, 'info');
+                showToast(`Unlock ${avatar.name} for ${avatar.ankh_cost} Ankh Premium in the Shop!`, 'info');
             });
         }
 
         avatarGrid.appendChild(avatarElement);
-        
         if (isCurrentlySelected) selectedAvatarUrl = avatar.image_url;
     });
 }
 
 
+// --- Event Handlers ---
+
 /**
- * Renders the Settings screen, populating current data and unlocked options.
+ * Handles the click event for selecting an avatar from the grid.
+ * @param {Event} event - The click event.
  */
-export async function renderSettings() {
-    if (!state.currentUser || !state.playerProfile) return;
+function handleAvatarSelect(event) {
+    const avatarItem = event.currentTarget;
+    const isUnlocked = avatarItem.dataset.unlocked === 'true';
 
-    // Use current avatar URL from the profile (assuming column exists and is fetched)
-    const currentAvatar = state.playerProfile.avatar_url || MASTER_AVATARS[0].image_url;
+    if (!isUnlocked) {
+        showToast(`This avatar is locked!`, 'error');
+        return;
+    }
 
-    settingsContainer.innerHTML = `
-        <h2>Settings & Preferences</h2>
-        
-        <div class="settings-section">
-            <h3>Player Profile</h3>
-            
-            <label for="username-input">Explorer Name:</label>
-            <input type="text" id="username-input" value="${state.playerProfile.username || ''}" placeholder="Enter new username" required>
-            <button id="save-username-btn" class="action-button small upgrade-button">Save Name</button>
-            
-            <h3 style="margin-top: 20px;">Avatar Selection</h3>
-            <p style="color: var(--text-secondary); font-size:0.8em;">Select your avatar. Avatar is saved automatically upon selection.</p>
-            <div id="avatar-selection-grid" class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));">
-                <!-- Avatars will be rendered here -->
-            </div>
-            <button id="save-avatar-btn" class="action-button small upgrade-button" style="margin-top: 10px;" disabled>Apply Selected Avatar</button>
-        </div>
-    `;
+    document.querySelectorAll('.avatar-item').forEach(item => item.classList.remove('selected'));
+    avatarItem.classList.add('selected');
+    selectedAvatarUrl = avatarItem.dataset.imageUrl;
 
-    // 1. Render Avatar Selection Grid
-    renderAvatarSelection(state.playerProfile.level, state.playerProfile.ankh_premium, currentAvatar);
-
-    // 2. Attach Action Listeners
-    document.getElementById('save-username-btn')?.addEventListener('click', handleSaveUsername);
-    document.getElementById('save-avatar-btn')?.addEventListener('click', handleSaveAvatar);
+    document.getElementById('save-avatar-btn').disabled = false;
+    showToast(`Selected: ${avatarItem.dataset.name}`, 'info');
 }
 
-
-// --- Handler Functions ---
-
+/**
+ * Handles saving the new username to the player's profile.
+ */
 async function handleSaveUsername() {
     const newUsername = document.getElementById('username-input').value.trim();
-
     if (!newUsername || newUsername.length < 3) {
         showToast("Username must be at least 3 characters.", 'error');
         return;
@@ -142,10 +133,6 @@ async function handleSaveUsername() {
         showToast("Username not changed.", 'info');
         return;
     }
-
-    showToast(`Attempting to save name to ${newUsername}...`, 'info');
-    
-    // Check if the username is taken (API function would be needed here, omitted for simplicity)
     
     const { error } = await api.updatePlayerProfile(state.currentUser.id, { username: newUsername });
 
@@ -159,14 +146,15 @@ async function handleSaveUsername() {
     }
 }
 
+/**
+ * Handles saving the newly selected avatar URL to the player's profile.
+ */
 async function handleSaveAvatar() {
     if (selectedAvatarUrl === state.playerProfile.avatar_url) {
         showToast("Avatar is already set to the selected image.", 'info');
         document.getElementById('save-avatar-btn').disabled = true;
         return;
     }
-    
-    showToast(`Applying new avatar...`, 'info');
     
     const { error } = await api.updatePlayerProfile(state.currentUser.id, { avatar_url: selectedAvatarUrl });
 
@@ -177,11 +165,63 @@ async function handleSaveAvatar() {
         await refreshPlayerState();
         showToast(`Avatar updated successfully!`, 'success');
         document.getElementById('save-avatar-btn').disabled = true;
-        
-        // Refresh profile screen to see the change immediately
-        import('./profile.js').then(({ renderProfile }) => renderProfile()); 
-        
-        // Update header UI if it shows the avatar (currently it doesn't, but for completeness)
         updateHeaderUI(state.playerProfile);
     }
+}
+
+
+/**
+ * Main rendering function for the Settings screen.
+ * This function builds the entire screen's HTML and attaches all necessary event listeners.
+ */
+export async function renderSettings() {
+    if (!state.currentUser || !state.playerProfile) return;
+
+    const currentAvatar = state.playerProfile.avatar_url || MASTER_AVATARS[0].image_url;
+
+    settingsContainer.innerHTML = `
+        <h2>Settings & Preferences</h2>
+        
+        <!-- Game Settings Section for sound and animation toggles -->
+        <div class="settings-section">
+            <h3>Game Settings</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="toggle-sound-btn" class="action-button small"></button>
+                <button id="toggle-animation-btn" class="action-button small"></button>
+            </div>
+        </div>
+
+        <!-- Player Profile Section for username and avatar changes -->
+        <div class="settings-section">
+            <h3>Player Profile</h3>
+            <label for="username-input">Explorer Name:</label>
+            <input type="text" id="username-input" value="${state.playerProfile.username || ''}" placeholder="Enter new username" required>
+            <button id="save-username-btn" class="action-button small upgrade-button">Save Name</button>
+            
+            <h3 style="margin-top: 20px;">Avatar Selection</h3>
+            <p style="color: var(--text-secondary); font-size:0.8em;">Select your avatar and click Apply.</p>
+            <div id="avatar-selection-grid" class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));"></div>
+            <button id="save-avatar-btn" class="action-button small upgrade-button" style="margin-top: 10px;" disabled>Apply Selected Avatar</button>
+        </div>
+    `;
+
+    // 1. Initialize and attach listeners for Game Settings buttons
+    const soundBtn = document.getElementById('toggle-sound-btn');
+    const animationBtn = document.getElementById('toggle-animation-btn');
+
+    if (soundBtn) {
+        updateToggleButton('soundEnabled', soundBtn);
+        soundBtn.onclick = () => handleToggle('soundEnabled', soundBtn);
+    }
+    if (animationBtn) {
+        updateToggleButton('animationEnabled', animationBtn);
+        animationBtn.onclick = () => handleToggle('animationEnabled', animationBtn);
+    }
+
+    // 2. Render the avatar selection grid
+    renderAvatarSelection(state.playerProfile.level, state.playerProfile.ankh_premium, currentAvatar);
+
+    // 3. Attach listeners for profile action buttons
+    document.getElementById('save-username-btn')?.addEventListener('click', handleSaveUsername);
+    document.getElementById('save-avatar-btn')?.addEventListener('click', handleSaveAvatar);
 }
