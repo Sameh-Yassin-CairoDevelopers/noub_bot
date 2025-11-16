@@ -9,7 +9,7 @@
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, openModal, closeModal, playSound, triggerHaptic, triggerNotificationHaptic } from '../ui.js';
+import { showToast, openModal, playSound, triggerHaptic, triggerNotificationHaptic } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
 const collectionContainer = document.getElementById('collection-container');
@@ -243,3 +243,4 @@ export async function renderCollection() {
         collectionContainer.appendChild(cardElement);
     });
 }
+
