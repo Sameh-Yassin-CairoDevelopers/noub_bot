@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pharaoh's Legacy 'NOUB' v1.3</title>
+    <title>Pharaoh's Legacy 'NOUB' v1.4</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -18,6 +18,7 @@
 </head>
 <body>
 
+    <!-- Authentication Overlay: Handles user login and registration -->
     <div id="auth-overlay">
         <div class="auth-container">
             <div class="auth-header">
@@ -44,8 +45,10 @@
         </div>
     </div>
 
+    <!-- Main Application Container: Becomes visible after successful login -->
     <div id="app-container" class="hidden">
         
+        <!-- Header: Displays player currency, TON wallet, and profile avatar -->
         <header>
             <div class="balance-bar">
                 <div class="currency-display"><img src="images/noub_gold_coin.png" alt="NOUB" class="icon currency-img"> <span id="noub-display">0</span></div>
@@ -56,8 +59,10 @@
             </div>
         </header>
 
+        <!-- Main Content Area: Hosts all the different game screens -->
         <main id="content-container">
             
+            <!-- Home Screen -->
             <div id="home-screen" class="screen active">
                 <div class="home-layout">
                     <div class="home-section">
@@ -81,8 +86,10 @@
                 </div>
             </div>
             
+            <!-- Collection Screen -->
             <div id="collection-screen" class="screen hidden"><h2>My Collection</h2><div class="card-grid" id="collection-container"></div></div>
             
+            <!-- Economy Hub Screen -->
             <div id="economy-screen" class="screen hidden">
                 <h2>Economy Hub</h2>
                 <div class="stock-tabs-container">
@@ -100,6 +107,7 @@
                 <div id="stock-content-goods" class="stock-content-tab"><div id="stock-goods-container" class="stock-grid"></div></div>
             </div>
             
+            <!-- Tasks Screen -->
             <div id="tasks-screen" class="screen hidden">
                 <h2>Daily Tasks</h2>
                 <div class="daily-task-summary">
@@ -107,6 +115,7 @@
                 </div>
             </div>
             
+            <!-- Contracts Screen -->
             <div id="contracts-screen" class="screen hidden">
                 <h2>Royal Decrees</h2>
                 <div class="contracts-section"><h3>Active Contracts</h3><div id="active-contracts-container" class="contracts-list"></div></div>
@@ -115,14 +124,17 @@
             
             <div id="albums-screen" class="screen hidden"></div>
 
+            <!-- Card Upgrade Screen -->
             <div id="card-upgrade-screen" class="screen hidden">
                 <h2>Card & Factory Upgrades</h2>
                 <div class="upgrade-select-area"><h3>Select Card to Upgrade:</h3><div id="upgrade-card-selection-container" class="card-grid"></div></div>
                 <div id="upgrade-detail-area" class="upgrade-detail-area hidden"></div>
             </div>
 
+            <!-- Wheel of Fortune Screen -->
             <div id="wheel-screen" class="screen hidden"></div>
 
+            <!-- KV Game Screen -->
             <div id="kv-game-screen" class="screen hidden">
                 <h2>Valley of the Kings - Crack the Code</h2>
                 <div id="kv-game-content" class="game-container">
@@ -147,6 +159,7 @@
                 </div>
             </div>
             
+            <!-- Profile Screen -->
             <div id="profile-screen" class="screen hidden">
                  <div class="profile-container"></div>
             </div>
@@ -156,6 +169,7 @@
             <div id="settings-screen" class="screen hidden"></div>
             <div id="activity-screen" class="screen hidden"></div>
             
+            <!-- Exchange Screen -->
             <div id="exchange-screen" class="screen hidden">
                 <h2>Currency Swap (DEX Style)</h2>
                 <div id="exchange-rate-container" style="text-align: center; margin-bottom: 15px;">
@@ -163,6 +177,7 @@
                 </div>
             </div>
             
+            <!-- Chat Screen -->
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
                 <div id="chat-messages"></div>
@@ -172,7 +187,7 @@
                 </div>
             </div>
 
-            <!-- NEW: Great Projects Screen -->
+            <!-- UPDATED: Great Projects Screen -->
             <div id="projects-screen" class="screen hidden">
                 <h2>Great Projects</h2>
                 <div id="projects-container">
@@ -182,6 +197,7 @@
             
         </main>
         
+        <!-- All Modal Overlays -->
         <div id="shop-modal" class="modal-overlay hidden">
             <div class="modal-content">
                 <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
@@ -204,12 +220,12 @@
             <div id="card-detail-modal-content" class="modal-content"></div>
         </div>
         <div id="specialization-choice-modal" class="modal-overlay hidden"></div>
-        
-        <!-- NEW: Great Project Detail Modal -->
-        <div id="project-detail-modal" class="modal-overlay hidden">
-            <!-- Content will be injected by projects.js -->
-        </div>
 
+        <!-- UPDATED: Great Project Detail Modal -->
+        <div id="project-detail-modal" class="modal-overlay hidden">
+            <!-- Content for this modal will be dynamically injected by projects.js -->
+        </div>
+        
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
                 <a class="more-menu-item" data-target="activity-screen"><div class="icon">📝</div><span>Activity Log</span></a>
@@ -218,13 +234,19 @@
                 <button class="modal-close-btn" onclick="closeModal('more-modal')">&times;</button>
             </div>
         </div>
+
+        <!-- NEW: Visual Effect Container for animations and GIFs -->
+        <div id="visual-effect-container" class="hidden" style="position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; z-index: 5000; pointer-events: none;">
+            <img id="visual-effect-img" src="" alt="Reward Effect" style="max-width: 80%; max-height: 80%;">
+        </div>
     </div>
 
+    <!-- Bottom Navigation Bar -->
     <nav class="bottom-nav">
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
         <a class="nav-item" data-target="economy-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
         <a class="nav-item" data-target="collection-screen" title="My Cards"><div class="icon">🏛️</div><span>My Cards</span></a>
-        <!-- NEW: Button for Great Projects -->
+        <!-- UPDATED: Added Projects Button -->
         <a class="nav-item" data-target="projects-screen" title="Great Projects"><div class="icon">🏗️</div><span>Projects</span></a>
         <a class="nav-item" data-target="tasks-screen" title="Tasks"><div class="icon">📜</div><span>Tasks</span></a>
         <a class="nav-item" id="bottom-shop-btn" title="Shop"><div class="icon">💰</div><span>Shop</span></a>
