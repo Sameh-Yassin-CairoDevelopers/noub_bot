@@ -1,157 +1,129 @@
 /*
  * Filename: js/screens/projects.js
- * Version: Pharaoh's Legacy 'NOUB' v0.1 (Initial Implementation)
- * Description: Implements the Great Projects screen, allowing players to view, subscribe to,
- * and contribute to large-scale projects.
+ * Version: NOUB v1.3.0 (Great Projects UI & Logic)
+ * Description: Implements the UI and logic for the Great Projects screen.
+ * It handles rendering the list of available projects and showing active projects.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, openModal } from '../ui.js';
+import { refreshPlayerState } from '../auth.js';
 
 const projectsContainer = document.getElementById('projects-container');
 
-// --- Function to Render the List of Available Great Projects ---
-async function renderProjects() {
-    if (!state.currentUser || !projectsContainer) return;
+/**
+ * Renders a card for a single available project.
+ * @param {object} project - The master project data from the database.
+ */
+function renderProjectCard(project) {
+    const playerLevel = state.playerProfile.level || 1;
+    const canSubscribe = playerLevel >= project.min_player_level;
 
-    projectsContainer.innerHTML = 'Loading projects...';
+    const card = document.createElement('div');
+    card.className = 'project-card'; // Add styles for this class
+    card.style.cssText = `
+        background: ${canSubscribe ? 'var(--surface-dark)' : '#2d2d2d'};
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        border-left: 3px solid ${canSubscribe ? 'var(--primary-accent)' : '#555'};
+        opacity: ${canSubscribe ? '1' : '0.6'};
+    `;
 
-    const { data: projects, error } = await api.fetchAllGreatProjects();
+    card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0;">${project.name}</h4>
+            <span style="font-size: 0.8em; color: #aaa;">Lvl ${project.min_player_level}+</span>
+        </div>
+        <p style="font-size: 0.9em; color: #ccc; margin: 10px 0;">${project.description}</p>
+        <button class="action-button small" data-project-id="${project.id}" ${!canSubscribe ? 'disabled' : ''}>
+            ${canSubscribe ? 'View Details' : 'Locked'}
+        </button>
+    `;
 
-    if (error || !projects) {
-        projectsContainer.innerHTML = '<p class="error-message">Error loading projects.</p>';
-        return;
+    if (canSubscribe) {
+        card.querySelector('button').onclick = () => openProjectDetailsModal(project);
     }
 
-    if (projects.length === 0) {
-        projectsContainer.innerHTML = '<p>No projects available at this time.</p>';
-        return;
-    }
-
-    projectsContainer.innerHTML = '';
-    projects.forEach(project => {
-        const card = document.createElement('div');
-        card.className = 'project-card';
-        card.innerHTML = `
-            <h4>${project.name}</h4>
-            <p>${project.description}</p>
-            <button class="action-button small" data-project-id="${project.id}">View Details</button>
-        `;
-        card.querySelector('button').addEventListener('click', () => {
-            openProjectDetailsModal(project);
-        });
-        projectsContainer.appendChild(card);
-    });
+    projectsContainer.appendChild(card);
 }
 
 /**
- * Opens a modal with the details of a project
- * @param {Object} project - Data for the specific project
+ * Renders the view for a player's currently active project.
+ * @param {object} activeProject - The player's project data, including master project details.
  */
-async function openProjectDetailsModal(project) {
-    let modal = document.getElementById('project-detail-modal');
-    if (!modal) {
-        // Create the modal structure if it doesn't exist
-        modal = document.createElement('div');
-        modal.id = 'project-detail-modal';
-        modal.className = 'modal-overlay hidden';
-        document.body.appendChild(modal);
-    }
-
-    // Fill in the content into the modal
-    modal.innerHTML = `
-        <div class="modal-content">
-            <button class="modal-close-btn" onclick="closeModal('project-detail-modal')">&times;</button>
-            <h2>${project.name}</h2>
+function renderActiveProjectView(activeProject) {
+    const project = activeProject.master_great_projects;
+    projectsContainer.innerHTML = `
+        <div class="active-project-view">
+            <h3>${project.name} (Active)</h3>
             <p>${project.description}</p>
-            <p>Duration: ${project.duration_days} days</p>
-            <p>Minimum Level: ${project.min_player_level}</p>
             
-            <div class="requirements">
-                <h3>Requirements</h3>
-                <!-- To be populated dynamically -->
+            <div class="project-timer">
+                <h4>Time Remaining</h4>
+                <p id="project-countdown">Calculating...</p>
             </div>
             
-            <div class="rewards">
-                <h3>Rewards</h3>
-                <!-- To be populated dynamically -->
+            <div class="project-contribution">
+                <h4>Your Contribution</h4>
+                <div id="project-requirements-list">
+                    <!-- Contribution progress will be rendered here -->
+                </div>
             </div>
-
-            <button id="subscribe-btn" class="action-button">Subscribe</button>
         </div>
     `;
-    
-    // Close button
-    const closeBtn = modal.querySelector('.modal-close-btn');
-    closeBtn.onclick = () => closeModal('project-detail-modal');
-        
-    // Render Requirements
-    const reqContainer = modal.querySelector('.requirements');
-    reqContainer.innerHTML = ''; // Clear existing requirements
-    
-    // ... (Requirements parsing and rendering logic using JSON) ...
-    if (project.requirements && Array.isArray(JSON.parse(project.requirements))) {
-        JSON.parse(project.requirements).forEach(req => {
-            reqContainer.innerHTML += `<p>${req.quantity} x [Item ID ${req.item_id}]</p>`; // Replace with actual item name later
-        });
-    } else {
-        reqContainer.innerHTML = '<p>No requirements defined.</p>';
-    }
 
-    // Render Rewards
-    const rewardContainer = modal.querySelector('.rewards');
-    rewardContainer.innerHTML = ''; // Clear existing requirements
-
-    if (project.rewards && typeof project.rewards === 'object') {
-        // Display simple key-value pairs in the rewards section
-        for (const key in project.rewards) {
-            rewardContainer.innerHTML += `<p>${key}: ${project.rewards[key]}</p>`;
-        }
-    } else {
-        rewardContainer.innerHTML = '<p>No rewards defined.</p>';
-    }
-
-    // Set up subscription logic
-    const subscribeButton = document.getElementById('subscribe-btn');
-    subscribeButton.addEventListener('click', async () => {
-        const projectId = project.id;
-        const { error } = await api.subscribeToProject(state.currentUser.id, projectId);
-        if (error) {
-            showToast("Subscription error!", 'error');
-        } else {
-            showToast("Successfully subscribed to project!", 'success');
-            closeModal('project-detail-modal');
-        }
-    });
-
-    openModal('project-detail-modal');
+    // TODO: Implement countdown timer and contribution logic
+    document.getElementById('project-countdown').textContent = "Feature in development";
+    document.getElementById('project-requirements-list').innerHTML = "<p>Contribution system coming soon.</p>";
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Make utility functions globally available for onclick attributes in HTML
-    window.closeModal = function(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    }
-    
-    function showToast(message, type = 'info') {
-        const toastContainer = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        toastContainer.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-    window.showToast = showToast;
-});
-
-// Export the render function to display the view
+/**
+ * Main render function for the Great Projects screen.
+ * It determines whether to show the list of projects or the player's active project.
+ */
 export async function renderProjects() {
-    if (!state.currentUser) return;
+    if (!state.currentUser || !projectsContainer) return;
 
-    // Initialize by loading all available projects
-    await renderProjects();
+    projectsContainer.innerHTML = '<p>Loading your project status...</p>';
+
+    // Fetch both master projects and player's projects simultaneously
+    const [{ data: allProjects, error: allProjectsError }, { data: playerProjects, error: playerProjectsError }] = await Promise.all([
+        api.fetchAllGreatProjects(),
+        api.fetchPlayerGreatProjects(state.currentUser.id)
+    ]);
+
+    if (allProjectsError || playerProjectsError) {
+        projectsContainer.innerHTML = '<p class="error-message">Error loading project data.</p>';
+        return;
+    }
+
+    // Check if the player has an active project
+    const activeProject = playerProjects.find(p => p.status === 'active');
+
+    if (activeProject) {
+        // If there's an active project, show its dedicated view
+        renderActiveProjectView(activeProject);
+    } else {
+        // Otherwise, show the list of all available projects
+        projectsContainer.innerHTML = '';
+        if (allProjects.length === 0) {
+            projectsContainer.innerHTML = '<p>No great projects have been decreed by the Pharaoh yet. Check back later!</p>';
+            return;
+        }
+        allProjects.forEach(project => {
+            renderProjectCard(project);
+        });
+    }
+}
+
+
+/**
+ * Opens a modal with details to subscribe to a project.
+ * @param {object} project - The master project data.
+ */
+function openProjectDetailsModal(project) {
+    // This function will be expanded in the next step to show full details and subscribe button.
+    showToast(`Opening details for ${project.name}. Subscription logic coming soon.`, 'info');
 }
