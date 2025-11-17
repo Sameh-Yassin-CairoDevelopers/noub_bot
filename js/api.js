@@ -58,8 +58,8 @@ export async function addCardToPlayerCollection(playerId, cardId) {
  * between 'card_levels' and 'items', resolving the "more than one relationship" error.
  */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
-    // We are now explicitly telling Supabase how to join the tables by specifying the foreign key name.
-    // The syntax is: foreign_table!foreign_key_name(columns)
+    // FINAL FIX: Explicitly naming the one, correct foreign key relationship.
+    // This resolves the "more than one relationship was found" ambiguity permanently.
     return await supabaseClient
         .from('card_levels')
         .select(`
@@ -72,7 +72,7 @@ export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
             cost_item_id, 
             cost_item_qty, 
             power_increase,
-            items!card_levels_cost_item_id_fkey(id, name, image_url)
+            items:card_levels_cost_item_id_fkey (id, name, image_url)
         `)
         .eq('card_id', cardId)
         .eq('upgrade_level', nextLevel)
@@ -258,6 +258,7 @@ export async function subscribeToProject(playerId, projectId) {
 export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
+
 
 
 
