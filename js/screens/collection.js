@@ -91,7 +91,42 @@ async function openCardInteractionModal(playerCard) {
 
     openModal('card-interaction-modal');
 }
+/**
+ * A generic helper function to grant a reward object to the current player.
+ * @param {object} rewardObject - The reward to grant (e.g., { noub: 500, prestige: 10 }).
+ * @param {boolean} [isGrand=false] - If true, plays major reward effects.
+ * @returns {Promise<boolean>} - True if successful, false otherwise.
+ */
+async function grantReward(rewardObject, isGrand = false) {
+    const profileUpdate = {};
+    let rewardString = '';
+    if (rewardObject.noub) profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + rewardObject.noub;
+    if (rewardObject.prestige) profileUpdate.prestige = (state.playerProfile.prestige || 0) + rewardObject.prestige;
+    if (rewardObject.tickets) profileUpdate.spin_tickets = (state.playerProfile.spin_tickets || 0) + rewardObject.tickets;
+    if (rewardObject.ankh) profileUpdate.ankh_premium = (state.playerProfile.ankh_premium || 0) + rewardObject.ankh;
+    if (Object.keys(profileUpdate).length === 0) return true;
 
+    const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
+    if (error) {
+        showToast("Error granting reward!", 'error');
+        playSound('error');
+        triggerNotificationHaptic('error');
+        return false;
+    }
+
+    Object.keys(rewardObject).forEach(key => rewardString += `${rewardObject[key]}${key === 'noub' ? '🪙' : key === 'prestige' ? '🐞' : key === 'tickets' ? '🎟️' : '☥'} `);
+    showToast(`Reward Claimed: +${rewardString}`, 'success');
+
+    if (isGrand) {
+        playSound('reward_grand');
+        showVisualEffect('reward_major');
+        triggerNotificationHaptic('success');
+    } else {
+        playSound('claim_reward');
+        triggerHaptic('medium');
+    }
+    return true;
+}
 /**
  * Displays the upgrade requirements and confirmation in the modal.
  * @param {object} playerCard - The card to be upgraded.
@@ -243,4 +278,5 @@ export async function renderCollection() {
         collectionContainer.appendChild(cardElement);
     });
 }
+
 
