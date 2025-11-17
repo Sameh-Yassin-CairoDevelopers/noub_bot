@@ -75,9 +75,10 @@ export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
             items:card_levels_cost_item_id_fkey (id, name, image_url)
         `)
         .eq('card_id', cardId)
-        .eq('upgrade_level', nextLevel)
+        
         .single();
 }
+
 export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) {
     return await supabaseClient.from('player_cards').update({ level: newLevel, power_score: newPowerScore }).eq('instance_id', playerCardId);
 }
@@ -258,6 +259,7 @@ export async function subscribeToProject(playerId, projectId) {
 export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
+
 
 
 
