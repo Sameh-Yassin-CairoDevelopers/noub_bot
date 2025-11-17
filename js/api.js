@@ -53,7 +53,14 @@ export async function addCardToPlayerCollection(playerId, cardId) {
 }
 
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
-    return await supabaseClient.from('card_levels').select(`id, card_id, upgrade_level, cost_ankh, cost_prestige, cost_blessing, cost_item_id, cost_item_qty, power_increase, items (id, name, image_url)`).eq('card_id', cardId).eq('upgrade_level', nextLevel).single();
+    console.log(`Fetching requirements for card ID: ${cardId}, next level: ${nextLevel}`);
+    
+    return await supabaseClient
+        .from('card_levels')
+        .select('*') // We select everything WITHOUT joining the 'items' table
+        .eq('card_id', cardId)
+        .eq('upgrade_level', nextLevel)
+        .single();
 }
 
 export async function performCardUpgrade(playerCardId, newLevel, newPowerScore) {
@@ -236,5 +243,6 @@ export async function subscribeToProject(playerId, projectId) {
 export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
+
 
 
