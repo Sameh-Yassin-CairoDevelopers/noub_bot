@@ -58,12 +58,12 @@ export async function addCardToPlayerCollection(playerId, cardId) {
  * between 'card_levels' and 'items', resolving the "more than one relationship" error.
  */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
-    // FINAL FIX: Explicitly naming the one, correct foreign key relationship.
-    // This resolves the "more than one relationship was found" ambiguity permanently.
+    // FINAL FIX v2: Removed the non-existent 'id' column from the select statement.
+    // The primary key for 'card_levels' is a composite of (card_id, upgrade_level),
+    // so there is no separate 'id' column to select.
     return await supabaseClient
         .from('card_levels')
         .select(`
-            id, 
             card_id, 
             upgrade_level, 
             cost_noub, 
@@ -259,6 +259,7 @@ export async function subscribeToProject(playerId, projectId) {
 export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
+
 
 
 
