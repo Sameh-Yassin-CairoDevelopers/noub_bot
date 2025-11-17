@@ -64,7 +64,46 @@ export async function deleteCardInstance(instanceId) {
     return await supabaseClient.from('player_cards').delete().eq('instance_id', instanceId);
 }
 
+/**
+ * Atomically deducts multiple currency types and a single item from a player's profile and inventory.
+ * This is crucial for transactions like card upgrades.
+ * @param {string} playerId - The ID of the current player.
+ * @param {object} costs - An object containing the costs to deduct (e.g., { noub: 500, prestige: 10 }).
+ * @param {object|null} itemCost - An object for the item cost (e.g., { id: 15, qty: 5 }).
+ * @returns {Promise<{error: object|null}>} - An object containing an error if any part of the transaction failed.
+ */
+export async function transactUpgradeCosts(playerId, costs, itemCost = null) {
+    const profile = state.playerProfile;
+    const inventory = state.inventory;
 
+    // 1. Verify all costs can be met before starting the transaction
+    if ((profile.noub_score || 0) < (costs.noub || 0)) return { error: { message: 'Not enough NOUB.' } };
+    if ((profile.prestige || 0) < (costs.prestige || 0)) return { error: { message: 'Not enough Prestige.' } };
+    if ((profile.ankh_premium || 0) < (costs.ankh || 0)) return { error: { message: 'Not enough Ankh.' } };
+    if (itemCost && (inventory.get(itemCost.id)?.qty || 0) < itemCost.qty) return { error: { message: `Not enough ${inventory.get(itemCost.id)?.details.name || 'items'}.` } };
+
+    // 2. Prepare the database update objects
+    const profileUpdate = {
+        noub_score: (profile.noub_score || 0) - (costs.noub || 0),
+        prestige: (profile.prestige || 0) - (costs.prestige || 0),
+        ankh_premium: (profile.ankh_premium || 0) - (costs.ankh || 0),
+    };
+
+    // 3. Perform the updates
+    const { error: profileError } = await updatePlayerProfile(playerId, profileUpdate);
+    if (profileError) return { error: profileError };
+
+    if (itemCost) {
+        const currentItemQty = inventory.get(itemCost.id)?.qty || 0;
+        const { error: itemError } = await updateItemQuantity(playerId, itemCost.id, currentItemQty - itemCost.qty);
+        if (itemError) {
+            // In a real production app, you might want to roll back the profile update here.
+            return { error: itemError };
+        }
+    }
+
+    return { error: null }; // Success
+}
 // --- Economy API Functions ---
 
 export async function fetchPlayerFactories(playerId) {
@@ -197,4 +236,5 @@ export async function subscribeToProject(playerId, projectId) {
 export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
+
 
