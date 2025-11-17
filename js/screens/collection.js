@@ -131,13 +131,83 @@ async function grantReward(rewardObject, isGrand = false) {
  * Displays the upgrade requirements and confirmation in the modal.
  * @param {object} playerCard - The card to be upgraded.
  */
+/**
+ * Fetches and displays the upgrade requirements in the modal.
+ * @param {object} playerCard - The card to be upgraded.
+ */
 async function showUpgradeDetails(playerCard) {
-    // This logic is moved from the old upgrade.js
     const detailsContainer = document.getElementById('card-interaction-details');
     detailsContainer.innerHTML = `<p>Fetching upgrade requirements...</p>`;
-    // ... Fetch requirements and display them, then add a confirm button.
-    detailsContainer.innerHTML = `<p>Upgrade feature is now handled within this modal. Logic to be fully implemented.</p>`;
+
+    const nextLevel = playerCard.level + 1;
+    const { data: requirements, error } = await api.fetchCardUpgradeRequirements(playerCard.card_id, nextLevel);
+
+    if (error || !requirements) {
+        detailsContainer.innerHTML = `<p style="color: var(--text-secondary);">This card has reached its maximum level.</p>`;
+        return;
+    }
+
+    // Build the requirements display string
+    let costsText = [];
+    if (requirements.cost_noub > 0) costsText.push(`${requirements.cost_noub} 🪙`);
+    if (requirements.cost_prestige > 0) costsText.push(`${requirements.cost_prestige} 🐞`);
+    if (requirements.cost_ankh > 0) costsText.push(`${requirements.cost_ankh} ☥`);
+    if (requirements.cost_item_id) {
+        const itemName = requirements.items?.name || `Item #${requirements.cost_item_id}`;
+        costsText.push(`${requirements.cost_item_qty} x ${itemName}`);
+    }
+
+    detailsContainer.innerHTML = `
+        <div style="background: #2a2a2e; padding: 10px; border-radius: 6px;">
+            <h4>Upgrade to Level ${nextLevel}</h4>
+            <p><strong>Costs:</strong> ${costsText.join(', ')}</p>
+            <p><strong>Power Increase:</strong> +${requirements.power_increase}</p>
+            <button id="confirm-upgrade-btn" class="action-button">Confirm Upgrade</button>
+        </div>
+    `;
+
+    detailsContainer.querySelector('#confirm-upgrade-btn').onclick = () => handleUpgrade(playerCard, requirements);
 }
+/**
+ * Executes the card upgrade after confirmation.
+ * @param {object} playerCard - The card instance to upgrade.
+ * @param {object} requirements - The cost requirements for the upgrade.
+ */
+async function handleUpgrade(playerCard, requirements) {
+    showToast('Upgrading card...', 'info');
+
+    // 1. Deduct costs using the new transaction function
+    const currencyCosts = {
+        noub: requirements.cost_noub,
+        prestige: requirements.cost_prestige,
+        ankh: requirements.cost_ankh,
+    };
+    const itemCost = requirements.cost_item_id ? { id: requirements.cost_item_id, qty: requirements.cost_item_qty } : null;
+    
+    const { error: costError } = await api.transactUpgradeCosts(state.currentUser.id, currencyCosts, itemCost);
+    if (costError) {
+        return showToast(`Upgrade failed: ${costError.message}`, 'error');
+    }
+
+    // 2. Perform the card upgrade in the database
+    const newLevel = playerCard.level + 1;
+    const newPowerScore = playerCard.power_score + requirements.power_increase;
+    const { error: upgradeError } = await api.performCardUpgrade(playerCard.instance_id, newLevel, newPowerScore);
+
+    if (upgradeError) {
+        return showToast('Failed to update card level.', 'error');
+    }
+
+    // 3. Success feedback and UI refresh
+    playSound('reward_grand'); // Use a distinct sound for leveling up
+    triggerNotificationHaptic('success');
+    showToast(`${playerCard.cards.name} has been upgraded to Level ${newLevel}!`, 'success');
+
+    await refreshPlayerState();
+    window.closeModal('card-interaction-modal');
+    renderCollection();
+}
+
 
 /**
  * Displays the burn/sacrifice outcome and confirmation in the modal.
@@ -278,5 +348,6 @@ export async function renderCollection() {
         collectionContainer.appendChild(cardElement);
     });
 }
+
 
 
