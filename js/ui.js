@@ -138,41 +138,104 @@ const navItems = document.querySelectorAll('.nav-item');
  * The main navigation router for the application.
  * @param {string} targetId - The ID of the screen to navigate to.
  */
+// ... (بداية ملف ui.js وبقية الدوال) ...
+
+// A module-level flag to track the initial, automatic navigation event.
+// This is used to prevent sound playback before the user's first interaction,
+// adhering to modern browser autoplay policies.
+let isFirstNavigation = true;
+
+/**
+ * The main navigation router for the application.
+ * It manages screen visibility, updates the active state of navigation buttons,
+ * and calls the appropriate render function for the target screen.
+ * This version includes a fix to prevent sound playback on initial load.
+ * @param {string} targetId - The ID of the screen element to navigate to.
+ */
 export function navigateTo(targetId) {
+    // 1. Manage Screen Visibility: Hide all screens, then show the target screen.
     contentContainer.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     const screen = document.getElementById(targetId);
-    if (screen) screen.classList.remove('hidden');
+    if (screen) {
+        screen.classList.remove('hidden');
+    }
 
+    // 2. Update Navigation UI: Remove 'active' class from all nav items, then add it to the target.
     navItems.forEach(i => i.classList.remove('active'));
     const targetNavItem = document.querySelector(`.bottom-nav a[data-target="${targetId}"]`);
     if (targetNavItem) {
         targetNavItem.classList.add('active');
     }
 
-    playSound('click');
-    triggerHaptic('soft');
+    // 3. Play User Feedback (Sound & Haptics)
+    // CRITICAL FIX for Autoplay Policy:
+    // We only play feedback on subsequent navigations, which are guaranteed to be
+    // triggered by a user interaction (a click). The very first navigation is programmatic.
+    if (!isFirstNavigation) {
+        playSound('click');
+        triggerHaptic('soft');
+    }
+    // After the first programmatic navigation, all subsequent calls will be from user actions.
+    isFirstNavigation = false;
 
+    // 4. Render Screen Content: Call the specific render function for the target screen.
     switch (targetId) {
-        case 'home-screen': renderHome(); break;
-        case 'collection-screen': collectionModule.renderCollection(); break;
-        case 'economy-screen': renderProduction(); break;
-        case 'albums-screen': albumsModule.renderAlbums(); break;
-        case 'tasks-screen': tasksModule.renderTasks(); break;
-        case 'projects-screen': projectsModule.renderProjects(); break;
-        case 'contracts-screen': renderActiveContracts(); renderAvailableContracts(); break;
-        // case 'card-upgrade-screen': upgradeModule.renderUpgrade(); break; // DEPRECATED
-        case 'kv-game-screen': renderKVGame(); break;
-        case 'profile-screen': renderProfile(); break;
-        case 'chat-screen': renderChat(); break;
-        case 'history-screen': historyModule.renderHistory(); break;
-        case 'library-screen': libraryModule.renderLibrary(); break;
-        case 'settings-screen': settingsModule.renderSettings(); break;
-        case 'wheel-screen': wheelModule.renderWheel(); break;
-        case 'exchange-screen': exchangeModule.renderExchange(); break;
-        case 'activity-screen': activityModule.renderActivity(); break;
+        case 'home-screen':
+            renderHome();
+            break;
+        case 'collection-screen':
+            collectionModule.renderCollection();
+            break;
+        case 'economy-screen':
+            renderProduction();
+            break;
+        case 'albums-screen':
+            albumsModule.renderAlbums();
+            break;
+        case 'tasks-screen':
+            tasksModule.renderTasks();
+            break;
+        case 'projects-screen':
+            projectsModule.renderProjects();
+            break;
+        case 'contracts-screen':
+            renderActiveContracts();
+            renderAvailableContracts();
+            break;
+        // case 'card-upgrade-screen': // This is now deprecated
+        //     upgradeModule.renderUpgrade();
+        //     break;
+        case 'kv-game-screen':
+            renderKVGame();
+            break;
+        case 'profile-screen':
+            renderProfile();
+            break;
+        case 'chat-screen':
+            renderChat();
+            break;
+        case 'history-screen':
+            historyModule.renderHistory();
+            break;
+        case 'library-screen':
+            libraryModule.renderLibrary();
+            break;
+        case 'settings-screen':
+            settingsModule.renderSettings();
+            break;
+        case 'wheel-screen':
+            wheelModule.renderWheel();
+            break;
+        case 'exchange-screen':
+            exchangeModule.renderExchange();
+            break;
+        case 'activity-screen':
+            activityModule.renderActivity();
+            break;
     }
 }
 
+// ... (بقية الدوال في ui.js مثل updateHeaderUI, setupEventListeners, etc.) ...
 /**
  * Updates the main header UI with player data.
  * @param {object} profile - The player's profile object from the state.
@@ -252,3 +315,4 @@ export function setupEventListeners() {
         });
     });
 }
+
