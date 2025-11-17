@@ -231,9 +231,7 @@ export function navigateTo(targetId) {
 }
 
 
- * Updates the main header UI with player data.
- * @param {object} profile - The player's profile object from the state.
- */
+
 export function updateHeaderUI(profile) {
     if (!profile) return;
     const noubDisplay = document.getElementById('noub-display');
@@ -309,5 +307,6 @@ export function setupEventListeners() {
         });
     });
 }
+
 
 
