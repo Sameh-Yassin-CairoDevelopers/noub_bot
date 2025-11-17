@@ -134,11 +134,6 @@ window.showToast = showToast;
 const contentContainer = document.getElementById('content-container');
 const navItems = document.querySelectorAll('.nav-item');
 
-/**
- * The main navigation router for the application.
- * @param {string} targetId - The ID of the screen to navigate to.
- */
-// ... (بداية ملف ui.js وبقية الدوال) ...
 
 // A module-level flag to track the initial, automatic navigation event.
 // This is used to prevent sound playback before the user's first interaction,
@@ -235,8 +230,7 @@ export function navigateTo(targetId) {
     }
 }
 
-// ... (بقية الدوال في ui.js مثل updateHeaderUI, setupEventListeners, etc.) ...
-/**
+
  * Updates the main header UI with player data.
  * @param {object} profile - The player's profile object from the state.
  */
@@ -315,4 +309,5 @@ export function setupEventListeners() {
         });
     });
 }
+
 
