@@ -4,6 +4,7 @@
  * Description: Data Access Layer Module. This is the final, complete version,
  * restoring all original functions and including the new Great Projects API.
 */
+import { state } from './state.js'; // <-- ADD THIS LINE
 
 import { supabaseClient } from './config.js';
 
@@ -259,6 +260,7 @@ export async function subscribeToProject(playerId, projectId) {
 export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
+
 
 
 
