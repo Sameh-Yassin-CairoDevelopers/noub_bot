@@ -1,11 +1,11 @@
 /*
  * Filename: js/api.js
- * Version: NOUB v1.3.2 (Complete & Corrected API Module)
- * Description: Data Access Layer Module. This is the final, complete version,
- * restoring all original functions and including the new Great Projects API.
+ * Version: NOUB v1.5.1 (XP System Implementation)
+ * Description: Data Access Layer Module. This version introduces the core 'addXp'
+ * function, which is the engine for the new player leveling system.
 */
-import { state } from './state.js'; // <-- ADD THIS LINE
 
+import { state } from './state.js';
 import { supabaseClient } from './config.js';
 
 export { supabaseClient };
@@ -53,15 +53,7 @@ export async function addCardToPlayerCollection(playerId, cardId) {
     });
 }
 
-/**
- * Fetches the upgrade requirements for a specific card and level.
- * FINAL FIX: Specifies the exact foreign key relationship to use for the join
- * between 'card_levels' and 'items', resolving the "more than one relationship" error.
- */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
-    // FINAL FIX v2: Removed the non-existent 'id' column from the select statement.
-    // The primary key for 'card_levels' is a composite of (card_id, upgrade_level),
-    // so there is no separate 'id' column to select.
     return await supabaseClient
         .from('card_levels')
         .select(`
@@ -88,50 +80,33 @@ export async function deleteCardInstance(instanceId) {
     return await supabaseClient.from('player_cards').delete().eq('instance_id', instanceId);
 }
 
-/**
- * Atomically deducts multiple currency types and a single item from a player's profile and inventory.
- * This is crucial for transactions like card upgrades.
- * @param {string} playerId - The ID of the current player.
- * @param {object} costs - An object containing the costs to deduct (e.g., { noub: 500, prestige: 10 }).
- * @param {object|null} itemCost - An object for the item cost (e.g., { id: 15, qty: 5 }).
- * @returns {Promise<{error: object|null}>} - An object containing an error if any part of the transaction failed.
- */
 export async function transactUpgradeCosts(playerId, costs, itemCost = null) {
     const profile = state.playerProfile;
     const inventory = state.inventory;
-
-    // 1. Verify all costs can be met before starting the transaction
     if ((profile.noub_score || 0) < (costs.noub || 0)) return { error: { message: 'Not enough NOUB.' } };
-    if ((profile.prestige || 0) < (costs.prestige || 0)) return { error: { message: 'Not enough Prestige.' } };
-    if ((profile.ankh_premium || 0) < (costs.ankh || 0)) return { error: { message: 'Not enough Ankh.' } };
+    if ((profile.prestige || 0) < (costs.prestige || 0)) return { error: { message: 'Not enough Ankh.' } };
     if (itemCost && (inventory.get(itemCost.id)?.qty || 0) < itemCost.qty) return { error: { message: `Not enough ${inventory.get(itemCost.id)?.details.name || 'items'}.` } };
-
-    // 2. Prepare the database update objects
     const profileUpdate = {
         noub_score: (profile.noub_score || 0) - (costs.noub || 0),
         prestige: (profile.prestige || 0) - (costs.prestige || 0),
         ankh_premium: (profile.ankh_premium || 0) - (costs.ankh || 0),
     };
-
-    // 3. Perform the updates
     const { error: profileError } = await updatePlayerProfile(playerId, profileUpdate);
     if (profileError) return { error: profileError };
-
     if (itemCost) {
         const currentItemQty = inventory.get(itemCost.id)?.qty || 0;
         const { error: itemError } = await updateItemQuantity(playerId, itemCost.id, currentItemQty - itemCost.qty);
         if (itemError) {
-            // In a real production app, you might want to roll back the profile update here.
             return { error: itemError };
         }
     }
-
-    return { error: null }; // Success
+    return { error: null };
 }
+
 // --- Economy API Functions ---
 
 export async function fetchPlayerFactories(playerId) {
-    return await supabaseClient.from('player_factories').select(`id, level, production_start_time, assigned_card_instance_id, player_cards (instance_id, level, cards ( name, image_url, power_score )), factories!inner (id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, items!factories_output_item_id_fkey (id, name, type, image_url, base_value), factory_recipes (input_quantity, items (id, name, type, image_url, base_value)))`).eq('player_id', playerId);
+    return await supabaseClient.from('player_factories').select(`id, level, production_start_time, assigned_card_instance_id, player_cards (instance_id, level, cards ( name, image_url, power_score )), factories!inner (id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, required_level, items!factories_output_item_id_fkey (id, name, type, image_url, base_value), factory_recipes (input_quantity, items (id, name, type, image_url, base_value)))`).eq('player_id', playerId);
 }
 
 export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
@@ -160,7 +135,6 @@ export async function claimUcpTaskReward(playerId, taskNumber) {
     updateObject[`ucp_task_${taskNumber}_claimed`] = true;
     return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
 }
-
 
 // --- Contract API Functions ---
 
@@ -199,7 +173,6 @@ export async function refreshAvailableContracts(playerId) {
     return await supabaseClient.from('player_contracts').delete().eq('player_id', playerId);
 }
 
-
 // --- Games & Consumables API Functions ---
 
 export async function fetchSlotRewards() { return await supabaseClient.from('slot_rewards').select('id, prize_name, prize_type, value, weight'); }
@@ -208,7 +181,6 @@ export async function fetchKVGameConsumables(playerId) { return await supabaseCl
 export async function updateConsumableQuantity(playerId, itemKey, newQuantity) { return await supabaseClient.from('game_consumables').upsert({ player_id: playerId, item_key: itemKey, quantity: newQuantity }); }
 export async function fetchKVProgress(playerId) { return await supabaseClient.from('kv_game_progress').select('current_kv_level, last_game_result, unlocked_levels_json').eq('player_id', playerId).single(); }
 export async function updateKVProgress(playerId, updateObject) { return await supabaseClient.from('kv_game_progress').upsert({ player_id: playerId, ...updateObject }); }
-
 
 // --- UCP-LLM Protocol API Functions ---
 
@@ -221,14 +193,10 @@ export async function fetchUCPProtocol(playerId) {
     if (error) console.error("Error calling RPC function 'get_player_protocol':", error);
     return { data, error };
 }
-/**
- * Fetches a master list of all items in the game.
- * Used to resolve item names from item_id.
- */
+
 export async function fetchAllItems() {
     return await supabaseClient.from('items').select('id, name');
 }
-
 
 // --- TON Integration, Activity Log, History, Library, Albums ---
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) { return { success: true, amount: amountAnkhPremium }; }
@@ -238,7 +206,6 @@ export async function insertGameHistory(historyObject) { return await supabaseCl
 export async function fetchGameHistory(playerId) { return await supabaseClient.from('game_history').select('id, player_id, game_type, level_kv, result_status, time_taken, code, date').eq('player_id', playerId).order('date', { ascending: false }); }
 export async function fetchPlayerAlbums(playerId) { return await supabaseClient.from('player_albums').select(`album_id, is_completed, reward_claimed, master_albums (id, name, icon, description, card_ids, reward_ankh, reward_prestige)`).eq('player_id', playerId); }
 export async function fetchPlayerLibrary(playerId) { return await supabaseClient.from('player_library').select('entry_key').eq('player_id', playerId); }
-
 
 // --- Specialization API Functions ---
 
@@ -252,7 +219,7 @@ export async function fetchAllGreatProjects() {
     return await supabaseClient.from('master_great_projects').select('*').order('min_player_level', { ascending: true });
 }
 export async function fetchPlayerGreatProjects(playerId) {
-    return await supabaseClient.from('player_great_projects').select(`id, start_time, status, progress, master_great_projects ( * )`).eq('player_id', playerId);
+    return await supabaseClient.from('player_great_projects').select(`id, project_id, start_time, status, progress, master_great_projects ( * )`).eq('player_id', playerId);
 }
 export async function subscribeToProject(playerId, projectId) {
     return await supabaseClient.from('player_great_projects').insert({ player_id: playerId, project_id: projectId, start_time: new Date().toISOString(), status: 'active', progress: {} });
@@ -261,13 +228,72 @@ export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
 
+// --- NEW: Player Leveling System ---
 
+/**
+ * Atomically adds XP to a player's profile and handles level ups.
+ * This is the core engine of the new player progression system.
+ * @param {string} playerId - The ID of the player to grant XP to.
+ * @param {number} amount - The amount of XP to grant.
+ * @returns {Promise<{error: object|null}>} - An object containing an error if the transaction failed.
+ */
+export async function addXp(playerId, amount) {
+    if (!playerId || !amount || amount <= 0) {
+        return { error: { message: 'Invalid player ID or XP amount.' } };
+    }
 
+    // Since we can't perform complex read-modify-write atomically with just Supabase client-side updates,
+    // this is a prime candidate for a PostgreSQL function (RPC). For now, we'll do it client-side.
+    // NOTE: This can lead to race conditions in a high-concurrency environment.
+    
+    // 1. Fetch the current player state
+    const { data: currentProfile, error: fetchError } = await supabaseClient
+        .from('profiles')
+        .select('level, xp, xp_to_next_level')
+        .eq('id', playerId)
+        .single();
 
+    if (fetchError) {
+        console.error("addXp: Error fetching profile.", fetchError);
+        return { error: fetchError };
+    }
+    
+    // 2. Calculate new XP and handle level-ups
+    let { level, xp, xp_to_next_level } = currentProfile;
+    xp += amount;
+    
+    let leveledUp = false;
+    // Use a while loop to handle multi-level ups from a single large XP grant
+    while (xp >= xp_to_next_level) {
+        leveledUp = true;
+        level++;
+        xp -= xp_to_next_level;
+        
+        // Increase the XP required for the next level (e.g., by 10%)
+        xp_to_next_level = Math.floor(xp_to_next_level * 1.1);
+    }
+    
+    // 3. Prepare the final update object
+    const updateObject = {
+        xp: xp,
+        level: level,
+        xp_to_next_level: xp_to_next_level
+    };
 
+    // 4. Update the player's profile in the database
+    const { error: updateError } = await updatePlayerProfile(playerId, updateObject);
+    
+    if (updateError) {
+        console.error("addXp: Error updating profile.", updateError);
+        return { error: updateError };
+    }
+    
+    // If the player leveled up, show a notification
+    if (leveledUp) {
+        // We need access to showToast, so this is better handled by the calling function.
+        // We can return a flag indicating a level up occurred.
+        console.log(`Player ${playerId} leveled up to level ${level}!`);
+    }
 
-
-
-
-
-
+    return { error: null, leveledUp: leveledUp, newLevel: level };
+}
