@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/economy.js
- * Version: Pharaoh's Legacy 'NOUB' v0.8 (Card Level Scaling Effects)
- * Description: Expert card effects now scale with the card's level,
- * making card upgrades a meaningful strategic choice.
+ * Version: Pharaoh's Legacy 'NOUB' v1.5.1 (XP System Integration & Refactor)
+ * Description: View Logic Module for the Economy Hub. This version integrates XP rewards
+ * for claiming production and upgrading factories, tying the core economic loop into the
+ * new player progression system. It also internalizes the factory upgrade logic for better encapsulation.
 */
 
 import { state } from '../state.js';
@@ -10,38 +11,25 @@ import * as api from '../api.js';
 import { showToast, openModal, navigateTo } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { trackDailyActivity } from './contracts.js'; 
-import { executeFactoryUpgrade } from './upgrade.js';
-// ... (ضمن قائمة import)
-import { renderTasks, trackTaskProgress } from './tasks.js'; // أضف trackTaskProgress
+import { trackTaskProgress } from './tasks.js';
 
-// --- UPDATED: Expert Card Effects Dictionary (with Level Scaling) ---
+// --- Expert Card Effects Dictionary (with Level Scaling) ---
 const EXPERT_EFFECTS = {
     'Imhotep': {
         type: 'TIME_REDUCTION_PERCENT',
-        // LVL 1: 10%, LVL 2: 12%, LVL 3: 15%, LVL 4: 18%, LVL 5: 22%
         values: [10, 12, 15, 18, 22] 
     },
     'Osiris (Underworld)': {
         type: 'TIME_REDUCTION_PERCENT',
-        // LVL 1: 20%, LVL 2: 24%, LVL 3: 28%, LVL 4: 33%, LVL 5: 40%
         values: [20, 24, 28, 33, 40]
     },
     'Ptah (Creator)': {
         type: 'EXTRA_RESOURCE_CHANCE',
-        // LVL 1: 15%, LVL 2: 17%, LVL 3: 20%, LVL 4: 24%, LVL 5: 30%
         values: [15, 17, 20, 24, 30]
     }
-    // You can now define scaling values for every card.
 };
 
-const resourcesContainer = document.getElementById('resources-container');
-const workshopsContainer = document.getElementById('workshops-container');
-const productionModal = document.getElementById('production-modal');
-
-const stockResourcesContainer = document.getElementById('stock-resources-container');
-const stockMaterialsContainer = document.getElementById('stock-materials-container');
-const stockGoodsContainer = document.getElementById('stock-goods-container');
-
+// --- Constants ---
 const ONE_MINUTE = 60000;
 const ONE_SECOND = 1000;
 const SPECIALIZATION_UNLOCK_LEVEL = 15;
@@ -49,12 +37,21 @@ const FACTORY_UPGRADE_COST = 500;
 const FACTORY_UPGRADE_ITEM_NAME = 'Limestone Block'; 
 const FACTORY_UPGRADE_QTY = 10; 
 const FACTORY_UPGRADE_LEVEL_CAP = 10; 
-
 const SPECIALIZATION_FACTORY_MAP = {
     1: [7, 8, 9],
     2: [10, 11, 12],
     3: [13, 14, 15]
 };
+
+// --- DOM Element References ---
+const resourcesContainer = document.getElementById('resources-container');
+const workshopsContainer = document.getElementById('workshops-container');
+const productionModal = document.getElementById('production-modal');
+const stockResourcesContainer = document.getElementById('stock-resources-container');
+const stockMaterialsContainer = document.getElementById('stock-materials-container');
+const stockGoodsContainer = document.getElementById('stock-goods-container');
+
+// --- Specialization Logic ---
 
 async function handleSelectSpecialization(pathId) {
     if (!state.currentUser) return;
@@ -121,6 +118,8 @@ async function renderSpecializationChoice() {
     openModal('specialization-choice-modal');
 }
 
+// --- Utility Functions ---
+
 function formatTime(ms) {
     if (ms < 0) return '00:00';
     const totalSeconds = Math.floor(ms / ONE_SECOND);
@@ -131,6 +130,8 @@ function formatTime(ms) {
     if (hours > 0) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
     return `${pad(minutes)}:${pad(seconds)}`;
 }
+
+// --- Core Production Logic ---
 
 async function handleStartProduction(factoryId, recipes) {
     if (!state.currentUser) return;
@@ -164,6 +165,10 @@ async function handleStartProduction(factoryId, recipes) {
     renderProduction();
 }
 
+/**
+ * Handles claiming finished production from a factory.
+ * NEW: Grants the player +2 XP upon successful claim.
+ */
 async function handleClaimProduction(playerFactory, outputItem) {
     if (!state.currentUser || !outputItem) return;
     const factory = playerFactory.factories;
@@ -217,8 +222,13 @@ async function handleClaimProduction(playerFactory, outputItem) {
         return;
     }
 
-    // --- NEW: Track progress for tasks ---
-    // This will track progress for tasks like "Claim Production 3 Times" and "Produce 10 Clay Jars"
+    // --- NEW: Grant XP for production claim ---
+    const { leveledUp, newLevel } = await api.addXp(state.currentUser.id, 2);
+    if (leveledUp) {
+        showToast(`LEVEL UP! You have reached Level ${newLevel}!`, 'success');
+    }
+    // --- END NEW ---
+    
     await trackTaskProgress('production_claim', quantityProduced);
 
     showToast(`Claimed ${quantityProduced} x ${outputItem.name}!`, 'success');
@@ -226,6 +236,158 @@ async function handleClaimProduction(playerFactory, outputItem) {
     renderProduction();
     window.closeModal('production-modal');
 }
+
+// --- Factory Upgrade Logic (Internalized) ---
+
+/**
+ * Executes the factory upgrade transaction.
+ * NEW: Grants the player +20 XP upon successful upgrade.
+ * @param {object} playerFactory - The player_factories object.
+ */
+async function executeFactoryUpgrade(playerFactory) { 
+    if (!state.currentUser || !playerFactory) return;
+
+    if (playerFactory.level >= FACTORY_UPGRADE_LEVEL_CAP) {
+        showToast('Factory has reached its maximum level.', 'error');
+        return;
+    }
+
+    showToast('Processing factory upgrade...', 'info');
+    
+    const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => 
+        item.details.name === FACTORY_UPGRADE_ITEM_NAME
+    );
+    
+    const materialId = requiredMaterialEntry?.details.id;
+    const playerMaterialQty = requiredMaterialEntry?.qty || 0;
+    const playerNoub = state.playerProfile.noub_score || 0;
+
+    if (!materialId || playerNoub < FACTORY_UPGRADE_COST || playerMaterialQty < FACTORY_UPGRADE_QTY) {
+        showToast(`Error: Missing ${FACTORY_UPGRADE_QTY} ${FACTORY_UPGRADE_ITEM_NAME} or ${FACTORY_UPGRADE_COST} NOUB for upgrade.`, 'error');
+        return;
+    }
+
+    const newNoub = playerNoub - FACTORY_UPGRADE_COST;
+    const newMaterialQty = playerMaterialQty - FACTORY_UPGRADE_QTY;
+    
+    const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoub });
+    const { error: inventoryError } = await api.updateItemQuantity(state.currentUser.id, materialId, newMaterialQty);
+
+    if (profileError || inventoryError) {
+        showToast('Error consuming resources for upgrade!', 'error');
+        return;
+    }
+    
+    const newLevel = playerFactory.level + 1;
+    const { error: factoryError } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); 
+    
+    if (factoryError) {
+        showToast('Error updating factory level!', 'error');
+        return;
+    }
+    
+    // --- NEW: Grant XP for factory upgrade ---
+    const { leveledUp, newLevel: playerNewLevel } = await api.addXp(state.currentUser.id, 20); // Grant 20 XP for a factory upgrade
+    if (leveledUp) {
+        showToast(`LEVEL UP! You have reached Level ${playerNewLevel}!`, 'success');
+    }
+    // --- END NEW ---
+
+    showToast(`Factory Upgraded! ${playerFactory.factories.name} LVL ${playerFactory.level} → LVL ${newLevel}`, 'success');
+    
+    await refreshPlayerState(); 
+    
+    if (document.getElementById('economy-screen').classList.contains('hidden')) {
+        navigateTo('economy-screen');
+    } else {
+        renderProduction();
+    }
+}
+
+
+// --- Expert Assignment Logic ---
+
+async function openExpertSelectionModal(playerFactoryId) {
+    const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
+        api.fetchPlayerCards(state.currentUser.id),
+        api.fetchPlayerFactories(state.currentUser.id)
+    ]);
+    if (cardsError || factoriesError || !playerCards) {
+        showToast("Could not load required data.", 'error');
+        return;
+    }
+    const assignedCardIds = new Set(playerFactories.map(f => f.assigned_card_instance_id).filter(id => id !== null));
+    const availableCards = playerCards.filter(card => !assignedCardIds.has(card.instance_id));
+    let cardsHTML = availableCards.map(card => `
+        <div class="card-stack" data-instance-id="${card.instance_id}" style="cursor: pointer;">
+            <img src="${card.cards.image_url || 'images/default_card.png'}" class="card-image">
+            <h4>${card.cards.name}</h4>
+            <div class="card-details"><span class="card-level">LVL ${card.level}</span></div>
+        </div>
+    `).join('');
+    let selectionModal = document.getElementById('expert-selection-modal');
+    if (!selectionModal) {
+        selectionModal = document.createElement('div');
+        selectionModal.id = 'expert-selection-modal';
+        selectionModal.className = 'modal-overlay hidden';
+        document.body.appendChild(selectionModal);
+    }
+    selectionModal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="closeModal('expert-selection-modal')">&times;</button>
+            <h2>Select an Expert</h2>
+            <div class="card-grid">${cardsHTML || '<p>No available experts to assign.</p>'}</div>
+        </div>
+    `;
+    selectionModal.querySelectorAll('.card-stack').forEach(cardElement => {
+        cardElement.onclick = async () => {
+            const cardInstanceId = cardElement.dataset.instanceId;
+            await assignExpert(playerFactoryId, cardInstanceId);
+            closeModal('expert-selection-modal');
+            closeModal('production-modal');
+        };
+    });
+    openModal('expert-selection-modal');
+}
+
+async function assignExpert(playerFactoryId, cardInstanceId) {
+    showToast("Assigning expert...", 'info');
+    const { error } = await api.supabaseClient
+        .from('player_factories')
+        .update({ assigned_card_instance_id: cardInstanceId })
+        .eq('id', playerFactoryId);
+
+    if (error) {
+        showToast("Failed to assign expert!", 'error');
+        console.error("Assign Expert Error:", error);
+    } else {
+        await trackTaskProgress('assign_expert'); 
+        showToast("Expert assigned successfully!", 'success');
+        await refreshPlayerState();
+        renderProduction();
+    }
+}
+
+async function unassignExpert(playerFactoryId) {
+    showToast("Unassigning expert...", 'info');
+    const { error } = await api.supabaseClient
+        .from('player_factories')
+        .update({ assigned_card_instance_id: null })
+        .eq('id', playerFactoryId);
+    
+    if (error) {
+        showToast("Failed to unassign expert!", 'error');
+        console.error(error);
+    } else {
+        showToast("Expert unassigned.", 'success');
+        await refreshPlayerState();
+        renderProduction();
+        closeModal('production-modal');
+    }
+}
+
+
+// --- UI Rendering ---
 
 function updateProductionCard(factory, outputItem) {
     const cardId = `factory-card-${factory.id}`;
@@ -420,99 +582,25 @@ function openProductionModal(playerFactory, outputItem) {
     }
 }
 
-async function openExpertSelectionModal(playerFactoryId) {
-    const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
-        api.fetchPlayerCards(state.currentUser.id),
-        api.fetchPlayerFactories(state.currentUser.id)
-    ]);
-    if (cardsError || factoriesError || !playerCards) {
-        showToast("Could not load required data.", 'error');
-        return;
-    }
-    const assignedCardIds = new Set(playerFactories.map(f => f.assigned_card_instance_id).filter(id => id !== null));
-    const availableCards = playerCards.filter(card => !assignedCardIds.has(card.instance_id));
-    let cardsHTML = availableCards.map(card => `
-        <div class="card-stack" data-instance-id="${card.instance_id}" style="cursor: pointer;">
-            <img src="${card.cards.image_url || 'images/default_card.png'}" class="card-image">
-            <h4>${card.cards.name}</h4>
-            <div class="card-details"><span class="card-level">LVL ${card.level}</span></div>
-        </div>
-    `).join('');
-    let selectionModal = document.getElementById('expert-selection-modal');
-    if (!selectionModal) {
-        selectionModal = document.createElement('div');
-        selectionModal.id = 'expert-selection-modal';
-        selectionModal.className = 'modal-overlay hidden';
-        document.body.appendChild(selectionModal);
-    }
-    selectionModal.innerHTML = `
-        <div class="modal-content">
-            <button class="modal-close-btn" onclick="closeModal('expert-selection-modal')">&times;</button>
-            <h2>Select an Expert</h2>
-            <div class="card-grid">${cardsHTML || '<p>No available experts to assign.</p>'}</div>
-        </div>
-    `;
-    selectionModal.querySelectorAll('.card-stack').forEach(cardElement => {
-        cardElement.onclick = async () => {
-            const cardInstanceId = cardElement.dataset.instanceId;
-            await assignExpert(playerFactoryId, cardInstanceId);
-            closeModal('expert-selection-modal');
-            closeModal('production-modal');
-        };
-    });
-    openModal('expert-selection-modal');
-}
-
-async function assignExpert(playerFactoryId, cardInstanceId) {
-    showToast("Assigning expert...", 'info');
-    const { error } = await api.supabaseClient
-        .from('player_factories')
-        .update({ assigned_card_instance_id: cardInstanceId })
-        .eq('id', playerFactoryId);
-
-    if (error) {
-        showToast("Failed to assign expert!", 'error');
-        console.error("Assign Expert Error:", error);
-    } else {
-        // -- ADD THIS LINE --
-        await trackTaskProgress('assign_expert'); 
-
-        showToast("Expert assigned successfully!", 'success');
-        await refreshPlayerState();
-        renderProduction();
-    }
-}
-
-async function unassignExpert(playerFactoryId) {
-    showToast("Unassigning expert...", 'info');
-    const { error } = await api.supabaseClient
-        .from('player_factories')
-        .update({ assigned_card_instance_id: null })
-        .eq('id', playerFactoryId);
-    
-    if (error) {
-        showToast("Failed to unassign expert!", 'error');
-        console.error(error);
-    } else {
-        showToast("Expert unassigned.", 'success');
-        await refreshPlayerState();
-        renderProduction();
-        closeModal('production-modal');
-    }
-}
-
+/**
+ * Main render function for the Economy Hub screen.
+ */
 export async function renderProduction() {
     if (!state.currentUser || !state.playerProfile) return;
+    
+    // Ensure player profile is fresh, especially level data
     if (state.playerProfile.level === undefined) await refreshPlayerState();
     
+    // Check for specialization unlock condition
     const hasSpecialization = state.specializations && state.specializations.size > 0;
     if (state.playerProfile.level >= SPECIALIZATION_UNLOCK_LEVEL && !hasSpecialization) {
         renderSpecializationChoice();
-        return;
+        return; // Stop rendering the main economy screen until a choice is made
     }
     
     resourcesContainer.innerHTML = 'Loading resources buildings...';
     workshopsContainer.innerHTML = 'Loading crafting workshops...';
+    
     const { data: factories, error } = await api.fetchPlayerFactories(state.currentUser.id);
 
     if (error) {
@@ -529,6 +617,12 @@ export async function renderProduction() {
 
     [...resourceBuildings, ...workshops].forEach(playerFactory => {
         const factory = playerFactory.factories;
+        
+        // Skip rendering factories that require a level the player hasn't reached yet
+        if (factory.required_level > state.playerProfile.level) {
+            return;
+        }
+
         const outputItem = factory.items;
         const card = document.createElement('div');
         card.className = 'building-card';
@@ -557,6 +651,9 @@ export async function renderProduction() {
     await renderStock();
 }
 
+/**
+ * Renders the player's current inventory stock.
+ */
 export async function renderStock() {
     if (!state.currentUser) return;
     
@@ -605,6 +702,3 @@ export async function renderStock() {
         if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
-
-
-
