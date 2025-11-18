@@ -1,8 +1,9 @@
 /*
  * Filename: js/auth.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: Fetch Specializations)
+ * Version: NOUB v1.5 (New Player Seeding & Leveling System)
  * Description: Authentication Module. Manages login, signup, and player state refreshing.
- * CRITICAL FIX: refreshPlayerState now fetches player specializations to correctly display specialized factories.
+ * This version updates the new player seeding process to grant initial factories,
+ * aligning with the new player progression and economy design.
 */
 
 import { supabaseClient } from './config.js';
@@ -10,6 +11,7 @@ import { state } from './state.js';
 import * as api from './api.js';
 import { navigateTo, updateHeaderUI, showToast } from './ui.js';
 
+// --- Module-level DOM References ---
 const authOverlay = document.getElementById('auth-overlay');
 const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
@@ -20,37 +22,59 @@ const STARTER_NOUB_SCORE = 2000;
 const STARTER_PRESTIGE = 10;
 const STARTER_SPIN_TICKETS = 5;
 const STARTER_ANKH_PREMIUM = 0;
-// NOTE: These IDs must correspond to the IDs in your 'factories' table
-const INITIAL_FACTORY_IDS = [1, 2, 3, 4, 5, 6]; 
+// UPDATED: New players now start with only the three basic resource factories.
+// These IDs must correspond to the IDs in your 'factories' table for:
+// 1: Limestone Quarry, 2: Papyrus Field, 3: Clay Pit
+const INITIAL_FACTORY_IDS = [1, 2, 3]; 
 
 
-// Make these functions globally available for onclick attributes in index.html
+// --- Global Functions for Inline HTML Event Handlers ---
+
+/**
+ * Makes the registration form visible and hides the login form.
+ * Exposed to the window object for use in 'onclick' attributes.
+ */
 export function showRegisterForm() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
         registerForm.classList.remove('hidden');
     }
 }
+window.showRegisterForm = showRegisterForm;
+
+/**
+ * Makes the login form visible and hides the registration form.
+ * Exposed to the window object for use in 'onclick' attributes.
+ */
 export function showLoginForm() {
     if (loginForm && registerForm) {
         registerForm.classList.add('hidden');
         loginForm.classList.remove('hidden');
     }
 }
-window.showRegisterForm = showRegisterForm;
 window.showLoginForm = showLoginForm;
 
 
+// --- Core Authentication and Seeding Logic ---
+
 /**
- * Seeds the necessary initial data for a brand new player.
+ * Seeds the necessary initial data for a brand new player upon registration.
+ * This function provides the starter currency pack and the initial set of factories.
+ * @param {string} userId - The unique ID of the newly created user.
+ * @returns {Promise<boolean>} - True if seeding was successful, false otherwise.
  */
 async function seedNewPlayer(userId) {
+    // 1. Define the initial currency and settings for the player's profile.
     const profileUpdate = {
         noub_score: STARTER_NOUB_SCORE,
         prestige: STARTER_PRESTIGE,
         spin_tickets: STARTER_SPIN_TICKETS,
         ankh_premium: STARTER_ANKH_PREMIUM,
-        last_daily_spin: new Date().toISOString(), 
+        last_daily_spin: new Date().toISOString(),
+        // Initialize new leveling system columns
+        level: 1,
+        xp: 0,
+        xp_to_next_level: 100
     };
     
     const { error: profileError } = await api.updatePlayerProfile(userId, profileUpdate);
@@ -59,6 +83,7 @@ async function seedNewPlayer(userId) {
         return false;
     }
     
+    // 2. Create promises to insert the initial factories for the new player.
     const factoryPromises = INITIAL_FACTORY_IDS.map(factoryId => {
         return supabaseClient.from('player_factories').insert({
             player_id: userId,
@@ -67,39 +92,40 @@ async function seedNewPlayer(userId) {
         });
     });
     
+    // 3. Execute all factory insertion promises in parallel for efficiency.
     await Promise.all(factoryPromises);
     
-    await api.logActivity(userId, 'STARTER_PACK', `Received Starter Pack: ${STARTER_NOUB_SCORE} NOUB, ${STARTER_PRESTIGE} Prestige, ${STARTER_SPIN_TICKETS} Spin Tickets.`);
+    // 4. Log this significant event in the player's activity log.
+    await api.logActivity(userId, 'STARTER_PACK', `Received Starter Pack and initial factories.`);
     
     return true;
 }
 
 /**
- * Refreshes the player's entire state (profile, inventory, specializations, etc.)
- * from the database and updates the UI header.
+ * Refreshes the player's entire client-side state from the database.
+ * This function is critical for ensuring the UI is always in sync with the backend.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Fetch all critical data simultaneously for maximum speed
+    // Fetch all critical data simultaneously for maximum speed using Promise.all.
     const [profileResult, inventoryResult, consumablesResult, ucpResult, specializationsResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
         api.fetchKVGameConsumables(state.currentUser.id),
         api.fetchUCPProtocol(state.currentUser.id),
-        // CRITICAL FIX: Fetch player's unlocked specializations
         api.fetchPlayerSpecializations(state.currentUser.id) 
     ]);
 
-    // Profile Data
+    // Populate profile data
     if (!profileResult.error && profileResult.data) {
         state.playerProfile = profileResult.data;
         updateHeaderUI(state.playerProfile);
     } else {
-        console.error("Error refreshing profile data.");
+        console.error("Error refreshing profile data:", profileResult.error);
     }
     
-    // Inventory Data
+    // Populate inventory data
     if (!inventoryResult.error && inventoryResult.data) {
         state.inventory.clear();
         inventoryResult.data.forEach(item => {
@@ -107,7 +133,7 @@ export async function refreshPlayerState() {
         });
     }
 
-    // Consumables Data
+    // Populate consumables data
     if (!consumablesResult.error && consumablesResult.data) {
         state.consumables.clear();
         consumablesResult.data.forEach(item => {
@@ -115,15 +141,15 @@ export async function refreshPlayerState() {
         });
     }
 
-    // UCP Protocol Data
+    // Populate UCP protocol data
     if (!ucpResult.error && ucpResult.data) {
-        state.ucp.clear();
+        state.ucp = new Map(); // Ensure ucp is a Map
         ucpResult.data.forEach(entry => {
             state.ucp.set(entry.section_key, entry.section_data);
         });
     }
     
-    // Specializations Data
+    // Populate specializations data
     if (!specializationsResult.error && specializationsResult.data) {
         state.specializations = new Map();
         specializationsResult.data.forEach(spec => {
@@ -133,6 +159,10 @@ export async function refreshPlayerState() {
 }
 
 
+/**
+ * Initializes the application after a successful login or session restoration.
+ * @param {object} user - The Supabase user object.
+ */
 async function initializeApp(user) {
     state.currentUser = user;
     
@@ -149,6 +179,11 @@ async function initializeApp(user) {
     navigateTo('home-screen');
 }
 
+/**
+ * Handles the user login process.
+ * @param {string} email - The user's email.
+ * @param {string} password - The user's password.
+ */
 async function login(email, password) {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) return { error };
@@ -156,6 +191,12 @@ async function login(email, password) {
     return { data };
 }
 
+/**
+ * Handles the new user registration process.
+ * @param {string} email - The new user's email.
+ * @param {string} password - The new user's password.
+ * @param {string} username - The new user's chosen username.
+ */
 async function signUp(email, password, username) {
     const { data, error } = await supabaseClient.auth.signUp({
         email,
@@ -166,6 +207,7 @@ async function signUp(email, password, username) {
     if (error) return { error };
 
     if (data.user) {
+        // Seed the new player with starter items and factories
         await seedNewPlayer(data.user.id);
         
         showToast('Account created! Check your email to confirm, then log in.', 'success');
@@ -175,21 +217,29 @@ async function signUp(email, password, username) {
     return { error: { message: "Sign up successful, but could not retrieve user data." } };
 }
 
+/**
+ * Logs the current user out and resets the application state.
+ */
 export async function logout() {
     await supabaseClient.auth.signOut();
+    // Reset all client-side state
     state.currentUser = null;
     state.playerProfile = null;
     state.inventory.clear();
     state.consumables.clear();
     state.ucp.clear();
-    // POLISH: Clear specializations map on logout
     if (state.specializations) {
         state.specializations.clear();
     }
+    // Return to the authentication screen
     appContainer.classList.add('hidden');
     authOverlay.classList.remove('hidden');
+    showLoginForm();
 }
 
+/**
+ * Sets up event listeners for the login and registration forms.
+ */
 export function setupAuthEventListeners() {
     const loginButton = document.getElementById('login-button');
     const registerButton = document.getElementById('register-button');
@@ -221,7 +271,7 @@ export function setupAuthEventListeners() {
             if (result.error) {
                 errorDiv.textContent = 'Signup Error: ' + result.error.message;
             } else {
-                // POLISH: Automatically switch to login form on successful signup
+                // On successful signup, guide the user to the login form
                 showLoginForm();
             }
             e.target.disabled = false;
@@ -229,6 +279,10 @@ export function setupAuthEventListeners() {
     }
 }
 
+/**
+ * Checks for an active session when the application first loads.
+ * If a session exists, it initializes the app; otherwise, it shows the login screen.
+ */
 export async function handleInitialSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
