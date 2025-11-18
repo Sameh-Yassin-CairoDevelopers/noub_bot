@@ -95,7 +95,6 @@ async function handleUpgrade(playerCard, requirements) {
         return showToast('Failed to update card level.', 'error');
     }
 
-    // Grant XP for the upgrade
     await api.addXp(state.currentUser.id, XP_FOR_UPGRADE);
 
     playSound('reward_grand');
@@ -111,7 +110,6 @@ async function showUpgradeDetails(playerCard) {
     detailsContainer.innerHTML = `<p>Fetching upgrade requirements...</p>`;
     const nextLevel = playerCard.level + 1;
     
-    // Hide the upgrade button immediately if the card is already at max level (e.g., 5)
     if (playerCard.level >= 5) {
         detailsContainer.innerHTML = `<p style="color: var(--text-secondary);">This card has reached its maximum level.</p>`;
         document.getElementById('card-upgrade-btn').style.display = 'none';
@@ -122,7 +120,6 @@ async function showUpgradeDetails(playerCard) {
     
     if (error || !requirements) {
         detailsContainer.innerHTML = `<p style="color: var(--text-secondary);">This card has reached its maximum level.</p>`;
-        // Also hide the upgrade button if no requirements are found
         document.getElementById('card-upgrade-btn').style.display = 'none';
         return;
     }
@@ -150,7 +147,6 @@ async function showUpgradeDetails(playerCard) {
 function showBurnDetails(playerCard, burnInfo, actionType) {
     const detailsContainer = document.getElementById('card-interaction-details');
 
-    // Check if the card is assigned as an expert
     const isAssigned = Array.from(state.playerFactories.values()).some(factory => factory.assigned_card_instance_id === playerCard.instance_id);
 
     if (isAssigned) {
@@ -195,7 +191,6 @@ async function handleBurnOrSacrifice(playerCard, burnInfo) {
         return showToast('Error removing card!', 'error');
     }
 
-    // Grant XP for burning/sacrificing
     await api.addXp(state.currentUser.id, XP_FOR_BURN);
 
     let success = false;
@@ -213,8 +208,6 @@ async function handleBurnOrSacrifice(playerCard, burnInfo) {
             break;
     }
     if (success) {
-        playSound('claim_reward');
-        triggerHaptic('medium');
         await refreshPlayerState();
         window.closeModal('card-interaction-modal');
         renderCollection();
@@ -251,15 +244,20 @@ async function openCardInteractionModal(playerCard) {
 export async function renderCollection() {
     if (!state.currentUser) return;
     collectionContainer.innerHTML = 'Loading your cards...';
-    // We need factory data to check for assigned experts
-    await Promise.all([refreshPlayerState(), api.fetchPlayerFactories(state.currentUser.id).then(res => {
-        state.playerFactories = new Map(res.data.map(f => [f.id, f]));
-    })]);
+    
+    // Fetch both cards and factories to check for assigned experts
+    const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
+        api.fetchPlayerCards(state.currentUser.id),
+        api.fetchPlayerFactories(state.currentUser.id)
+    ]);
 
-    const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
-    if (error) {
-        return collectionContainer.innerHTML = '<p class="error-message">Error fetching cards.</p>';
+    if (cardsError || factoriesError) {
+        return collectionContainer.innerHTML = '<p class="error-message">Error fetching game data.</p>';
     }
+    
+    // Cache factory data in the state for other modules to use
+    state.playerFactories = new Map(playerFactories.map(f => [f.id, f]));
+
     if (playerCards.length === 0) {
         return collectionContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">You have no cards yet. Visit the Shop!</p>';
     }
