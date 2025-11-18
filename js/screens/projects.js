@@ -1,20 +1,20 @@
 /*
  * Filename: js/screens/projects.js
- * Version: NOUB v1.3.4 (Final Project Filtering & Logic)
- * Description: Final complete and corrected version for the Great Projects screen.
- * This version correctly filters out projects the player is already participating in
- * and includes all necessary helper and logic functions for a complete user flow.
+ * Version: NOUB v1.5.2 (Over-Delivery Fix & Auto-Completion)
+ * Description: View Logic Module for the Great Projects screen. This version implements
+ * critical logic fixes, including validation to prevent over-delivery of resources and
+ * an automatic completion mechanism that triggers when all requirements are met,
+ * awarding final rewards and XP.
 */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, openModal } from '../ui.js';
+import { showToast, openModal, playSound, triggerNotificationHaptic } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
 // --- Module-level State ---
 const projectsContainer = document.getElementById('projects-container');
 let projectCountdownInterval = null;
-
 
 // --- Helper Functions ---
 
@@ -31,7 +31,6 @@ function formatTime(ms) {
     return `${days}d ${hours}h ${minutes}m`;
 }
 
-
 // --- Core Logic: Project Interaction ---
 
 /**
@@ -42,7 +41,6 @@ function formatTime(ms) {
 async function handleSubscribe(project) {
     const playerProfile = state.playerProfile;
 
-    // 1. Validate subscription requirements against the player's current state.
     if ((playerProfile.noub_score || 0) < project.cost_noub) {
         return showToast(`Not enough NOUB. Required: ${project.cost_noub}`, 'error');
     }
@@ -55,7 +53,6 @@ async function handleSubscribe(project) {
 
     showToast("Subscribing to project...", 'info');
 
-    // 2. Atomically deduct subscription costs from the player's profile.
     const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, {
         noub_score: playerProfile.noub_score - project.cost_noub,
         prestige: playerProfile.prestige - project.cost_prestige
@@ -65,16 +62,13 @@ async function handleSubscribe(project) {
         return showToast("Failed to deduct subscription costs.", 'error');
     }
 
-    // 3. Create the player's project instance in the database.
     const { error: subscribeError } = await api.subscribeToProject(state.currentUser.id, project.id);
     if (subscribeError) {
-        // In a production environment, logic to refund the costs should be implemented here.
         return showToast("An error occurred during subscription.", 'error');
     }
 
     showToast(`Successfully subscribed to "${project.name}"!`, 'success');
     
-    // 4. Refresh global state and re-render the UI to reflect the new active project.
     await refreshPlayerState();
     window.closeModal('project-detail-modal');
     renderProjects();
@@ -82,40 +76,82 @@ async function handleSubscribe(project) {
 
 /**
  * Handles the delivery of resources to an active project.
- * @param {number} projectInstanceId - The unique ID of the player's project instance.
+ * NEW: Prevents over-delivery and triggers auto-completion when all requirements are met.
+ * @param {object} activeProject - The player's active project instance from the database.
  * @param {string} itemId - The ID of the item being delivered.
  * @param {number} amount - The quantity of the item to deliver.
  */
-async function handleDeliver(projectInstanceId, itemId, amount) {
-    if (isNaN(amount) || amount <= 0) return showToast("Please enter a valid amount.", 'error');
+async function handleDeliver(activeProject, itemId, amount) {
+    if (isNaN(amount) || amount <= 0) {
+        return showToast("Please enter a valid amount.", 'error');
+    }
     
     const playerItem = state.inventory.get(parseInt(itemId));
-    if (!playerItem || playerItem.qty < amount) return showToast("Not enough resources in your inventory.", 'error');
+    if (!playerItem || playerItem.qty < amount) {
+        return showToast("Not enough resources in your inventory.", 'error');
+    }
+
+    // --- NEW: Over-delivery prevention logic ---
+    const masterProject = activeProject.master_great_projects;
+    const requirement = masterProject.requirements.item_requirements.find(r => r.item_id == itemId);
+    const deliveredAmount = activeProject.progress[itemId] || 0;
+    const neededAmount = requirement.quantity - deliveredAmount;
+
+    if (neededAmount <= 0) {
+        return showToast("This requirement has already been fulfilled.", 'info');
+    }
+    if (amount > neededAmount) {
+        return showToast(`You only need to deliver ${neededAmount} more of this item.`, 'error');
+    }
+    // --- END NEW ---
 
     showToast("Delivering resources...", 'info');
 
-    const activeProject = state.playerProjects.find(p => p.id === parseInt(projectInstanceId));
-    if (!activeProject) return showToast("Active project not found.", "error");
-
-    const newProgress = { ...(activeProject.progress || {}) };
+    const newProgress = { ...activeProject.progress };
     newProgress[itemId] = (newProgress[itemId] || 0) + amount;
 
-    // Perform database updates in parallel for efficiency.
     const [{ error: deliverError }, { error: inventoryError }] = await Promise.all([
-        api.deliverToProject(projectInstanceId, newProgress),
+        api.deliverToProject(activeProject.id, newProgress),
         api.updateItemQuantity(state.currentUser.id, parseInt(itemId), playerItem.qty - amount)
     ]);
 
     if (deliverError || inventoryError) {
-        // Error handling should be more robust in production (e.g., retries or rollbacks).
         return showToast("Failed to deliver resources.", 'error');
     }
 
     showToast("Resources delivered successfully!", 'success');
+    
+    // --- NEW: Auto-completion check logic ---
+    let allRequirementsMet = true;
+    for (const req of masterProject.requirements.item_requirements) {
+        if ((newProgress[req.item_id] || 0) < req.quantity) {
+            allRequirementsMet = false;
+            break; // No need to check further if one requirement is not met
+        }
+    }
+
+    if (allRequirementsMet) {
+        playSound('reward_grand');
+        triggerNotificationHaptic('success');
+        showToast(`AMAZING! You have completed "${masterProject.name}"! Claiming final rewards...`, 'success');
+        
+        const { error: completionError } = await api.completeGreatProject(activeProject.id, masterProject.rewards);
+        
+        if (completionError) {
+            showToast("Error finalizing project completion!", 'error');
+        } else {
+            // Grant a large amount of XP for completing a project
+            const { leveledUp, newLevel } = await api.addXp(state.currentUser.id, 500); 
+            if (leveledUp) {
+                showToast(`LEVEL UP! You have reached Level ${newLevel}!`, 'success');
+            }
+        }
+    }
+    // --- END NEW ---
+
     await refreshPlayerState();
     renderProjects();
 }
-
 
 // --- UI Rendering Functions ---
 
@@ -150,21 +186,28 @@ function renderProjectCard(container, project) {
 }
 
 /**
- * Renders the detailed view for a player's currently active project.
+ * Renders the detailed view for a player's currently active or completed project.
+ * NEW: Handles the 'completed' state of a project to update the UI accordingly.
  * @param {HTMLElement} container - The DOM element to append the view to.
  * @param {object} activeProject - The player's project data.
  */
 function renderActiveProjectView(container, activeProject) {
     const project = activeProject.master_great_projects;
     const projectView = document.createElement('div');
+    const isCompleted = activeProject.status === 'completed';
+
     projectView.className = 'active-project-view';
-    projectView.style.cssText = `background: var(--surface-dark); padding: 15px; border-radius: 8px; margin-bottom: 20px;`;
+    projectView.style.cssText = `background: var(--surface-dark); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 3px solid ${isCompleted ? 'var(--success-color)' : 'var(--primary-accent)'};`;
     
+    let timerHTML = isCompleted 
+        ? `<p style="font-size: 1.5em; font-weight: bold; color: var(--success-color);">COMPLETED</p>`
+        : `<p class="project-countdown" data-start-time="${activeProject.start_time}" data-duration-days="${project.duration_days}" style="font-size: 1.5em; font-weight: bold;">Calculating...</p>`;
+
     projectView.innerHTML = `
-        <h3>${project.name} (Active)</h3>
-        <div class="project-timer" style="margin: 15px 0;">
-            <h4 style="color: var(--primary-accent);">Time Remaining</h4>
-            <p class="project-countdown" data-start-time="${activeProject.start_time}" data-duration-days="${project.duration_days}" style="font-size: 1.5em; font-weight: bold;">Calculating...</p>
+        <h3>${project.name} (${isCompleted ? 'Completed' : 'Active'})</h3>
+        <div class="project-timer" style="margin: 15px 0; text-align: center;">
+            <h4 style="color: ${isCompleted ? 'var(--success-color)' : 'var(--primary-accent)'};">${isCompleted ? 'Status' : 'Time Remaining'}</h4>
+            ${timerHTML}
         </div>
         <div class="project-contribution">
             <h4>Your Contribution</h4>
@@ -191,25 +234,28 @@ function renderActiveProjectView(container, activeProject) {
                 <strong>${deliveredAmount} / ${req.quantity}</strong>
             </p>
             <div class="progress-bar" style="background: #333; border-radius: 4px; overflow: hidden; height: 6px;">
-                <div class="progress-bar-inner" style="width: ${progressPercent}%; height: 100%;"></div>
+                <div class="progress-bar-inner" style="width: ${progressPercent}%; height: 100%; background-color: ${progressPercent >= 100 ? 'var(--success-color)' : 'var(--primary-accent)'};"></div>
             </div>
+            ${!isCompleted ? `
             <div class="delivery-controls" style="display: flex; gap: 10px; margin-top: 5px;">
                 <input type="number" class="delivery-input" data-item-id="${req.item_id}" placeholder="Amount" style="width: 100px; background: #222; border-color: #444;">
-                <button class="action-button small deliver-btn" data-project-instance-id="${activeProject.id}" data-item-id="${req.item_id}">Deliver</button>
+                <button class="action-button small deliver-btn" data-item-id="${req.item_id}">Deliver</button>
             </div>
+            ` : ''}
         `;
         requirementsList.appendChild(reqElement);
     });
 
-    projectView.querySelectorAll('.deliver-btn').forEach(button => {
-        const itemId = button.dataset.itemId;
-        const projectInstanceId = button.dataset.projectInstanceId;
-        const input = projectView.querySelector(`.delivery-input[data-item-id="${itemId}"]`);
-        button.onclick = () => {
-            const amount = parseInt(input.value);
-            handleDeliver(projectInstanceId, itemId, amount);
-        };
-    });
+    if (!isCompleted) {
+        projectView.querySelectorAll('.deliver-btn').forEach(button => {
+            const itemId = button.dataset.itemId;
+            const input = projectView.querySelector(`.delivery-input[data-item-id="${itemId}"]`);
+            button.onclick = () => {
+                const amount = parseInt(input.value);
+                handleDeliver(activeProject, itemId, amount);
+            };
+        });
+    }
 }
 
 /**
@@ -226,7 +272,7 @@ function openProjectDetailsModal(project) {
     }).join('') || '<li>None</li>';
 
     const rewards = project.rewards || {};
-    let rewardsHTML = Object.keys(rewards).map(key => `<li>${rewards[key]} ${key.toUpperCase()}</li>`).join('') || '<li>None</li>';
+    let rewardsHTML = Object.entries(rewards).map(([key, value]) => `<li>${value} ${key.toUpperCase()}</li>`).join('') || '<li>None</li>';
 
     modal.innerHTML = `
         <div class="modal-content">
@@ -277,9 +323,8 @@ function startProjectTimers() {
         });
     }
     update();
-    projectCountdownInterval = setInterval(update, 60000);
+    projectCountdownInterval = setInterval(update, 60000); // Update every minute
 }
-
 
 /**
  * Main render function for the Great Projects screen.
@@ -289,8 +334,6 @@ export async function renderProjects() {
     if (!state.currentUser || !projectsContainer) return;
     projectsContainer.innerHTML = '<p>Loading project status...</p>';
 
-    // A master list of all item definitions is required to display requirement names.
-    // We cache this in the state to avoid re-fetching on every render.
     if (!state.masterItems || state.masterItems.size === 0) {
         state.masterItems = new Map();
         const { data: allItems } = await api.fetchAllItems(); 
@@ -309,23 +352,22 @@ export async function renderProjects() {
         return;
     }
     
-    state.playerProjects = playerProjects; // Cache for access in functions like handleDeliver
+    state.playerProjects = playerProjects;
     projectsContainer.innerHTML = '';
 
-    const activeProjects = playerProjects.filter(p => p.status === 'active');
-    if (activeProjects.length > 0) {
+    const activeAndCompletedProjects = playerProjects.filter(p => p.status === 'active' || p.status === 'completed');
+    if (activeAndCompletedProjects.length > 0) {
         const activeTitle = document.createElement('h3');
-        activeTitle.textContent = "Your Active Projects";
+        activeTitle.textContent = "Your Great Projects";
         activeTitle.style.marginBottom = '15px';
         projectsContainer.appendChild(activeTitle);
-        activeProjects.forEach(project => renderActiveProjectView(projectsContainer, project));
+        // Sort to show active projects first, then completed ones
+        activeAndCompletedProjects.sort((a, b) => (a.status === 'active' ? -1 : 1));
+        activeAndCompletedProjects.forEach(project => renderActiveProjectView(projectsContainer, project));
     }
     
-    // --- CORRECTED FILTERING LOGIC ---
-    // Create a set of IDs for all projects the player has ever interacted with (active or not)
-    const playerProjectIds = new Set(playerProjects.map(p => p.project_id));
-    // Filter the master list to only show projects the player has NOT interacted with
-    const availableProjects = allProjects.filter(masterProj => !playerProjectIds.has(masterProj.id));
+    const playerProjectMasterIds = new Set(playerProjects.map(p => p.master_great_projects.id));
+    const availableProjects = allProjects.filter(masterProj => !playerProjectMasterIds.has(masterProj.id));
 
     if (availableProjects.length > 0) {
         const availableTitle = document.createElement('h3');
@@ -336,8 +378,8 @@ export async function renderProjects() {
         availableProjects.forEach(project => renderProjectCard(projectsContainer, project));
     }
 
-    if (activeProjects.length === 0 && availableProjects.length === 0) {
-        projectsContainer.innerHTML = '<p>No great projects are available right now, or you have completed them all!</p>';
+    if (activeAndCompletedProjects.length === 0 && availableProjects.length === 0) {
+        projectsContainer.innerHTML = '<p>No great projects are available right now. Level up to unlock more!</p>';
     }
 
     startProjectTimers();
