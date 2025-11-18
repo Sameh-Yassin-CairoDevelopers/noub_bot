@@ -1,8 +1,10 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB v1.6.1 (FINAL DIAGNOSTIC - Complete File)
- * Description: This is the complete and unabridged file for diagnosing the
- * "maximum level" issue. It contains extensive logging in the upgrade path.
+ * Version: NOUB v1.5.1 (Final Polish & XP Integration)
+ * Description: Final version of the card interaction hub. This version integrates
+ * the XP system by granting XP on upgrades and burns. It also adds critical UI/UX
+ * improvements: hiding the upgrade button at max level and preventing the burn of
+ * an assigned expert card.
 */
 
 import { state } from '../state.js';
@@ -11,6 +13,10 @@ import { showToast, openModal, playSound, triggerHaptic, triggerNotificationHapt
 import { refreshPlayerState } from '../auth.js';
 
 const collectionContainer = document.getElementById('collection-container');
+
+// --- XP Grant Constants ---
+const XP_FOR_UPGRADE = 50;
+const XP_FOR_BURN = 5;
 
 // --- Comprehensive Card Rewards Dictionary ---
 const CARD_BURN_REWARDS = {
@@ -75,22 +81,23 @@ async function grantReward(rewardObject, isGrand = false) {
 }
 
 async function handleUpgrade(playerCard, requirements) {
-    console.log("[5. HANDLE UPGRADE] Function called. Player Card:", playerCard, "Requirements:", requirements);
     showToast('Upgrading card...', 'info');
     const currencyCosts = { noub: requirements.cost_noub, prestige: requirements.cost_prestige, ankh: requirements.cost_ankh };
     const itemCost = requirements.cost_item_id ? { id: requirements.cost_item_id, qty: requirements.cost_item_qty, name: requirements.items?.name } : null;
     const { error: costError } = await api.transactUpgradeCosts(state.currentUser.id, currencyCosts, itemCost);
     if (costError) {
-        console.error("[5.1 HANDLE UPGRADE] Cost transaction failed:", costError);
         return showToast(`Upgrade failed: ${costError.message}`, 'error');
     }
     const newLevel = playerCard.level + 1;
     const newPowerScore = playerCard.power_score + requirements.power_increase;
     const { error: upgradeError } = await api.performCardUpgrade(playerCard.instance_id, newLevel, newPowerScore);
     if (upgradeError) {
-        console.error("[5.2 HANDLE UPGRADE] DB card upgrade failed:", upgradeError);
         return showToast('Failed to update card level.', 'error');
     }
+
+    // Grant XP for the upgrade
+    await api.addXp(state.currentUser.id, XP_FOR_UPGRADE);
+
     playSound('reward_grand');
     triggerNotificationHaptic('success');
     showToast(`${playerCard.cards.name} has been upgraded to Level ${newLevel}!`, 'success');
@@ -100,28 +107,26 @@ async function handleUpgrade(playerCard, requirements) {
 }
 
 async function showUpgradeDetails(playerCard) {
-    console.log("[2. SHOW UPGRADE DETAILS] Function called for card:", playerCard);
     const detailsContainer = document.getElementById('card-interaction-details');
     detailsContainer.innerHTML = `<p>Fetching upgrade requirements...</p>`;
     const nextLevel = playerCard.level + 1;
     
-    console.log(`[2.1] Card Name: ${playerCard.cards.name}, Master Card ID: ${playerCard.card_id} (Type: ${typeof playerCard.card_id})`);
-    console.log(`[2.2] Current Level: ${playerCard.level}, Fetching for Next Level: ${nextLevel} (Type: ${typeof nextLevel})`);
-    
-    const { data: requirements, error } = await api.fetchCardUpgradeRequirements(playerCard.card_id, nextLevel);
-
-    console.log("[3. API RESPONSE RECEIVED]");
-    console.log("[3.1] API Error:", error);
-    console.log("[3.2] API Data (requirements):", requirements);
-    
-    if (error || !requirements) {
-        console.error("[4. LOGIC FAILED] The condition (error || !requirements) was true. Showing 'max level' message.");
+    // Hide the upgrade button immediately if the card is already at max level (e.g., 5)
+    if (playerCard.level >= 5) {
         detailsContainer.innerHTML = `<p style="color: var(--text-secondary);">This card has reached its maximum level.</p>`;
+        document.getElementById('card-upgrade-btn').style.display = 'none';
         return;
     }
 
-    console.log("[4. LOGIC SUCCEEDED] Requirements found. Rendering details.");
+    const { data: requirements, error } = await api.fetchCardUpgradeRequirements(playerCard.card_id, nextLevel);
     
+    if (error || !requirements) {
+        detailsContainer.innerHTML = `<p style="color: var(--text-secondary);">This card has reached its maximum level.</p>`;
+        // Also hide the upgrade button if no requirements are found
+        document.getElementById('card-upgrade-btn').style.display = 'none';
+        return;
+    }
+
     let costsText = [];
     if (requirements.cost_noub > 0) costsText.push(`${requirements.cost_noub} 🪙`);
     if (requirements.cost_prestige > 0) costsText.push(`${requirements.cost_prestige} 🐞`);
@@ -144,6 +149,21 @@ async function showUpgradeDetails(playerCard) {
 
 function showBurnDetails(playerCard, burnInfo, actionType) {
     const detailsContainer = document.getElementById('card-interaction-details');
+
+    // Check if the card is assigned as an expert
+    const isAssigned = Array.from(state.playerFactories.values()).some(factory => factory.assigned_card_instance_id === playerCard.instance_id);
+
+    if (isAssigned) {
+        detailsContainer.innerHTML = `
+            <div style="background: #2a2a2e; padding: 10px; border-radius: 6px; text-align: center;">
+                <h4 style="color: var(--danger-color);">Action Prohibited</h4>
+                <p>This expert is currently assigned to a factory. You must unassign them from the Economy Hub before you can ${actionType.toLowerCase()} this card.</p>
+            </div>
+        `;
+        document.getElementById('card-burn-btn').disabled = true;
+        return;
+    }
+
     let confirmationText = '';
     switch (burnInfo.type) {
         case 'CURRENCY':
@@ -157,6 +177,7 @@ function showBurnDetails(playerCard, burnInfo, actionType) {
             confirmationText = `You will ${burnInfo.text}. This action is irreversible.`;
             break;
     }
+
     detailsContainer.innerHTML = `
         <div style="background: #2a2a2e; padding: 10px; border-radius: 6px;">
             <h4>Confirm ${actionType}</h4>
@@ -173,6 +194,10 @@ async function handleBurnOrSacrifice(playerCard, burnInfo) {
     if (deleteError) {
         return showToast('Error removing card!', 'error');
     }
+
+    // Grant XP for burning/sacrificing
+    await api.addXp(state.currentUser.id, XP_FOR_BURN);
+
     let success = false;
     switch (burnInfo.type) {
         case 'CURRENCY':
@@ -197,11 +222,11 @@ async function handleBurnOrSacrifice(playerCard, burnInfo) {
 }
 
 async function openCardInteractionModal(playerCard) {
-    console.log("[1. OPEN MODAL] Function called for instance:", playerCard.instance_id);
     const modal = document.getElementById('card-interaction-modal');
     const masterCard = playerCard.cards;
     const burnInfo = CARD_BURN_REWARDS[masterCard.id];
     const actionType = burnInfo.type === 'SACRIFICE' ? 'Sacrifice' : 'Burn';
+
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 400px;">
             <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
@@ -217,6 +242,7 @@ async function openCardInteractionModal(playerCard) {
             <div id="card-interaction-details" style="margin-top: 20px;"></div>
         </div>
     `;
+
     modal.querySelector('#card-upgrade-btn').onclick = () => showUpgradeDetails(playerCard);
     modal.querySelector('#card-burn-btn').onclick = () => showBurnDetails(playerCard, burnInfo, actionType);
     openModal('card-interaction-modal');
@@ -225,6 +251,11 @@ async function openCardInteractionModal(playerCard) {
 export async function renderCollection() {
     if (!state.currentUser) return;
     collectionContainer.innerHTML = 'Loading your cards...';
+    // We need factory data to check for assigned experts
+    await Promise.all([refreshPlayerState(), api.fetchPlayerFactories(state.currentUser.id).then(res => {
+        state.playerFactories = new Map(res.data.map(f => [f.id, f]));
+    })]);
+
     const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
     if (error) {
         return collectionContainer.innerHTML = '<p class="error-message">Error fetching cards.</p>';
