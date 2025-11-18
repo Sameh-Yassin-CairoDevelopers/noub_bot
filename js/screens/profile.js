@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/profile.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (UI FIX: Compressing Layout)
- * Description: View Logic Module for the Profile screen.
- * OVERHAUL: Applies UI adjustments to reduce unnecessary whitespace and tighten the layout.
+ * Version: NOUB v1.5 (Player Leveling & XP Display)
+ * Description: View Logic Module for the Profile screen. This version overhauls
+ * the profile header to display the new XP-based leveling system, replacing the
+ * deprecated Power Score metric.
 */
 
 import { state } from '../state.js';
@@ -16,18 +17,8 @@ const profileContainer = document.querySelector('#profile-screen .profile-contai
 // Default avatar fallback
 const DEFAULT_AVATAR = 'images/user_avatar.png';
 
-
 /**
- * Calculates the total Power Score by summing the power_score of all owned card instances.
- */
-async function calculateTotalPower(playerCards) {
-    if (!playerCards || playerCards.length === 0) return 0;
-    
-    return playerCards.reduce((sum, card) => sum + (card.power_score || 0), 0);
-}
-
-/**
- * Renders the player's comprehensive profile dashboard.
+ * Renders the player's comprehensive profile dashboard, now with the XP leveling system.
  */
 export async function renderProfile() {
     if (!state.currentUser || !state.playerProfile) {
@@ -42,32 +33,41 @@ export async function renderProfile() {
     const { data: playerCards } = await api.fetchPlayerCards(state.currentUser.id);
     const { data: playerSpecs } = await api.fetchPlayerSpecializations(state.currentUser.id);
     
-    // 2. Calculate Stats
-    const totalPower = await calculateTotalPower(playerCards);
+    // 2. Prepare all data for rendering
+    const profile = state.playerProfile;
     const totalCardsCount = playerCards ? playerCards.length : 0;
-    const totalContractsCompleted = state.playerProfile.completed_contracts_count || 0;
-    const playerLevel = state.playerProfile.level || 1;
-    
-    // Determine specialization name
+    const totalContractsCompleted = profile.completed_contracts_count || 0;
+    const playerLevel = profile.level || 1;
+    const currentXp = profile.xp || 0;
+    const xpToNextLevel = profile.xp_to_next_level || 100;
+    const xpPercentage = Math.min(100, (currentXp / xpToNextLevel) * 100);
+
     const specializationName = playerSpecs && playerSpecs.length > 0 
         ? playerSpecs[0].specialization_paths.name 
         : 'None Selected';
         
-    // 3. Build the new Profile UI
+    // 3. Build the new Profile UI with XP bar
     profileContainer.innerHTML = `
         <div class="profile-header">
-            <img src="${state.playerProfile.avatar_url || DEFAULT_AVATAR}" alt="Avatar" class="avatar" id="player-avatar-img">
-            <h2 id="player-name">${state.playerProfile.username || 'Explorer'}</h2>
-            <p class="player-level">Level ${playerLevel}</p>
+            <img src="${profile.avatar_url || DEFAULT_AVATAR}" alt="Avatar" class="avatar" id="player-avatar-img">
+            <h2 id="player-name">${profile.username || 'Explorer'}</h2>
+        </div>
+
+        <!-- NEW: XP and Leveling System Display -->
+        <div class="profile-section">
+            <h3>Level Progress</h3>
+            <div class="level-display" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <span class="player-level" style="font-weight: bold;">Level ${playerLevel}</span>
+                <span class="xp-text" style="font-size: 0.9em; color: #ccc;">${currentXp} / ${xpToNextLevel} XP</span>
+            </div>
+            <div class="progress-bar" style="background: #333; border-radius: 5px; height: 10px; overflow: hidden;">
+                <div class="progress-bar-inner" style="width: ${xpPercentage}%; height: 100%;"></div>
+            </div>
         </div>
 
         <div class="profile-section">
             <h3>Core Stats</h3>
             <div class="profile-stats-grid main-stats">
-                <div class="stat-box">
-                    <div id="player-power-score" class="value">${totalPower}</div>
-                    <div class="label">Power Score</div>
-                </div>
                 <div class="stat-box">
                     <div id="stat-total-cards" class="value">${totalCardsCount}</div>
                     <div class="label">Total Cards</div>
@@ -83,15 +83,15 @@ export async function renderProfile() {
             <h3>Currencies & Items</h3>
             <div class="profile-stats-grid currency-stats">
                 <div class="stat-box">
-                    <div class="value">${state.playerProfile.ankh_premium || 0} ☥</div>
+                    <div class="value">${profile.ankh_premium || 0} ☥</div>
                     <div class="label">Ankh Premium</div>
                 </div>
                 <div class="stat-box">
-                    <div class="value">${state.playerProfile.prestige || 0} 🐞</div>
+                    <div class="value">${profile.prestige || 0} 🐞</div>
                     <div class="label">Prestige</div>
                 </div>
                 <div class="stat-box">
-                    <div class="value">${state.playerProfile.spin_tickets || 0} 🎟️</div>
+                    <div class="value">${profile.spin_tickets || 0} 🎟️</div>
                     <div class="label">Spin Tickets</div>
                 </div>
             </div>
