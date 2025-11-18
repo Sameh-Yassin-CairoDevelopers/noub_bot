@@ -75,15 +75,18 @@ export async function executeFactoryUpgrade(playerFactory) {
         showToast('Error updating factory level!', 'error');
         return;
     }
+    // --- ADD XP FOR UPGRADE ---
+    await api.addXp(state.currentUser.id, 20); // Grant 20 XP for a factory upgrade (example value)
 
-    // 4. Success & Refresh
     showToast(`Factory Upgraded! ${playerFactory.factories.name} LVL ${playerFactory.level} → LVL ${newLevel}`, 'success');
     
     await refreshPlayerState(); 
     
-    // Stay on economy screen or navigate back
     if (document.getElementById('economy-screen').classList.contains('hidden')) {
         navigateTo('economy-screen');
+    } else {
+        // If already on the economy screen, just re-render it
+        import('./economy.js').then(({ renderProduction }) => renderProduction());
     }
 }
 
@@ -144,3 +147,4 @@ export async function renderUpgrade() {
         upgradeSelectionContainer.appendChild(cardElement);
     }
 }
+
