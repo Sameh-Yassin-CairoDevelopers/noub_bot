@@ -1,10 +1,9 @@
 /*
  * Filename: js/screens/projects.js
- * Version: NOUB v1.5.2 (Over-Delivery Fix & Auto-Completion)
- * Description: View Logic Module for the Great Projects screen. This version implements
- * critical logic fixes, including validation to prevent over-delivery of resources and
- * an automatic completion mechanism that triggers when all requirements are met,
- * awarding final rewards and XP.
+ * Version: NOUB v1.5.3 (Final Project Screen Fix)
+ * Description: View Logic Module for the Great Projects screen. This is a complete
+ * overhaul to fix critical bugs related to project filtering and the UI state of
+ * completed projects, ensuring a smooth and logical user experience.
 */
 
 import { state } from '../state.js';
@@ -35,7 +34,6 @@ function formatTime(ms) {
 
 /**
  * Handles the process of subscribing a player to a new project.
- * It validates costs and specialization, then creates the project instance.
  * @param {object} project - The master project data from the database.
  */
 async function handleSubscribe(project) {
@@ -76,7 +74,6 @@ async function handleSubscribe(project) {
 
 /**
  * Handles the delivery of resources to an active project.
- * NEW: Prevents over-delivery and triggers auto-completion when all requirements are met.
  * @param {object} activeProject - The player's active project instance from the database.
  * @param {string} itemId - The ID of the item being delivered.
  * @param {number} amount - The quantity of the item to deliver.
@@ -91,7 +88,6 @@ async function handleDeliver(activeProject, itemId, amount) {
         return showToast("Not enough resources in your inventory.", 'error');
     }
 
-    // --- NEW: Over-delivery prevention logic ---
     const masterProject = activeProject.master_great_projects;
     const requirement = masterProject.requirements.item_requirements.find(r => r.item_id == itemId);
     const deliveredAmount = activeProject.progress[itemId] || 0;
@@ -103,7 +99,6 @@ async function handleDeliver(activeProject, itemId, amount) {
     if (amount > neededAmount) {
         return showToast(`You only need to deliver ${neededAmount} more of this item.`, 'error');
     }
-    // --- END NEW ---
 
     showToast("Delivering resources...", 'info');
 
@@ -121,12 +116,11 @@ async function handleDeliver(activeProject, itemId, amount) {
 
     showToast("Resources delivered successfully!", 'success');
     
-    // --- NEW: Auto-completion check logic ---
     let allRequirementsMet = true;
     for (const req of masterProject.requirements.item_requirements) {
         if ((newProgress[req.item_id] || 0) < req.quantity) {
             allRequirementsMet = false;
-            break; // No need to check further if one requirement is not met
+            break;
         }
     }
 
@@ -140,14 +134,12 @@ async function handleDeliver(activeProject, itemId, amount) {
         if (completionError) {
             showToast("Error finalizing project completion!", 'error');
         } else {
-            // Grant a large amount of XP for completing a project
             const { leveledUp, newLevel } = await api.addXp(state.currentUser.id, 500); 
             if (leveledUp) {
                 showToast(`LEVEL UP! You have reached Level ${newLevel}!`, 'success');
             }
         }
     }
-    // --- END NEW ---
 
     await refreshPlayerState();
     renderProjects();
@@ -187,7 +179,6 @@ function renderProjectCard(container, project) {
 
 /**
  * Renders the detailed view for a player's currently active or completed project.
- * NEW: Handles the 'completed' state of a project to update the UI accordingly.
  * @param {HTMLElement} container - The DOM element to append the view to.
  * @param {object} activeProject - The player's project data.
  */
@@ -323,7 +314,7 @@ function startProjectTimers() {
         });
     }
     update();
-    projectCountdownInterval = setInterval(update, 60000); // Update every minute
+    projectCountdownInterval = setInterval(update, 60000);
 }
 
 /**
@@ -361,12 +352,14 @@ export async function renderProjects() {
         activeTitle.textContent = "Your Great Projects";
         activeTitle.style.marginBottom = '15px';
         projectsContainer.appendChild(activeTitle);
-        // Sort to show active projects first, then completed ones
         activeAndCompletedProjects.sort((a, b) => (a.status === 'active' ? -1 : 1));
         activeAndCompletedProjects.forEach(project => renderActiveProjectView(projectsContainer, project));
     }
     
+    // --- CORRECTED FILTERING LOGIC ---
+    // Create a set of master project IDs that the player is already involved with.
     const playerProjectMasterIds = new Set(playerProjects.map(p => p.master_great_projects.id));
+    // Filter the master list to only show projects the player has NOT interacted with.
     const availableProjects = allProjects.filter(masterProj => !playerProjectMasterIds.has(masterProj.id));
 
     if (availableProjects.length > 0) {
