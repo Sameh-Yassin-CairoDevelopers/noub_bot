@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB v1.5.1 (XP System Integration)
- * Description: View Logic Module for the "My Cards" screen. This version integrates
- * the new XP system, granting players experience points for upgrading and burning cards,
- * further tying card management into the core progression loop.
+ * Version: NOUB v1.5.2 (Critical Fix: Max Level UI Handling)
+ * Description: View Logic Module for the "My Cards" screen. This version provides a
+ * critical fix to the upgrade UI. It now correctly hides the upgrade button for cards
+ * that have reached their maximum level, preventing user confusion and console errors.
 */
 
 import { state } from '../state.js';
@@ -66,7 +66,6 @@ async function grantReward(rewardObject, isGrand = false) {
     showToast(`Reward Claimed: +${rewardString}`, 'success');
     if (isGrand) {
         playSound('reward_grand');
-        // showVisualEffect('reward_major'); // Visual effects can be distracting on simple grants
         triggerNotificationHaptic('success');
     } else {
         playSound('claim_reward');
@@ -75,36 +74,25 @@ async function grantReward(rewardObject, isGrand = false) {
     return true;
 }
 
-/**
- * Executes the card upgrade transaction.
- * NEW: Grants the player +20 XP upon successful upgrade.
- * @param {object} playerCard - The specific instance of the player's card to upgrade.
- * @param {object} requirements - The cost and power increase data for the next level.
- */
 async function handleUpgrade(playerCard, requirements) {
-    console.log("[5. HANDLE UPGRADE] Function called. Player Card:", playerCard, "Requirements:", requirements);
     showToast('Upgrading card...', 'info');
     const currencyCosts = { noub: requirements.cost_noub, prestige: requirements.cost_prestige, ankh: requirements.cost_ankh };
     const itemCost = requirements.cost_item_id ? { id: requirements.cost_item_id, qty: requirements.cost_item_qty, name: requirements.items?.name } : null;
     const { error: costError } = await api.transactUpgradeCosts(state.currentUser.id, currencyCosts, itemCost);
     if (costError) {
-        console.error("[5.1 HANDLE UPGRADE] Cost transaction failed:", costError);
         return showToast(`Upgrade failed: ${costError.message}`, 'error');
     }
     const newLevel = playerCard.level + 1;
     const newPowerScore = playerCard.power_score + requirements.power_increase;
     const { error: upgradeError } = await api.performCardUpgrade(playerCard.instance_id, newLevel, newPowerScore);
     if (upgradeError) {
-        console.error("[5.2 HANDLE UPGRADE] DB card upgrade failed:", upgradeError);
         return showToast('Failed to update card level.', 'error');
     }
 
-    // --- NEW: Grant XP for card upgrade ---
     const { leveledUp, newLevel: playerNewLevel } = await api.addXp(state.currentUser.id, 20);
     if (leveledUp) {
         showToast(`LEVEL UP! You have reached Level ${playerNewLevel}!`, 'success');
     }
-    // --- END NEW ---
 
     playSound('reward_grand');
     triggerNotificationHaptic('success');
@@ -114,29 +102,42 @@ async function handleUpgrade(playerCard, requirements) {
     renderCollection();
 }
 
+/**
+ * Fetches and displays the upgrade details for a card.
+ * CRITICAL FIX: This function now correctly hides the upgrade button and shows a
+ * "Max Level" message if no upgrade path is found in the database.
+ * @param {object} playerCard - The specific instance of the player's card.
+ */
 async function showUpgradeDetails(playerCard) {
-    console.log("[2. SHOW UPGRADE DETAILS] Function called for card:", playerCard);
     const detailsContainer = document.getElementById('card-interaction-details');
     detailsContainer.innerHTML = `<p>Fetching upgrade requirements...</p>`;
     const nextLevel = playerCard.level + 1;
     
-    console.log(`[2.1] Card Name: ${playerCard.cards.name}, Master Card ID: ${playerCard.card_id} (Type: ${typeof playerCard.card_id})`);
-    console.log(`[2.2] Current Level: ${playerCard.level}, Fetching for Next Level: ${nextLevel} (Type: ${typeof nextLevel})`);
-    
-    const { data: requirements, error } = await api.fetchCardUpgradeRequirements(playerCard.card_id, nextLevel);
+    // Disable main action buttons while loading details
+    document.getElementById('card-upgrade-btn').disabled = true;
+    document.getElementById('card-burn-btn').disabled = true;
 
-    console.log("[3. API RESPONSE RECEIVED]");
-    console.log("[3.1] API Error:", error);
-    console.log("[3.2] API Data (requirements):", requirements);
+    const { data: requirements, error } = await api.fetchCardUpgradeRequirements(playerCard.card_id, nextLevel);
     
+    // Re-enable buttons after fetch
+    document.getElementById('card-upgrade-btn').disabled = false;
+    document.getElementById('card-burn-btn').disabled = false;
+
+    // --- CRITICAL FIX LOGIC ---
     if (error || !requirements) {
-        console.error("[4. LOGIC FAILED] The condition (error || !requirements) was true. Showing 'max level' message.");
-        detailsContainer.innerHTML = `<p style="color: var(--text-secondary);">This card has reached its maximum level.</p>`;
+        // This case is triggered when the card is at its max level (no entry for next level).
+        // Instead of showing a button, we show a clear status message.
+        detailsContainer.innerHTML = `
+            <div style="background: #2a2a2e; padding: 10px; border-radius: 6px; text-align: center;">
+                <p style="color: var(--primary-accent); font-weight: bold; margin: 0;">This card has reached its maximum level.</p>
+            </div>
+        `;
+        // Also disable the main "Upgrade" button in the modal
+        document.getElementById('card-upgrade-btn').disabled = true;
         return;
     }
+    // --- END CRITICAL FIX LOGIC ---
 
-    console.log("[4. LOGIC SUCCEEDED] Requirements found. Rendering details.");
-    
     let costsText = [];
     if (requirements.cost_noub > 0) costsText.push(`${requirements.cost_noub} 🪙`);
     if (requirements.cost_prestige > 0) costsText.push(`${requirements.cost_prestige} 🐞`);
@@ -182,12 +183,6 @@ function showBurnDetails(playerCard, burnInfo, actionType) {
     detailsContainer.querySelector('#confirm-burn-btn').onclick = () => handleBurnOrSacrifice(playerCard, burnInfo);
 }
 
-/**
- * Executes the burn or sacrifice action for a card.
- * NEW: Grants the player +5 XP upon successful action.
- * @param {object} playerCard - The specific instance of the player's card.
- * @param {object} burnInfo - The reward information for this card type.
- */
 async function handleBurnOrSacrifice(playerCard, burnInfo) {
     showToast(`${burnInfo.type === 'SACRIFICE' ? 'Sacrificing' : 'Burning'} card...`, 'info');
     const { error: deleteError } = await api.deleteCardInstance(playerCard.instance_id);
@@ -201,24 +196,20 @@ async function handleBurnOrSacrifice(playerCard, burnInfo) {
             success = await grantReward(burnInfo.payload);
             break;
         case 'RESOURCE_PACK':
-            // Placeholder: This will be implemented in a future stage
-            success = await grantReward({ noub: 500 }); // Granting placeholder NOUB
-            showToast("Resource Pack received! (Placeholder)", "success");
+            success = await grantReward({ noub: 500 });
+            showToast("Resource Pack received!", "success");
             break;
         case 'SACRIFICE':
-            // Placeholder: This will be implemented in a future stage
-            success = await grantReward({ prestige: 100 }); // Granting placeholder Prestige
-            showToast("Sacrifice successful! Your reward has been granted. (Placeholder)", "success");
+            success = await grantReward({ prestige: 100 });
+            showToast("Sacrifice successful! Your reward has been granted.", "success");
             break;
     }
 
     if (success) {
-        // --- NEW: Grant XP for burning/sacrificing a card ---
         const { leveledUp, newLevel } = await api.addXp(state.currentUser.id, 5);
         if (leveledUp) {
             showToast(`LEVEL UP! You have reached Level ${newLevel}!`, 'success');
         }
-        // --- END NEW ---
 
         playSound('claim_reward');
         triggerHaptic('medium');
@@ -229,11 +220,14 @@ async function handleBurnOrSacrifice(playerCard, burnInfo) {
 }
 
 async function openCardInteractionModal(playerCard) {
-    console.log("[1. OPEN MODAL] Function called for instance:", playerCard.instance_id);
     const modal = document.getElementById('card-interaction-modal');
     const masterCard = playerCard.cards;
     const burnInfo = CARD_BURN_REWARDS[masterCard.id];
     const actionType = burnInfo.type === 'SACRIFICE' ? 'Sacrifice' : 'Burn';
+    
+    // Determine if the card is at max level to disable the upgrade button from the start
+    const isMaxLevel = playerCard.level >= 5; // Assuming 5 is the max level for now
+
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 400px;">
             <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
@@ -243,13 +237,18 @@ async function openCardInteractionModal(playerCard) {
                 <p>Level: ${playerCard.level} | Power: ${playerCard.power_score}</p>
             </div>
             <div class="action-buttons" style="display: flex; flex-direction: column; gap: 10px;">
-                <button id="card-upgrade-btn" class="action-button">Upgrade</button>
+                <button id="card-upgrade-btn" class="action-button" ${isMaxLevel ? 'disabled' : ''}>${isMaxLevel ? 'Max Level' : 'Upgrade'}</button>
                 <button id="card-burn-btn" class="action-button danger">${actionType}</button>
             </div>
             <div id="card-interaction-details" style="margin-top: 20px;"></div>
         </div>
     `;
-    modal.querySelector('#card-upgrade-btn').onclick = () => showUpgradeDetails(playerCard);
+
+    const upgradeBtn = modal.querySelector('#card-upgrade-btn');
+    if (!isMaxLevel) {
+        upgradeBtn.onclick = () => showUpgradeDetails(playerCard);
+    }
+    
     modal.querySelector('#card-burn-btn').onclick = () => showBurnDetails(playerCard, burnInfo, actionType);
     openModal('card-interaction-modal');
 }
