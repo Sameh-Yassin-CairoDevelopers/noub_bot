@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/profile.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (UI FIX: Compressing Layout)
+ * Version: Pharaoh's Legacy 'NOUB' v1.5.1 (XP System UI Overhaul)
  * Description: View Logic Module for the Profile screen.
- * OVERHAUL: Applies UI adjustments to reduce unnecessary whitespace and tighten the layout.
+ * OVERHAUL: Replaces the deprecated 'Power Score' with the new XP-based player
+ * leveling system, including a progress bar and detailed XP stats.
 */
 
 import { state } from '../state.js';
@@ -16,18 +17,8 @@ const profileContainer = document.querySelector('#profile-screen .profile-contai
 // Default avatar fallback
 const DEFAULT_AVATAR = 'images/user_avatar.png';
 
-
 /**
- * Calculates the total Power Score by summing the power_score of all owned card instances.
- */
-async function calculateTotalPower(playerCards) {
-    if (!playerCards || playerCards.length === 0) return 0;
-    
-    return playerCards.reduce((sum, card) => sum + (card.power_score || 0), 0);
-}
-
-/**
- * Renders the player's comprehensive profile dashboard.
+ * Renders the player's comprehensive profile dashboard, now featuring the XP system.
  */
 export async function renderProfile() {
     if (!state.currentUser || !state.playerProfile) {
@@ -42,18 +33,22 @@ export async function renderProfile() {
     const { data: playerCards } = await api.fetchPlayerCards(state.currentUser.id);
     const { data: playerSpecs } = await api.fetchPlayerSpecializations(state.currentUser.id);
     
-    // 2. Calculate Stats
-    const totalPower = await calculateTotalPower(playerCards);
+    // 2. Calculate and gather stats
     const totalCardsCount = playerCards ? playerCards.length : 0;
     const totalContractsCompleted = state.playerProfile.completed_contracts_count || 0;
+    
+    // XP System Variables
     const playerLevel = state.playerProfile.level || 1;
+    const currentXp = state.playerProfile.xp || 0;
+    const xpToNextLevel = state.playerProfile.xp_to_next_level || 100;
+    const xpProgressPercent = Math.min(100, (currentXp / xpToNextLevel) * 100);
     
     // Determine specialization name
     const specializationName = playerSpecs && playerSpecs.length > 0 
         ? playerSpecs[0].specialization_paths.name 
         : 'None Selected';
         
-    // 3. Build the new Profile UI
+    // 3. Build the new Profile UI with the XP system
     profileContainer.innerHTML = `
         <div class="profile-header">
             <img src="${state.playerProfile.avatar_url || DEFAULT_AVATAR}" alt="Avatar" class="avatar" id="player-avatar-img">
@@ -61,13 +56,22 @@ export async function renderProfile() {
             <p class="player-level">Level ${playerLevel}</p>
         </div>
 
+        <!-- NEW: XP Progression Section -->
+        <div class="profile-section">
+            <h3>Progress to Next Level</h3>
+            <div class="xp-progress-container" style="margin-bottom: 10px;">
+                <div class="progress-bar" style="background: #333; border-radius: 5px; height: 10px; overflow: hidden;">
+                    <div class="progress-bar-inner" style="width: ${xpProgressPercent}%; height: 100%;"></div>
+                </div>
+                <p style="text-align: center; font-size: 0.9em; margin-top: 5px; color: var(--primary-accent);">
+                    ${currentXp} / ${xpToNextLevel} XP
+                </p>
+            </div>
+        </div>
+
         <div class="profile-section">
             <h3>Core Stats</h3>
             <div class="profile-stats-grid main-stats">
-                <div class="stat-box">
-                    <div id="player-power-score" class="value">${totalPower}</div>
-                    <div class="label">Power Score</div>
-                </div>
                 <div class="stat-box">
                     <div id="stat-total-cards" class="value">${totalCardsCount}</div>
                     <div class="label">Total Cards</div>
@@ -75,6 +79,10 @@ export async function renderProfile() {
                 <div class="stat-box">
                     <div id="stat-contracts" class="value">${totalContractsCompleted}</div>
                     <div class="label">Completed Contracts</div>
+                </div>
+                <div class="stat-box specialization-box">
+                     <div class="value">${specializationName}</div>
+                     <div class="label">Current Path</div>
                 </div>
             </div>
         </div>
@@ -97,14 +105,6 @@ export async function renderProfile() {
             </div>
         </div>
         
-        <div class="profile-section">
-            <h3>Specialization</h3>
-            <div class="stat-box specialization-box">
-                <div class="value">${specializationName}</div>
-                <div class="label">Current Path</div>
-            </div>
-        </div>
-
         <button id="logout-btn" class="action-button danger">Logout</button>
     `;
 
