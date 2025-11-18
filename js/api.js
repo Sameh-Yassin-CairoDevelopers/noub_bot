@@ -64,6 +64,17 @@ export async function addXp(playerId, amount) {
     }
 }
 
+
+/**
+ * Fetches a master list of all factories available in the game.
+ */
+export async function fetchAllMasterFactories() {
+    // We need the required_level to filter unlockable factories
+    return await supabaseClient.from('factories').select('*, items(*)');
+}
+
+
+
 export async function fetchPlayerCards(playerId) {
     return await supabaseClient.from('player_cards').select('instance_id, level, card_id, power_score, cards(id, name, rarity_level, image_url, power_score, description, lore)').eq('player_id', playerId);
 }
@@ -263,3 +274,4 @@ export async function subscribeToProject(playerId, projectId) {
 export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
+
