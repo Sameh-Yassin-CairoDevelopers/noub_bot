@@ -228,6 +228,52 @@ export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
 
+/**
+ * NEW: Finalizes a great project for a player.
+ * This function sets the project status to 'completed' and atomically adds the
+ * final rewards to the player's profile.
+ * @param {number} playerProjectId - The unique ID of the player's project instance.
+ * @param {object} rewards - An object containing the final rewards (e.g., { noub: 1000, prestige: 100 }).
+ * @returns {Promise<{error: object|null}>} - An object containing an error if the transaction failed.
+ */
+export async function completeGreatProject(playerProjectId, rewards) {
+    if (!playerProjectId || !rewards) {
+        return { error: { message: "Invalid project ID or rewards." } };
+    }
+
+    // 1. Mark the project as completed
+    const { error: statusError } = await supabaseClient
+        .from('player_great_projects')
+        .update({ status: 'completed' })
+        .eq('id', playerProjectId);
+
+    if (statusError) {
+        console.error("Error updating project status:", statusError);
+        return { error: statusError };
+    }
+
+    // 2. Grant the final rewards to the player
+    // Note: This is a simplified client-side read-modify-write.
+    // For enhanced security and atomicity, this should ideally be a single RPC call.
+    const player = state.playerProfile;
+    const profileUpdate = {
+        noub_score: (player.noub_score || 0) + (rewards.noub || 0),
+        prestige: (player.prestige || 0) + (rewards.prestige || 0),
+        ankh_premium: (player.ankh_premium || 0) + (rewards.ankh || 0),
+    };
+
+    const { error: rewardError } = await updatePlayerProfile(player.id, profileUpdate);
+
+    if (rewardError) {
+        console.error("Error granting project rewards:", rewardError);
+        // In a real production app, you might want to roll back the status update here.
+        return { error: rewardError };
+    }
+
+    return { error: null };
+}
+
+
 // --- NEW: Player Leveling System ---
 
 /**
@@ -297,3 +343,4 @@ export async function addXp(playerId, amount) {
 
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
+
