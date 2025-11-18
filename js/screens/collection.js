@@ -1,8 +1,9 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB v1.6.1 (FINAL DIAGNOSTIC - Complete File)
- * Description: This is the complete and unabridged file for diagnosing the
- * "maximum level" issue. It contains extensive logging in the upgrade path.
+ * Version: NOUB v1.5.1 (XP System Integration)
+ * Description: View Logic Module for the "My Cards" screen. This version integrates
+ * the new XP system, granting players experience points for upgrading and burning cards,
+ * further tying card management into the core progression loop.
 */
 
 import { state } from '../state.js';
@@ -65,7 +66,7 @@ async function grantReward(rewardObject, isGrand = false) {
     showToast(`Reward Claimed: +${rewardString}`, 'success');
     if (isGrand) {
         playSound('reward_grand');
-        showVisualEffect('reward_major');
+        // showVisualEffect('reward_major'); // Visual effects can be distracting on simple grants
         triggerNotificationHaptic('success');
     } else {
         playSound('claim_reward');
@@ -74,6 +75,12 @@ async function grantReward(rewardObject, isGrand = false) {
     return true;
 }
 
+/**
+ * Executes the card upgrade transaction.
+ * NEW: Grants the player +20 XP upon successful upgrade.
+ * @param {object} playerCard - The specific instance of the player's card to upgrade.
+ * @param {object} requirements - The cost and power increase data for the next level.
+ */
 async function handleUpgrade(playerCard, requirements) {
     console.log("[5. HANDLE UPGRADE] Function called. Player Card:", playerCard, "Requirements:", requirements);
     showToast('Upgrading card...', 'info');
@@ -91,6 +98,14 @@ async function handleUpgrade(playerCard, requirements) {
         console.error("[5.2 HANDLE UPGRADE] DB card upgrade failed:", upgradeError);
         return showToast('Failed to update card level.', 'error');
     }
+
+    // --- NEW: Grant XP for card upgrade ---
+    const { leveledUp, newLevel: playerNewLevel } = await api.addXp(state.currentUser.id, 20);
+    if (leveledUp) {
+        showToast(`LEVEL UP! You have reached Level ${playerNewLevel}!`, 'success');
+    }
+    // --- END NEW ---
+
     playSound('reward_grand');
     triggerNotificationHaptic('success');
     showToast(`${playerCard.cards.name} has been upgraded to Level ${newLevel}!`, 'success');
@@ -167,27 +182,44 @@ function showBurnDetails(playerCard, burnInfo, actionType) {
     detailsContainer.querySelector('#confirm-burn-btn').onclick = () => handleBurnOrSacrifice(playerCard, burnInfo);
 }
 
+/**
+ * Executes the burn or sacrifice action for a card.
+ * NEW: Grants the player +5 XP upon successful action.
+ * @param {object} playerCard - The specific instance of the player's card.
+ * @param {object} burnInfo - The reward information for this card type.
+ */
 async function handleBurnOrSacrifice(playerCard, burnInfo) {
     showToast(`${burnInfo.type === 'SACRIFICE' ? 'Sacrificing' : 'Burning'} card...`, 'info');
     const { error: deleteError } = await api.deleteCardInstance(playerCard.instance_id);
     if (deleteError) {
         return showToast('Error removing card!', 'error');
     }
+    
     let success = false;
     switch (burnInfo.type) {
         case 'CURRENCY':
             success = await grantReward(burnInfo.payload);
             break;
         case 'RESOURCE_PACK':
-            success = await grantReward({ noub: 500 });
-            showToast("Resource Pack received!", "success");
+            // Placeholder: This will be implemented in a future stage
+            success = await grantReward({ noub: 500 }); // Granting placeholder NOUB
+            showToast("Resource Pack received! (Placeholder)", "success");
             break;
         case 'SACRIFICE':
-            success = await grantReward({ prestige: 100 });
-            showToast("Sacrifice successful! Your reward has been granted.", "success");
+            // Placeholder: This will be implemented in a future stage
+            success = await grantReward({ prestige: 100 }); // Granting placeholder Prestige
+            showToast("Sacrifice successful! Your reward has been granted. (Placeholder)", "success");
             break;
     }
+
     if (success) {
+        // --- NEW: Grant XP for burning/sacrificing a card ---
+        const { leveledUp, newLevel } = await api.addXp(state.currentUser.id, 5);
+        if (leveledUp) {
+            showToast(`LEVEL UP! You have reached Level ${newLevel}!`, 'success');
+        }
+        // --- END NEW ---
+
         playSound('claim_reward');
         triggerHaptic('medium');
         await refreshPlayerState();
