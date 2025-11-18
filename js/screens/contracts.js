@@ -1,9 +1,8 @@
 /*
  * Filename: js/screens/contracts.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: trackDailyActivity Declaration)
- * Description: View Logic Module for the contracts screen. 
- * CRITICAL FIX: Removed duplicate import/declaration of trackDailyActivity.
- * NEW: Implements a 60-second cooldown after contract acceptance.
+ * Version: Pharaoh's Legacy 'NOUB' v1.5.1 (XP System Integration)
+ * Description: View Logic Module for the contracts screen. This version integrates
+ * the new XP system, granting players experience points upon successful contract completion.
 */
 
 import { state } from '../state.js';
@@ -11,10 +10,7 @@ import * as api from '../api.js';
 import { showToast, updateHeaderUI, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 import { TOKEN_RATES } from '../config.js';
-// ... (ضمن قائمة import)
 import { trackTaskProgress } from './tasks.js';
-// REMOVED: import { trackDailyActivity } from './contracts.js'; // Self-import for trackDailyActivity
-
 
 const activeContractsContainer = document.getElementById('active-contracts-container');
 const availableContractsContainer = document.getElementById('available-contracts-container');
@@ -22,7 +18,6 @@ const contractDetailModal = document.getElementById('contract-detail-modal');
 
 // --- CONSTANTS ---
 const CONTRACT_COOLDOWN_MS = 60 * 1000; // 60 seconds cooldown after acceptance
-
 
 // --- Daily Quest Logic ---
 
@@ -38,7 +33,6 @@ function loadDailyQuests() {
     const stored = JSON.parse(localStorage.getItem(DAILY_QUEST_STORAGE_KEY) || '{}');
 
     if (stored.date !== today) {
-        // Reset quests if it's a new day
         const freshQuests = MASTER_DAILY_QUESTS.map(q => ({
             ...q,
             current: 0,
@@ -59,14 +53,13 @@ function saveDailyQuests(quests) {
 /**
  * Tracks player actions and updates progress towards Daily Quests.
  */
-export function trackDailyActivity(activityType, value = 1, itemName = null) { // Retaining export for other modules
+export function trackDailyActivity(activityType, value = 1, itemName = null) {
     const quests = loadDailyQuests();
     let changed = false;
 
     quests.forEach(quest => {
         if (!quest.completed) {
             if (quest.type === activityType) {
-                // Check for specific resource types if needed
                 if (quest.type === 'resources' && quest.item_name !== itemName) return;
                 
                 quest.current = Math.min(quest.target, quest.current + value);
@@ -99,7 +92,6 @@ export async function completeDailyQuest(questId, reward) {
         quests[questIndex].completed = true;
         saveDailyQuests(quests);
 
-        // Grant reward (NOUB only for Daily Quests)
         const newNoubScore = (state.playerProfile.noub_score || 0) + reward;
         const { error } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoubScore });
 
@@ -115,7 +107,6 @@ export async function completeDailyQuest(questId, reward) {
     return false;
 }
 
-
 // --- Royal Decrees (Contracts Logic) ---
 
 async function handleAcceptContract(contractId) {
@@ -126,7 +117,6 @@ async function handleAcceptContract(contractId) {
         showToast('Error accepting contract!', 'error');
         console.error(error);
     } else {
-        // Log the acceptance time immediately for cooldown
         await api.supabaseClient.from('player_contracts')
             .update({ accepted_at: new Date().toISOString() })
             .eq('player_id', state.currentUser.id)
@@ -159,7 +149,12 @@ async function updateContractCompletionCount(playerId) {
     return { count, bonusNoub };
 }
 
-
+/**
+ * Handles the delivery of resources to complete a contract.
+ * NEW: Grants the player +10 XP upon successful completion.
+ * @param {object} playerContract - The player's active contract instance.
+ * @param {Array} contractRequirements - The list of required items and quantities.
+ */
 async function handleDeliverContract(playerContract, contractRequirements) {
     showToast('Delivering goods...');
 
@@ -210,9 +205,14 @@ async function handleDeliverContract(playerContract, contractRequirements) {
 
     const { bonusNoub } = await updateContractCompletionCount(state.currentUser.id);
     totalNoubReward += bonusNoub;
+    
+    // --- NEW: Grant XP for contract completion ---
+    const { leveledUp, newLevel } = await api.addXp(state.currentUser.id, 10);
+    if (leveledUp) {
+        showToast(`LEVEL UP! You have reached Level ${newLevel}!`, 'success');
+    }
+    // --- END NEW ---
 
-    // --- NEW: Track progress for tasks ---
-    // This will track progress for tasks like "Complete 1 Contract"
     await trackTaskProgress('contract_complete');
 
     await refreshPlayerState();
@@ -220,14 +220,14 @@ async function handleDeliverContract(playerContract, contractRequirements) {
     window.closeModal('contract-detail-modal');
     renderActiveContracts();
 }
+
 /**
- * NEW: Helper function to display player's current currencies.
+ * Renders the player's current currency balances at the top of the screen.
  */
 function renderPlayerStats() {
     const statsContainer = document.getElementById('contracts-player-stats');
     if (!statsContainer) return;
 
-    // Use current state to display player's core currencies/items
     const noub = state.playerProfile.noub_score || 0;
     const ankh = state.playerProfile.ankh_premium || 0;
     const prestige = state.playerProfile.prestige || 0;
@@ -242,7 +242,6 @@ function renderPlayerStats() {
         </div>
     `;
 }
-
 
 async function openContractModal(contractId, playerContract = null) {
     const { data: contract, error } = await api.fetchContractWithRequirements(contractId);
@@ -274,7 +273,6 @@ async function openContractModal(contractId, playerContract = null) {
     let buttonText = 'Deliver';
     
     if (isAccepted) {
-        // Check Cooldown
         const acceptedTime = new Date(playerContract.accepted_at).getTime();
         const now = Date.now();
         const elapsedTime = now - acceptedTime;
@@ -284,8 +282,12 @@ async function openContractModal(contractId, playerContract = null) {
             deliverDisabled = true;
             buttonText = `Cooldown: ${remainingTime}s`;
             
-            // Re-render the modal after cooldown passes (for UX)
-            setTimeout(() => openContractModal(contractId, playerContract), remainingTime * 1000 + 100);
+            setTimeout(() => {
+                // Re-open if modal is still visible to update the timer button
+                if (!contractDetailModal.classList.contains('hidden')) {
+                    openContractModal(contractId, playerContract);
+                }
+            }, remainingTime * 1000 + 100);
         } else {
              deliverDisabled = !allRequirementsMet;
         }
@@ -324,7 +326,7 @@ async function openContractModal(contractId, playerContract = null) {
     `;
 
     contractDetailModal.innerHTML = modalHTML;
-    import('../ui.js').then(({ openModal }) => openModal('contract-detail-modal')); // Use imported openModal
+    import('../ui.js').then(({ openModal }) => openModal('contract-detail-modal'));
 
     const actionBtn = document.getElementById('contract-action-btn');
     if (isAccepted) {
@@ -337,7 +339,6 @@ async function openContractModal(contractId, playerContract = null) {
 export async function renderActiveContracts() {
     if (!state.currentUser) return;
     
-    // Add player stats area if it doesn't exist
     let statsDiv = document.getElementById('contracts-player-stats');
     if (!statsDiv) {
          statsDiv = document.createElement('div');
@@ -363,9 +364,6 @@ export async function renderActiveContracts() {
         activeContractsContainer.innerHTML = '<p>You have no active contracts.</p>';
         return;
     }
-
-    // Get contracts count for display (optional)
-    const activeCount = contracts.length; 
     
     activeContractsContainer.innerHTML = '';
     contracts.forEach(pc => {
@@ -435,5 +433,3 @@ async function handleRefreshContracts() {
 
     refreshBtn.disabled = false;
 }
-
-
