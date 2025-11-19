@@ -1,8 +1,9 @@
 /*
  * Filename: js/auth.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2 (CRITICAL FIX: Fetch Specializations)
- * Description: Authentication Module. Manages login, signup, and player state refreshing.
- * CRITICAL FIX: refreshPlayerState now fetches player specializations to correctly display specialized factories.
+ * Version: NOUB v1.8.0 (New Player Factory Seeding)
+ * Description: Authentication Module. This version enhances the new player experience by
+ * automatically seeding the three basic resource factories into a new player's account
+ * upon successful registration, ensuring they can start the core gameplay loop immediately.
 */
 
 import { supabaseClient } from './config.js';
@@ -20,9 +21,8 @@ const STARTER_NOUB_SCORE = 2000;
 const STARTER_PRESTIGE = 10;
 const STARTER_SPIN_TICKETS = 5;
 const STARTER_ANKH_PREMIUM = 0;
-// NOTE: These IDs must correspond to the IDs in your 'factories' table
-const INITIAL_FACTORY_IDS = [1, 2, 3, 4, 5, 6]; 
-
+// These IDs MUST correspond to the basic resource factory IDs in your 'factories' table.
+const INITIAL_FACTORY_IDS = [1, 2, 3]; 
 
 // Make these functions globally available for onclick attributes in index.html
 export function showRegisterForm() {
@@ -40,11 +40,14 @@ export function showLoginForm() {
 window.showRegisterForm = showRegisterForm;
 window.showLoginForm = showLoginForm;
 
-
 /**
  * Seeds the necessary initial data for a brand new player.
+ * NEW: This now includes granting the initial three resource factories.
+ * @param {string} userId - The ID of the newly created user.
+ * @returns {Promise<boolean>} - True if seeding was successful.
  */
 async function seedNewPlayer(userId) {
+    // 1. Grant starter currency pack
     const profileUpdate = {
         noub_score: STARTER_NOUB_SCORE,
         prestige: STARTER_PRESTIGE,
@@ -59,17 +62,26 @@ async function seedNewPlayer(userId) {
         return false;
     }
     
+    // 2. Grant starter factories
     const factoryPromises = INITIAL_FACTORY_IDS.map(factoryId => {
         return supabaseClient.from('player_factories').insert({
             player_id: userId,
             factory_id: factoryId,
-            level: 1
+            level: 1 // Start all factories at level 1
         });
     });
     
-    await Promise.all(factoryPromises);
+    const factoryResults = await Promise.all(factoryPromises);
+    const factoryError = factoryResults.some(result => result.error);
+
+    if (factoryError) {
+        console.error("Failed to seed initial factories for new player:", factoryResults.map(r => r.error).filter(Boolean));
+        // Note: In a production environment, you might want to roll back the profile update here.
+        return false;
+    }
     
-    await api.logActivity(userId, 'STARTER_PACK', `Received Starter Pack: ${STARTER_NOUB_SCORE} NOUB, ${STARTER_PRESTIGE} Prestige, ${STARTER_SPIN_TICKETS} Spin Tickets.`);
+    // 3. Log the starter pack activity
+    await api.logActivity(userId, 'STARTER_PACK', `Received Starter Pack and initial factories.`);
     
     return true;
 }
@@ -81,17 +93,14 @@ async function seedNewPlayer(userId) {
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Fetch all critical data simultaneously for maximum speed
     const [profileResult, inventoryResult, consumablesResult, ucpResult, specializationsResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
         api.fetchKVGameConsumables(state.currentUser.id),
         api.fetchUCPProtocol(state.currentUser.id),
-        // CRITICAL FIX: Fetch player's unlocked specializations
         api.fetchPlayerSpecializations(state.currentUser.id) 
     ]);
 
-    // Profile Data
     if (!profileResult.error && profileResult.data) {
         state.playerProfile = profileResult.data;
         updateHeaderUI(state.playerProfile);
@@ -99,7 +108,6 @@ export async function refreshPlayerState() {
         console.error("Error refreshing profile data.");
     }
     
-    // Inventory Data
     if (!inventoryResult.error && inventoryResult.data) {
         state.inventory.clear();
         inventoryResult.data.forEach(item => {
@@ -107,7 +115,6 @@ export async function refreshPlayerState() {
         });
     }
 
-    // Consumables Data
     if (!consumablesResult.error && consumablesResult.data) {
         state.consumables.clear();
         consumablesResult.data.forEach(item => {
@@ -115,7 +122,6 @@ export async function refreshPlayerState() {
         });
     }
 
-    // UCP Protocol Data
     if (!ucpResult.error && ucpResult.data) {
         state.ucp.clear();
         ucpResult.data.forEach(entry => {
@@ -123,7 +129,6 @@ export async function refreshPlayerState() {
         });
     }
     
-    // Specializations Data
     if (!specializationsResult.error && specializationsResult.data) {
         state.specializations = new Map();
         specializationsResult.data.forEach(spec => {
@@ -166,10 +171,15 @@ async function signUp(email, password, username) {
     if (error) return { error };
 
     if (data.user) {
-        await seedNewPlayer(data.user.id);
+        // Seed the new player with starter items and factories
+        const seedSuccess = await seedNewPlayer(data.user.id);
         
-        showToast('Account created! Check your email to confirm, then log in.', 'success');
-        return { message: 'Account created successfully!' };
+        if (seedSuccess) {
+            showToast('Account created! Check your email to confirm, then log in.', 'success');
+            return { message: 'Account created successfully!' };
+        } else {
+            return { error: { message: "Account created, but failed to grant starter items. Please contact support." } };
+        }
     }
     
     return { error: { message: "Sign up successful, but could not retrieve user data." } };
@@ -182,12 +192,12 @@ export async function logout() {
     state.inventory.clear();
     state.consumables.clear();
     state.ucp.clear();
-    // POLISH: Clear specializations map on logout
     if (state.specializations) {
         state.specializations.clear();
     }
     appContainer.classList.add('hidden');
     authOverlay.classList.remove('hidden');
+    showLoginForm();
 }
 
 export function setupAuthEventListeners() {
@@ -196,6 +206,7 @@ export function setupAuthEventListeners() {
     
     if (loginButton) {
         loginButton.addEventListener('click', async (e) => {
+            e.preventDefault(); // Prevent form submission
             e.target.disabled = true;
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -209,6 +220,7 @@ export function setupAuthEventListeners() {
 
     if (registerButton) {
         registerButton.addEventListener('click', async (e) => {
+            e.preventDefault(); // Prevent form submission
             e.target.disabled = true;
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
@@ -221,7 +233,6 @@ export function setupAuthEventListeners() {
             if (result.error) {
                 errorDiv.textContent = 'Signup Error: ' + result.error.message;
             } else {
-                // POLISH: Automatically switch to login form on successful signup
                 showLoginForm();
             }
             e.target.disabled = false;
@@ -235,5 +246,6 @@ export async function handleInitialSession() {
         await initializeApp(session.user);
     } else {
         authOverlay.classList.remove('hidden');
+        appContainer.classList.add('hidden');
     }
 }
