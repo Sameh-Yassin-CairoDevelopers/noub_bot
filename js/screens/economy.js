@@ -605,10 +605,12 @@ export async function renderProduction() {
         { data: masterFactories, error: masterFactoriesError }
     ] = await Promise.all([
         api.fetchPlayerFactories(state.currentUser.id),
-        api.fetchAllMasterFactories()
+        api.fetchAllMasterFactories() // This is the new function call from api.js
     ]);
 
+    // Strong Error Handling
     if (playerFactoriesError || masterFactoriesError) {
+        console.error("Error loading factory data. PlayerFactories Error:", playerFactoriesError, "MasterFactories Error:", masterFactoriesError);
         resourcesContainer.innerHTML = '<p class="error-message">Error loading factory data.</p>';
         workshopsContainer.innerHTML = '<p class="error-message">Error loading factory data.</p>';
         return;
@@ -618,12 +620,15 @@ export async function renderProduction() {
     workshopsContainer.innerHTML = '';
 
     const playerLevel = state.playerProfile.level;
+    // Create a Map for quick lookups of owned factories
     const ownedFactoryMap = new Map(playerFactories.map(pf => [pf.factories.id, pf]));
 
+    // Iterate through ALL master factories to decide how to render them
     masterFactories.sort((a, b) => a.id - b.id).forEach(masterFactory => {
         const playerFactoryInstance = ownedFactoryMap.get(masterFactory.id);
         
         if (playerFactoryInstance) {
+            // --- RENDER OWNED FACTORY ---
             const card = document.createElement('div');
             card.className = 'building-card';
             card.id = `factory-card-${playerFactoryInstance.id}`;
@@ -632,10 +637,9 @@ export async function renderProduction() {
             card.innerHTML = `${expertIndicator}<img src="${masterFactory.image_url || 'images/default_building.png'}" alt="${masterFactory.name}"><h4>${masterFactory.name}</h4><div class="level">Level: ${playerFactoryInstance.level}</div><div class="status">Loading...</div><div class="progress-bar"><div class="progress-bar-inner"></div></div>`;
             const targetContainer = masterFactory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
             targetContainer.appendChild(card);
-            // DEFINITIVE FIX: Pass the entire player factory instance.
             updateProductionCard(playerFactoryInstance);
         } else {
-            // Only render locked factories if they don't require a specialization the user doesn't have
+            // --- RENDER LOCKED OR UNLOCKABLE FACTORY ---
             const requiresSpec = masterFactory.specialization_path_id;
             const hasRequiredSpec = !requiresSpec || state.specializations.has(requiresSpec);
 
@@ -664,6 +668,7 @@ export async function renderProduction() {
     
     await renderStock();
 }
+
 /**
  * Renders the player's current inventory stock.
  */
@@ -715,3 +720,4 @@ export async function renderStock() {
         if (stockGoodsContainer.innerHTML === '') stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
+
