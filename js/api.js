@@ -136,6 +136,15 @@ export async function claimUcpTaskReward(playerId, taskNumber) {
     return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
 }
 
+
+/**
+ * NEW: Fetches all master factory definitions from the 'factories' table.
+ * This is crucial for displaying locked/unlockable factories to the player.
+ */
+export async function fetchAllMasterFactories() {
+    return await supabaseClient.from('factories').select('*, items(*), factory_recipes(*, items(*))');
+}
+
 // --- Contract API Functions ---
 
 export async function fetchAvailableContracts(playerId) {
@@ -343,4 +352,5 @@ export async function addXp(playerId, amount) {
 
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
+
 
