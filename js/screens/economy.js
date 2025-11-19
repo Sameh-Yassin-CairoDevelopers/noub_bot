@@ -583,74 +583,87 @@ function openProductionModal(playerFactory, outputItem) {
 }
 
 /**
- * Main render function for the Economy Hub screen.
+ * Main render function for the Economy Hub screen (REBUILT).
+ * This function now fetches all master factories and compares them against the
+ * player's owned factories and level to display a comprehensive view of progression.
  */
 export async function renderProduction() {
     if (!state.currentUser || !state.playerProfile) return;
-    
-    // Ensure player profile is fresh, especially level data
     if (state.playerProfile.level === undefined) await refreshPlayerState();
     
-    // Check for specialization unlock condition
     const hasSpecialization = state.specializations && state.specializations.size > 0;
     if (state.playerProfile.level >= SPECIALIZATION_UNLOCK_LEVEL && !hasSpecialization) {
         renderSpecializationChoice();
-        return; // Stop rendering the main economy screen until a choice is made
+        return;
     }
     
-    resourcesContainer.innerHTML = 'Loading resources buildings...';
+    resourcesContainer.innerHTML = 'Loading production buildings...';
     workshopsContainer.innerHTML = 'Loading crafting workshops...';
     
-    const { data: factories, error } = await api.fetchPlayerFactories(state.currentUser.id);
+    const [
+        { data: playerFactories, error: playerFactoriesError }, 
+        { data: masterFactories, error: masterFactoriesError }
+    ] = await Promise.all([
+        api.fetchPlayerFactories(state.currentUser.id),
+        api.fetchAllMasterFactories()
+    ]);
 
-    if (error) {
-        resourcesContainer.innerHTML = '<p class="error-message">Error loading factories.</p>';
-        workshopsContainer.innerHTML = '<p class="error-message">Error loading factories.</p>';
+    if (playerFactoriesError || masterFactoriesError) {
+        resourcesContainer.innerHTML = '<p class="error-message">Error loading factory data.</p>';
+        workshopsContainer.innerHTML = '<p class="error-message">Error loading factory data.</p>';
         return;
     }
 
     resourcesContainer.innerHTML = '';
     workshopsContainer.innerHTML = '';
-    
-    const resourceBuildings = factories.filter(f => f.factories.type === 'RESOURCE');
-    const workshops = factories.filter(f => f.factories.type === 'WORKSHOP');
 
-    [...resourceBuildings, ...workshops].forEach(playerFactory => {
-        const factory = playerFactory.factories;
+    const playerLevel = state.playerProfile.level;
+    const ownedFactoryMap = new Map(playerFactories.map(pf => [pf.factories.id, pf]));
+
+    masterFactories.sort((a, b) => a.id - b.id).forEach(masterFactory => {
+        const playerFactoryInstance = ownedFactoryMap.get(masterFactory.id);
         
-        // Skip rendering factories that require a level the player hasn't reached yet
-        if (factory.required_level > state.playerProfile.level) {
-            return;
+        if (playerFactoryInstance) {
+            const card = document.createElement('div');
+            card.className = 'building-card';
+            card.id = `factory-card-${playerFactoryInstance.id}`;
+            const hasExpert = !!playerFactoryInstance.player_cards;
+            const expertIndicator = hasExpert ? '<span class="expert-indicator" style="position: absolute; top: 5px; right: 5px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold);">✨</span>' : '';
+            card.innerHTML = `${expertIndicator}<img src="${masterFactory.image_url || 'images/default_building.png'}" alt="${masterFactory.name}"><h4>${masterFactory.name}</h4><div class="level">Level: ${playerFactoryInstance.level}</div><div class="status">Loading...</div><div class="progress-bar"><div class="progress-bar-inner"></div></div>`;
+            const targetContainer = masterFactory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
+            targetContainer.appendChild(card);
+            // DEFINITIVE FIX: Pass the entire player factory instance.
+            updateProductionCard(playerFactoryInstance);
+        } else {
+            // Only render locked factories if they don't require a specialization the user doesn't have
+            const requiresSpec = masterFactory.specialization_path_id;
+            const hasRequiredSpec = !requiresSpec || state.specializations.has(requiresSpec);
+
+            if (hasRequiredSpec) {
+                const isUnlockedByLevel = playerLevel >= masterFactory.required_level;
+                const card = document.createElement('div');
+                card.className = 'building-card';
+                card.style.opacity = '0.5';
+                card.style.border = '1px solid #444';
+                card.innerHTML = `<img src="${masterFactory.image_url || 'images/default_building.png'}" alt="${masterFactory.name}"><h4>${masterFactory.name}</h4><div class="level" style="color: ${isUnlockedByLevel ? 'var(--success-color)' : 'var(--danger-color)'};">Requires Lvl ${masterFactory.required_level}</div><div class="status">Locked</div>`;
+                
+                if (isUnlockedByLevel) {
+                    // Future logic for building
+                    card.style.cursor = 'pointer';
+                    card.style.border = '2px dashed var(--primary-accent)';
+                    card.onclick = () => showToast(`Building '${masterFactory.name}' requires resources. Feature coming soon!`, 'info');
+                } else {
+                    card.onclick = () => showToast(`Unlock this building by reaching Level ${masterFactory.required_level}`, 'info');
+                }
+
+                const targetContainer = masterFactory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
+                targetContainer.appendChild(card);
+            }
         }
-
-        const outputItem = factory.items;
-        const card = document.createElement('div');
-        card.className = 'building-card';
-        card.id = `factory-card-${playerFactory.id}`;
-
-        const hasExpert = !!playerFactory.player_cards;
-        const expertIndicator = hasExpert ? '<span class="expert-indicator" style="position: absolute; top: 5px; right: 5px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold);">✨</span>' : '';
-
-        card.innerHTML = `
-            ${expertIndicator}
-            <img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}">
-            <h4></h4>
-            <div class="level"></div>
-            <div class="status">Loading Status...</div>
-            <div class="progress-bar"><div class="progress-bar-inner"></div></div>
-        `;
-        card.querySelector('h4').textContent = factory.name;
-        card.querySelector('.level').textContent = `Level: ${playerFactory.level}`;
-        
-        const targetContainer = factory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
-        targetContainer.appendChild(card);
-        
-        updateProductionCard(playerFactory, outputItem);
     });
     
     await renderStock();
 }
-
 /**
  * Renders the player's current inventory stock.
  */
