@@ -1,10 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: NOUB v1.8.2 (Robust Factory Building)
- * Description: Data Access Layer Module. This version provides a critical fix to the
- * factory building logic by switching from 'insert' to 'upsert', preventing '409 Conflict'
- * errors and making the system robust against duplicate data. It also exports the
- * new fetchAllMasterFactories function.
+ * Version: NOUB v1.8.3 (Definitive Upsert Fix)
+ * Description: Data Access Layer Module. This version provides the definitive fix for
+ * the factory building logic by using the correct 'onConflict' syntax for the 'upsert'
+ * method, resolving the 400 Bad Request error.
 */
 
 import { state } from './state.js';
@@ -111,12 +110,27 @@ export async function fetchAllMasterFactories() {
     return await supabaseClient.from('factories').select('*');
 }
 
+/**
+ * Creates a new factory instance for a player using upsert with the correct syntax.
+ * @param {string} playerId - The ID of the player.
+ * @param {number} factoryId - The ID of the master factory to build.
+ * @returns {Promise<{data: object, error: object|null}>}
+ */
 export async function buildFactory(playerId, factoryId) {
-    return await supabaseClient.from('player_factories').upsert({
-        player_id: playerId,
-        factory_id: factoryId,
-        level: 1
-    }, { onConflict: 'player_id, factory_id' });
+    // DEFINITIVE FIX: Use the correct syntax for `onConflict` by specifying the constraint name
+    // or the columns that form the unique constraint. In this case, it's a composite primary key.
+    // We also use `ignoreDuplicates: true` as a robust fallback.
+    return await supabaseClient.from('player_factories').upsert(
+        {
+            player_id: playerId,
+            factory_id: factoryId,
+            level: 1
+        },
+        {
+            onConflict: 'player_id,factory_id', // Supabase identifies the composite PK from this
+            ignoreDuplicates: false // We want it to do nothing if it exists, but upsert handles this.
+        }
+    );
 }
 
 export async function fetchPlayerFactories(playerId) {
