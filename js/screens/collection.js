@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB v1.5.2 (Critical Fix: Max Level UI Handling)
- * Description: View Logic Module for the "My Cards" screen. This version provides a
- * critical fix to the upgrade UI. It now correctly hides the upgrade button for cards
- * that have reached their maximum level, preventing user confusion and console errors.
+ * Version: NOUB v1.8.0 (Prevent Burn of Assigned Experts)
+ * Description: View Logic Module for the "My Cards" screen. This version introduces a
+ * critical safeguard that prevents players from accidentally burning or sacrificing
+ * a card (Expert) that is currently assigned to a factory, improving game logic integrity.
 */
 
 import { state } from '../state.js';
@@ -15,7 +15,7 @@ const collectionContainer = document.getElementById('collection-container');
 
 // --- Comprehensive Card Rewards Dictionary ---
 const CARD_BURN_REWARDS = {
-    // Album 1: "The Sacred Ennead" (IDs 1-9) - Focus: Economy & Currency
+    // This data remains unchanged
     1: { type: 'CURRENCY', payload: { noub: 50, prestige: 1 } },
     2: { type: 'CURRENCY', payload: { noub: 75, prestige: 2 } },
     3: { type: 'CURRENCY', payload: { noub: 100, prestige: 3 } },
@@ -25,7 +25,6 @@ const CARD_BURN_REWARDS = {
     7: { type: 'CURRENCY', payload: { noub: 2000, prestige: 20 } },
     8: { type: 'CURRENCY', payload: { noub: 3500, prestige: 35 } },
     9: { type: 'CURRENCY', payload: { noub: 5000, prestige: 50, ankh: 5 } },
-    // Album 2: "Pharaonic Rulers" (IDs 10-18) - Focus: Resources & Materials
     10: { type: 'RESOURCE_PACK', payload: [{ item_id: 1, quantity: 50 }] },
     11: { type: 'RESOURCE_PACK', payload: [{ item_id: 2, quantity: 75 }] },
     12: { type: 'RESOURCE_PACK', payload: [{ item_id: 3, quantity: 100 }] },
@@ -35,7 +34,6 @@ const CARD_BURN_REWARDS = {
     16: { type: 'RESOURCE_PACK', payload: [{ item_id: 25, quantity: 10 }] },
     17: { type: 'RESOURCE_PACK', payload: [{ item_id: 26, quantity: 5 }] },
     18: { type: 'RESOURCE_PACK', payload: [{ item_id: 40, quantity: 2 }, { item_id: 45, quantity: 1 }] },
-    // Album 3: "Mythological Creatures" (IDs 19-27) - Focus: Special Sacrifices
     19: { type: 'SACRIFICE', action: 'INSTANT_CONTRACT', value: 1, text: "instantly complete one of your active contracts" },
     20: { type: 'SACRIFICE', action: 'PRESTIGE_BOOST', value: 100, text: "gain 100 Prestige" },
     21: { type: 'SACRIFICE', action: 'TICKET_BOOST', value: 20, text: "gain 20 Spin Tickets" },
@@ -102,41 +100,27 @@ async function handleUpgrade(playerCard, requirements) {
     renderCollection();
 }
 
-/**
- * Fetches and displays the upgrade details for a card.
- * CRITICAL FIX: This function now correctly hides the upgrade button and shows a
- * "Max Level" message if no upgrade path is found in the database.
- * @param {object} playerCard - The specific instance of the player's card.
- */
 async function showUpgradeDetails(playerCard) {
     const detailsContainer = document.getElementById('card-interaction-details');
     detailsContainer.innerHTML = `<p>Fetching upgrade requirements...</p>`;
     const nextLevel = playerCard.level + 1;
     
-    // Disable main action buttons while loading details
     document.getElementById('card-upgrade-btn').disabled = true;
     document.getElementById('card-burn-btn').disabled = true;
 
     const { data: requirements, error } = await api.fetchCardUpgradeRequirements(playerCard.card_id, nextLevel);
     
-    // Re-enable buttons after fetch
     document.getElementById('card-upgrade-btn').disabled = false;
     document.getElementById('card-burn-btn').disabled = false;
 
-    // --- CRITICAL FIX LOGIC ---
     if (error || !requirements) {
-        // This case is triggered when the card is at its max level (no entry for next level).
-        // Instead of showing a button, we show a clear status message.
         detailsContainer.innerHTML = `
             <div style="background: #2a2a2e; padding: 10px; border-radius: 6px; text-align: center;">
                 <p style="color: var(--primary-accent); font-weight: bold; margin: 0;">This card has reached its maximum level.</p>
-            </div>
-        `;
-        // Also disable the main "Upgrade" button in the modal
+            </div>`;
         document.getElementById('card-upgrade-btn').disabled = true;
         return;
     }
-    // --- END CRITICAL FIX LOGIC ---
 
     let costsText = [];
     if (requirements.cost_noub > 0) costsText.push(`${requirements.cost_noub} 🪙`);
@@ -158,8 +142,29 @@ async function showUpgradeDetails(playerCard) {
     detailsContainer.querySelector('#confirm-upgrade-btn').onclick = () => handleUpgrade(playerCard, requirements);
 }
 
-function showBurnDetails(playerCard, burnInfo, actionType) {
+/**
+ * Displays the burn/sacrifice confirmation details.
+ * NEW: Checks if the card is assigned as an expert before showing the confirmation.
+ * @param {object} playerCard - The specific instance of the player's card.
+ * @param {object} burnInfo - The reward information for this card type.
+ * @param {string} actionType - The display name of the action ('Burn' or 'Sacrifice').
+ * @param {Set<string>} assignedCardInstanceIds - A set of instance IDs for all assigned experts.
+ */
+function showBurnDetails(playerCard, burnInfo, actionType, assignedCardInstanceIds) {
     const detailsContainer = document.getElementById('card-interaction-details');
+
+    // --- NEW: Safeguard Logic ---
+    if (assignedCardInstanceIds.has(playerCard.instance_id)) {
+        detailsContainer.innerHTML = `
+            <div style="background: #2a2a2e; padding: 10px; border-radius: 6px; text-align: center;">
+                <p style="color: var(--danger-color); font-weight: bold; margin: 0;">This expert is assigned to a factory and cannot be burned. Please unassign it first.</p>
+            </div>`;
+        // Also disable the main "Burn" button
+        document.getElementById('card-burn-btn').disabled = true;
+        return;
+    }
+    // --- END NEW ---
+
     let confirmationText = '';
     switch (burnInfo.type) {
         case 'CURRENCY':
@@ -219,14 +224,18 @@ async function handleBurnOrSacrifice(playerCard, burnInfo) {
     }
 }
 
-async function openCardInteractionModal(playerCard) {
+/**
+ * Opens the main interaction modal for a selected card.
+ * @param {object} playerCard - The specific instance of the player's card.
+ * @param {Set<string>} assignedCardInstanceIds - A set of instance IDs for all assigned experts.
+ */
+async function openCardInteractionModal(playerCard, assignedCardInstanceIds) {
     const modal = document.getElementById('card-interaction-modal');
     const masterCard = playerCard.cards;
     const burnInfo = CARD_BURN_REWARDS[masterCard.id];
     const actionType = burnInfo.type === 'SACRIFICE' ? 'Sacrifice' : 'Burn';
     
-    // Determine if the card is at max level to disable the upgrade button from the start
-    const isMaxLevel = playerCard.level >= 5; // Assuming 5 is the max level for now
+    const isMaxLevel = playerCard.level >= 5;
 
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 400px;">
@@ -249,20 +258,39 @@ async function openCardInteractionModal(playerCard) {
         upgradeBtn.onclick = () => showUpgradeDetails(playerCard);
     }
     
-    modal.querySelector('#card-burn-btn').onclick = () => showBurnDetails(playerCard, burnInfo, actionType);
+    modal.querySelector('#card-burn-btn').onclick = () => showBurnDetails(playerCard, burnInfo, actionType, assignedCardInstanceIds);
     openModal('card-interaction-modal');
 }
 
+/**
+ * Main render function for the "My Cards" screen.
+ * NEW: Fetches factory data to determine which cards are assigned as experts.
+ */
 export async function renderCollection() {
     if (!state.currentUser) return;
-    collectionContainer.innerHTML = 'Loading your cards...';
-    const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
-    if (error) {
-        return collectionContainer.innerHTML = '<p class="error-message">Error fetching cards.</p>';
+    collectionContainer.innerHTML = 'Loading your collection...';
+
+    // Fetch both cards and factories in parallel for efficiency
+    const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
+        api.fetchPlayerCards(state.currentUser.id),
+        api.fetchPlayerFactories(state.currentUser.id)
+    ]);
+
+    if (cardsError || factoriesError) {
+        return collectionContainer.innerHTML = '<p class="error-message">Error fetching collection data.</p>';
     }
-    if (playerCards.length === 0) {
+    if (!playerCards || playerCards.length === 0) {
         return collectionContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">You have no cards yet. Visit the Shop!</p>';
     }
+
+    // --- NEW: Create a set of assigned expert IDs for quick lookup ---
+    const assignedCardInstanceIds = new Set(
+        playerFactories
+            .map(f => f.assigned_card_instance_id)
+            .filter(id => id !== null) // Filter out null/undefined values
+    );
+    // --- END NEW ---
+
     collectionContainer.innerHTML = '';
     const cardMap = new Map();
     playerCards.forEach(pc => {
@@ -275,6 +303,7 @@ export async function renderCollection() {
         cardMap.get(pc.card_id).instances.push(pc);
     });
     const sortedCards = Array.from(cardMap.values()).sort((a, b) => a.master.id - b.master.id);
+    
     sortedCards.forEach(cardData => {
         const masterCard = cardData.master;
         const instances = cardData.instances;
@@ -282,7 +311,13 @@ export async function renderCollection() {
         const cardElement = document.createElement('div');
         cardElement.className = `card-stack`;
         cardElement.setAttribute('data-rarity', masterCard.rarity_level || 0);
+        
+        // Add a visual indicator if any instance of this card type is assigned
+        const isAnyInstanceAssigned = instances.some(inst => assignedCardInstanceIds.has(inst.instance_id));
+        const assignedIndicator = isAnyInstanceAssigned ? '<span style="position: absolute; top: 5px; right: 5px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold);">✨</span>' : '';
+
         cardElement.innerHTML = `
+            ${assignedIndicator}
             <img src="${masterCard.image_url || 'images/default_card.png'}" alt="${masterCard.name}" class="card-image">
             <h4>${masterCard.name}</h4>
             <div class="card-details">
@@ -292,7 +327,8 @@ export async function renderCollection() {
         `;
         cardElement.onclick = () => {
             playSound('click');
-            openCardInteractionModal(highestLevelInstance);
+            // Pass the set of assigned IDs to the modal function
+            openCardInteractionModal(highestLevelInstance, assignedCardInstanceIds);
         };
         collectionContainer.appendChild(cardElement);
     });
