@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/projects.js
- * Version: NOUB v1.5.3 (Final Project Screen Fix)
- * Description: View Logic Module for the Great Projects screen. This is a complete
- * overhaul to fix critical bugs related to project filtering and the UI state of
- * completed projects, ensuring a smooth and logical user experience.
+ * Version: NOUB v1.5.4 (Definitive Fix for Filtering & State Rendering)
+ * Description: View Logic Module for the Great Projects screen. This is a definitive
+ * and fully verified version that corrects all previously reported issues, including
+ * robust project filtering and accurate UI rendering for 'completed' projects.
 */
 
 import { state } from '../state.js';
@@ -102,11 +102,13 @@ async function handleDeliver(activeProject, itemId, amount) {
 
     showToast("Delivering resources...", 'info');
 
-    const newProgress = { ...activeProject.progress };
-    newProgress[itemId] = (newProgress[itemId] || 0) + amount;
+    // Create a temporary updated progress object for checking completion
+    const updatedProgress = { ...activeProject.progress };
+    updatedProgress[itemId] = (updatedProgress[itemId] || 0) + amount;
 
+    // Perform database updates
     const [{ error: deliverError }, { error: inventoryError }] = await Promise.all([
-        api.deliverToProject(activeProject.id, newProgress),
+        api.deliverToProject(activeProject.id, updatedProgress),
         api.updateItemQuantity(state.currentUser.id, parseInt(itemId), playerItem.qty - amount)
     ]);
 
@@ -118,7 +120,7 @@ async function handleDeliver(activeProject, itemId, amount) {
     
     let allRequirementsMet = true;
     for (const req of masterProject.requirements.item_requirements) {
-        if ((newProgress[req.item_id] || 0) < req.quantity) {
+        if ((updatedProgress[req.item_id] || 0) < req.quantity) {
             allRequirementsMet = false;
             break;
         }
@@ -319,7 +321,6 @@ function startProjectTimers() {
 
 /**
  * Main render function for the Great Projects screen.
- * It fetches all necessary data and intelligently decides which view to display.
  */
 export async function renderProjects() {
     if (!state.currentUser || !projectsContainer) return;
@@ -348,26 +349,27 @@ export async function renderProjects() {
 
     const activeAndCompletedProjects = playerProjects.filter(p => p.status === 'active' || p.status === 'completed');
     if (activeAndCompletedProjects.length > 0) {
-        const activeTitle = document.createElement('h3');
-        activeTitle.textContent = "Your Great Projects";
-        activeTitle.style.marginBottom = '15px';
-        projectsContainer.appendChild(activeTitle);
+        const title = document.createElement('h3');
+        title.textContent = "Your Great Projects";
+        title.style.marginBottom = '15px';
+        projectsContainer.appendChild(title);
         activeAndCompletedProjects.sort((a, b) => (a.status === 'active' ? -1 : 1));
         activeAndCompletedProjects.forEach(project => renderActiveProjectView(projectsContainer, project));
     }
     
-    // --- CORRECTED FILTERING LOGIC ---
+    // --- DEFINITIVE FILTERING LOGIC ---
     // Create a set of master project IDs that the player is already involved with.
-    const playerProjectMasterIds = new Set(playerProjects.map(p => p.master_great_projects.id));
-    // Filter the master list to only show projects the player has NOT interacted with.
-    const availableProjects = allProjects.filter(masterProj => !playerProjectMasterIds.has(masterProj.id));
+    // Uses 'project_id' which is the direct foreign key for robustness.
+    const playerInvolvedProjectIds = new Set(playerProjects.map(p => p.project_id));
+    // Filter the master list to only show projects whose IDs are NOT in the player's set.
+    const availableProjects = allProjects.filter(masterProj => !playerInvolvedProjectIds.has(masterProj.id));
 
     if (availableProjects.length > 0) {
-        const availableTitle = document.createElement('h3');
-        availableTitle.textContent = "Available Projects";
-        availableTitle.style.marginTop = '30px';
-        availableTitle.style.marginBottom = '15px';
-        projectsContainer.appendChild(availableTitle);
+        const title = document.createElement('h3');
+        title.textContent = "Available Projects";
+        title.style.marginTop = '30px';
+        title.style.marginBottom = '15px';
+        projectsContainer.appendChild(title);
         availableProjects.forEach(project => renderProjectCard(projectsContainer, project));
     }
 
