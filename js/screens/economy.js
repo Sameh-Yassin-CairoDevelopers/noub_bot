@@ -161,7 +161,6 @@ async function handleBuildFactory(masterFactory) {
     renderProduction();
 }
 
-
 async function handleStartProduction(factoryId, recipes) {
     if (!state.currentUser) return;
     showToast('Checking resources...');
@@ -482,11 +481,11 @@ function openProductionModal(playerFactory, outputItem) {
         buttonHTML = `<button id="start-prod-btn" class="action-button" ${canStart ? '' : 'disabled'}>Start Production</button>`;
     }
 
-    let expertSectionHTML = `<div id="expert-assignment-section"><h4>Assigned Expert</h4>`;
+    let expertSectionHTML = `<div id="expert-assignment-section" style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;"><h4>Assigned Expert</h4>`;
     if (assignedCard) {
-        expertSectionHTML += `<div class="expert-card"><img src="${assignedCard.cards.image_url || 'images/default_card.png'}"><div><h5>${assignedCard.cards.name}</h5><p>LVL ${assignedCard.level}</p></div></div><button id="unassign-expert-btn" class="action-button small danger">Unassign</button>`;
+        expertSectionHTML += `<div class="expert-card" style="display: flex; align-items: center; background: #2a2a2e; padding: 8px; border-radius: 6px;"><img src="${assignedCard.cards.image_url || 'images/default_card.png'}" style="width: 40px; height: 40px; border-radius: 4px; margin-right: 10px;"><div><h5 style="margin: 0;">${assignedCard.cards.name}</h5><p style="font-size: 0.8em; margin: 0; color: #aaa;">LVL ${assignedCard.level}</p></div></div><button id="unassign-expert-btn" class="action-button small danger" style="margin-top: 10px;">Unassign</button>`;
     } else {
-        expertSectionHTML += `<div class="expert-placeholder"><p>No Expert Assigned</p><button id="assign-expert-btn" class="action-button small">Assign Expert</button></div>`;
+        expertSectionHTML += `<div class="expert-placeholder" style="border: 2px dashed #3a3a3c; padding: 20px; border-radius: 6px;"><p>No Expert Assigned</p><button id="assign-expert-btn" class="action-button small">Assign Expert</button></div>`;
     }
     expertSectionHTML += `</div>`;
 
@@ -495,11 +494,29 @@ function openProductionModal(playerFactory, outputItem) {
     const playerMaterialQty = requiredMaterialEntry?.qty || 0;
     const canUpgrade = playerFactory.level < FACTORY_UPGRADE_LEVEL_CAP && playerNoub >= FACTORY_UPGRADE_COST && playerMaterialQty >= FACTORY_UPGRADE_QTY;
     const upgradeDisabledText = playerFactory.level >= FACTORY_UPGRADE_LEVEL_CAP ? 'MAX LEVEL' : (canUpgrade ? 'Upgrade' : 'Missing Resources');
-    const upgradeCostHTML = `<div style="margin-top: 15px;"><h4>Upgrade to Level ${playerFactory.level + 1}</h4><div><span style="color: ${playerNoub >= FACTORY_UPGRADE_COST ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_COST} 🪙</span></div><div><span style="color: ${playerMaterialQty >= FACTORY_UPGRADE_QTY ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_QTY} x ${FACTORY_UPGRADE_ITEM_NAME}</span></div><button id="upgrade-factory-btn" class="action-button small" ${!canUpgrade ? 'disabled' : ''}>${upgradeDisabledText}</button></div>`;
+    const upgradeCostHTML = `<div style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;"><h4>Upgrade to Level ${playerFactory.level + 1}</h4><div><span style="color: ${playerNoub >= FACTORY_UPGRADE_COST ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_COST} 🪙</span></div><div><span style="color: ${playerMaterialQty >= FACTORY_UPGRADE_QTY ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_QTY} x ${FACTORY_UPGRADE_ITEM_NAME}</span></div><button id="upgrade-factory-btn" class="action-button small" style="background-color: ${canUpgrade ? '#5dade2' : '#7f8c8d'};" ${!canUpgrade ? 'disabled' : ''}>${upgradeDisabledText}</button></div>`;
 
-    productionModal.innerHTML = `<div class="modal-content">...</div>`; // Simplified
+    productionModal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="closeModal('production-modal')">&times;</button>
+            <div class="prod-modal-header"><img src="${factory.image_url || 'images/default_building.png'}"><h3>${factory.name}</h3><p class="level">Current Level: ${playerFactory.level}</p></div>
+            <div class="prod-modal-body">
+                <h4 style="text-align:center;">Input ➡️ Output (Time: ${formatTime(masterTime)})</h4>
+                <div class="prod-io">${requirementsHTML.length > 0 ? requirementsHTML : '<div><p>None</p></div>'}<span class="arrow">➡️</span><div><img src="${outputItem.image_url || 'images/default_item.png'}"><p>1 x ${outputItem.name}</p></div></div>
+                <div class="prod-timer">${isRunning ? `<div>Time Left: ${formatTime(masterTime - timeElapsed)}</div><div class="progress-bar"><div class="progress-bar-inner" style="width: ${((timeElapsed || 0) / masterTime) * 100}%"></div></div>` : ''}</div>
+            </div>
+            ${buttonHTML}
+            ${expertSectionHTML}
+            ${upgradeCostHTML}
+        </div>`;
     openModal('production-modal');
-    // Attach listeners
+
+    if (document.getElementById('start-prod-btn')) document.getElementById('start-prod-btn').onclick = () => handleStartProduction(playerFactory.id, factory.factory_recipes);
+    if (document.getElementById('claim-prod-btn')) document.getElementById('claim-prod-btn').onclick = () => handleClaimProduction(playerFactory, outputItem);
+    if (document.getElementById('assign-expert-btn')) document.getElementById('assign-expert-btn').onclick = () => openExpertSelectionModal(playerFactory.id);
+    if (document.getElementById('unassign-expert-btn')) document.getElementById('unassign-expert-btn').onclick = () => unassignExpert(playerFactory.id);
+    const upgradeFactoryBtn = document.getElementById('upgrade-factory-btn');
+    if(upgradeFactoryBtn && canUpgrade) upgradeFactoryBtn.onclick = () => { window.closeModal('production-modal'); executeFactoryUpgrade(playerFactory); };
 }
 
 export async function renderProduction() {
@@ -512,8 +529,8 @@ export async function renderProduction() {
         return;
     }
     
-    resourcesContainer.innerHTML = 'Loading resources buildings...';
-    workshopsContainer.innerHTML = 'Loading crafting workshops...';
+    resourcesContainer.innerHTML = 'Loading...';
+    workshopsContainer.innerHTML = 'Loading...';
     
     const [{ data: playerFactories, error: pError }, { data: masterFactories, error: mError }] = await Promise.all([
         api.fetchPlayerFactories(state.currentUser.id),
@@ -607,7 +624,13 @@ export async function renderStock() {
             itemElement.className = 'stock-item';
             const itemName = item.details.name;
             const itemQty = item.qty;
-            itemElement.innerHTML = `...`; // Simplified
+            itemElement.innerHTML = `
+                <img src="${item.details.image_url || 'images/default_item.png'}" alt="${itemName}">
+                <div class="details">
+                    <h4>${itemName}</h4>
+                    <span class="quantity">x ${itemQty}</span>
+                </div>
+            `;
             switch (item.details.type) {
                 case 'RESOURCE': stockResourcesContainer.appendChild(itemElement); break;
                 case 'MATERIAL': stockMaterialsContainer.appendChild(itemElement); break;
@@ -616,8 +639,8 @@ export async function renderStock() {
         }
     });
     if (!hasStock) {
-        stockResourcesContainer.innerHTML = '<p>No resources found.</p>';
-        stockMaterialsContainer.innerHTML = '<p>No materials found.</p>';
-        stockGoodsContainer.innerHTML = '<p>No goods found.</p>';
+        stockResourcesContainer.innerHTML = '<p style="text-align:center;">No resources found.</p>';
+        stockMaterialsContainer.innerHTML = '<p style="text-align:center;">No materials found.</p>';
+        stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
