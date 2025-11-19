@@ -128,8 +128,24 @@ export async function buildFactory(playerId, factoryId) {
  * DEFINITIVE FIX: The 'build_cost_noub' column has been added to the select query
  * to match the data structure expected by economy.js, resolving the fetch error.
  */
+/**
+ * DEFINITIVE FIX: The select query now correctly lists 'build_cost_noub' as a
+ * regular column within the 'factories' table selection, resolving the syntax error.
+ */
 export async function fetchPlayerFactories(playerId) {
-    return await supabaseClient.from('player_factories').select(`id, level, production_start_time, assigned_card_instance_id, player_cards (instance_id, level, cards ( name, image_url, power_score )), factories!inner (id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, required_level, build_cost_noub, items!factories_output_item_id_fkey (id, name, type, image_url, base_value), factory_recipes (input_quantity, items (id, name, type, image_url, base_value)))`).eq('player_id', playerId);
+    return await supabaseClient.from('player_factories').select(`
+        id, 
+        level, 
+        production_start_time, 
+        assigned_card_instance_id, 
+        player_cards (instance_id, level, cards ( name, image_url, power_score )), 
+        factories!inner (
+            id, name, output_item_id, base_production_time, type, image_url, 
+            specialization_path_id, required_level, build_cost_noub, 
+            items!factories_output_item_id_fkey (id, name, type, image_url, base_value), 
+            factory_recipes (input_quantity, items (id, name, type, image_url, base_value))
+        )
+    `).eq('player_id', playerId);
 }
 
 export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
@@ -317,4 +333,5 @@ export async function addXp(playerId, amount) {
     }
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
+
 
