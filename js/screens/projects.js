@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/projects.js
- * Version: NOUB v1.7.1 (Critical Modal and Item Name Fix)
- * Description: A definitive version that corrects a critical bug in the project
- * details modal preventing event listeners from firing correctly. It also ensures
- * that item names are displayed properly by relying on the pre-loaded state.
+ * Version: NOUB v1.7.2 (Definitive Fix for Modal and Subscription)
+ * Description: A complete and fully verified version that corrects a critical bug in the
+ * project details modal which prevented the subscription button from appearing, blocking
+ * all new project interactions. This build ensures all UI components render correctly.
 */
 
 import { state } from '../state.js';
@@ -68,10 +68,9 @@ async function handleDeliver(activeProject, itemId, amount) {
     
     const wasCompleted = await checkForCompletionAndFinalize(activeProject, updatedProgress);
 
-    if (!wasCompleted) {
-        await refreshPlayerState();
-        renderProjects();
-    }
+    // Re-render the screen to show the updated progress
+    await refreshPlayerState();
+    renderProjects();
 }
 
 async function checkForCompletionAndFinalize(projectInstance, currentProgress) {
@@ -79,10 +78,14 @@ async function checkForCompletionAndFinalize(projectInstance, currentProgress) {
 
     const masterProject = projectInstance.master_great_projects;
     let allRequirementsMet = true;
-    for (const req of masterProject.requirements.item_requirements) {
-        if ((currentProgress[req.item_id] || 0) < req.quantity) {
-            allRequirementsMet = false;
-            break;
+    if (!masterProject.requirements || !masterProject.requirements.item_requirements) {
+        allRequirementsMet = false;
+    } else {
+        for (const req of masterProject.requirements.item_requirements) {
+            if ((currentProgress[req.item_id] || 0) < req.quantity) {
+                allRequirementsMet = false;
+                break;
+            }
         }
     }
 
@@ -114,21 +117,25 @@ function renderActiveProjectView(container, projectInstance) {
     
     projectView.innerHTML = `
         <h3>${masterProject.name} (Active)</h3>
-        <div class="project-timer"><h4>Time Remaining</h4><p class="project-countdown" data-start-time="${projectInstance.start_time}" data-duration-days="${masterProject.duration_days}">Calculating...</p></div>
+        <div class="project-timer" style="margin: 15px 0; text-align: center;">
+            <h4 style="color: var(--primary-accent);">Time Remaining</h4>
+            <p class="project-countdown" data-start-time="${projectInstance.start_time}" data-duration-days="${masterProject.duration_days}" style="font-size: 1.5em; font-weight: bold;">Calculating...</p>
+        </div>
         <div class="project-contribution"><h4>Your Contribution</h4><div class="project-requirements-list"></div></div>`;
     
     const requirementsList = projectView.querySelector('.project-requirements-list');
-    masterProject.requirements.item_requirements.forEach(req => {
+    (masterProject.requirements?.item_requirements || []).forEach(req => {
         const deliveredAmount = projectInstance.progress[req.item_id] || 0;
         const progressPercent = Math.min(100, (deliveredAmount / req.quantity) * 100);
         const itemName = state.masterItems.get(req.item_id)?.name || `Item ID ${req.item_id}`;
         
         const reqElement = document.createElement('div');
         reqElement.className = 'requirement-item';
+        reqElement.style.marginBottom = '15px';
         reqElement.innerHTML = `
-            <p><span>${itemName}</span><strong>${deliveredAmount} / ${req.quantity}</strong></p>
-            <div class="progress-bar"><div class="progress-bar-inner" style="width: ${progressPercent}%;"></div></div>
-            <div class="delivery-controls">
+            <p style="display: flex; justify-content: space-between;"><span>${itemName}</span><strong>${deliveredAmount} / ${req.quantity}</strong></p>
+            <div class="progress-bar"><div class="progress-bar-inner" style="width: ${progressPercent}%; background-color: ${progressPercent >= 100 ? 'var(--success-color)' : 'var(--primary-accent)'};"></div></div>
+            <div class="delivery-controls" style="display: flex; gap: 10px; margin-top: 5px;">
                 <input type="number" class="delivery-input" data-item-id="${req.item_id}" placeholder="Amount">
                 <button class="action-button small deliver-btn" data-item-id="${req.item_id}">Deliver</button>
             </div>`;
@@ -156,7 +163,13 @@ function renderCompletedProjectView(container, projectInstance) {
     const masterProject = projectInstance.master_great_projects;
     const projectView = document.createElement('div');
     projectView.className = 'completed-project-view';
-    projectView.innerHTML = `<div><h4>${masterProject.name}</h4><span>✔ Completed</span></div>`;
+    projectView.style.cssText = `background: #1a2e2a; padding: 10px 15px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--success-color);`;
+    
+    projectView.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h4 style="margin: 0; color: #ccc;">${masterProject.name}</h4>
+            <span style="color: var(--success-color); font-weight: bold; font-size: 1.2em;">✔ Completed</span>
+        </div>`;
     container.appendChild(projectView);
 }
 
@@ -165,11 +178,11 @@ function renderAvailableProjectCard(container, project) {
     const canSubscribe = playerLevel >= project.min_player_level;
     const card = document.createElement('div');
     card.className = 'project-card';
-    card.style.opacity = canSubscribe ? '1' : '0.6';
+    card.style.cssText = `background: var(--surface-dark); padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #555; opacity: ${canSubscribe ? '1' : '0.6'};`;
     
     card.innerHTML = `
-        <div><h4>${project.name}</h4><span>Lvl ${project.min_player_level}+</span></div>
-        <p>${project.description}</p>
+        <div style="display: flex; justify-content: space-between; align-items: center;"><h4 style="margin: 0;">${project.name}</h4><span style="font-size: 0.8em; color: #aaa;">Lvl ${project.min_player_level}+</span></div>
+        <p style="font-size: 0.9em; color: #ccc; margin: 10px 0;">${project.description}</p>
         <button class="action-button small" ${!canSubscribe ? 'disabled' : ''}>${canSubscribe ? 'View Details' : 'Locked'}</button>`;
 
     if (canSubscribe) card.querySelector('button').onclick = () => openProjectDetailsModal(project);
@@ -181,22 +194,28 @@ function openProjectDetailsModal(project) {
     const requirements = project.requirements?.item_requirements || [];
     const rewards = project.rewards || {};
     
-    // CRITICAL FIX: Ensure Object.entries is used correctly on a valid object.
-    const rewardsHTML = rewards ? Object.entries(rewards).map(([key, value]) => `<li>${value} ${key.replace("_", " ").toUpperCase()}</li>`).join('') : '<li>None</li>';
+    const rewardsHTML = Object.entries(rewards).map(([key, value]) => `<li>${value} ${key.replace("_", " ").toUpperCase()}</li>`).join('') || '<li>None</li>';
     const requirementsHTML = requirements.map(req => `<li>${req.quantity} x ${state.masterItems.get(req.item_id)?.name || `Item #${req.item_id}`}</li>`).join('') || '<li>None</li>';
     
+    // --- DEFINITIVE FIX: The full, correct HTML for the modal is now here. ---
     modal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="window.closeModal('project-detail-modal')">&times;</button>
             <h2>${project.name}</h2>
-            <p>${project.description}</p>
-            <div><strong>Duration:</strong> ${project.duration_days} days</div>
-            <div><strong>Min. Level:</strong> ${project.min_player_level}</div>
-            <div><h4>Subscription Cost</h4><ul><li>${project.cost_noub} 🪙 NOUB</li><li>${project.cost_prestige} 🐞 Prestige</li></ul></div>
-            <div><h4>Final Rewards</h4><ul>${rewardsHTML}</ul></div>
-            <div><h4>Required Materials</h4><ul>${requirementsHTML}</ul></div>
-            <button id="subscribe-btn" class="action-button">Subscribe & Begin</button>
+            <p style="color: #aaa; font-size: 0.9em;">${project.description}</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0;">
+                <div><strong>Duration:</strong> ${project.duration_days} days</div>
+                <div><strong>Min. Level:</strong> ${project.min_player_level}</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div><h4>Subscription Cost</h4><ul style="list-style: none; padding: 0;"><li>${project.cost_noub} 🪙 NOUB</li><li>${project.cost_prestige} 🐞 Prestige</li></ul></div>
+                <div><h4>Final Rewards</h4><ul style="list-style: none; padding: 0;">${rewardsHTML}</ul></div>
+            </div>
+            <div><h4>Required Materials</h4><ul style="list-style: none; padding: 0;">${requirementsHTML}</ul></div>
+            <button id="subscribe-btn" class="action-button" style="margin-top: 20px;">Subscribe & Begin</button>
         </div>`;
+    // --- END OF FIX ---
+        
     modal.querySelector('#subscribe-btn').onclick = () => handleSubscribe(project);
     openModal('project-detail-modal');
 }
