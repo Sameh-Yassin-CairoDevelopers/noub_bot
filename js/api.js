@@ -111,17 +111,20 @@ export async function fetchAllMasterFactories() {
 }
 
 export async function buildFactory(playerId, factoryId) {
-    return await supabaseClient.from('player_factories').upsert(
+    // Diagnostic version: Returns the full error object for analysis.
+    const { data, error } = await supabaseClient.from('player_factories').upsert(
         {
             player_id: playerId,
             factory_id: factoryId,
             level: 1
         },
         {
-            onConflict: 'player_id,factory_id',
-            ignoreDuplicates: false 
+            onConflict: 'player_id,factory_id'
         }
     );
+
+    // We are now returning the full response, not just the error.
+    return { data, error };
 }
 
 /**
@@ -333,5 +336,6 @@ export async function addXp(playerId, amount) {
     }
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
+
 
 
