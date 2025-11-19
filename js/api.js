@@ -1,8 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: NOUB v1.8.1 (Factory Progression Update)
- * Description: Data Access Layer Module. This version exports the new fetchAllMasterFactories
- * function and adds a new buildFactory function to support the level-based factory unlocking system.
+ * Version: NOUB v1.8.2 (Robust Factory Building)
+ * Description: Data Access Layer Module. This version provides a critical fix to the
+ * factory building logic by switching from 'insert' to 'upsert', preventing '409 Conflict'
+ * errors and making the system robust against duplicate data.
 */
 
 import { state } from './state.js';
@@ -109,8 +110,16 @@ export async function fetchAllMasterFactories() {
     return await supabaseClient.from('factories').select('*');
 }
 
+/**
+ * Creates a new factory instance for a player using upsert for robustness.
+ * @param {string} playerId - The ID of the player.
+ * @param {number} factoryId - The ID of the master factory to build.
+ * @returns {Promise<{data: object, error: object|null}>}
+ */
 export async function buildFactory(playerId, factoryId) {
-    return await supabaseClient.from('player_factories').insert({
+    // CRITICAL FIX: Use upsert instead of insert to prevent 409 Conflict errors
+    // if the player_factories row already exists due to previous failed attempts or data inconsistency.
+    return await supabaseClient.from('player_factories').upsert({
         player_id: playerId,
         factory_id: factoryId,
         level: 1
