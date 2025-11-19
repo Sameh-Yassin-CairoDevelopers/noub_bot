@@ -1,9 +1,9 @@
 /*
  * Filename: js/api.js
- * Version: NOUB v1.8.3 (Definitive Upsert Fix)
+ * Version: NOUB v1.8.3 (Definitive Fetch & Upsert Fix)
  * Description: Data Access Layer Module. This version provides the definitive fix for
- * the factory building logic by using the correct 'onConflict' syntax for the 'upsert'
- * method, resolving the 400 Bad Request error.
+ * the factory progression system by including 'build_cost_noub' in the fetchPlayerFactories
+ * query and using the correct 'upsert' syntax, resolving all known errors.
 */
 
 import { state } from './state.js';
@@ -110,16 +110,7 @@ export async function fetchAllMasterFactories() {
     return await supabaseClient.from('factories').select('*');
 }
 
-/**
- * Creates a new factory instance for a player using upsert with the correct syntax.
- * @param {string} playerId - The ID of the player.
- * @param {number} factoryId - The ID of the master factory to build.
- * @returns {Promise<{data: object, error: object|null}>}
- */
 export async function buildFactory(playerId, factoryId) {
-    // DEFINITIVE FIX: Use the correct syntax for `onConflict` by specifying the constraint name
-    // or the columns that form the unique constraint. In this case, it's a composite primary key.
-    // We also use `ignoreDuplicates: true` as a robust fallback.
     return await supabaseClient.from('player_factories').upsert(
         {
             player_id: playerId,
@@ -127,12 +118,16 @@ export async function buildFactory(playerId, factoryId) {
             level: 1
         },
         {
-            onConflict: 'player_id,factory_id', // Supabase identifies the composite PK from this
-            ignoreDuplicates: false // We want it to do nothing if it exists, but upsert handles this.
+            onConflict: 'player_id,factory_id',
+            ignoreDuplicates: false 
         }
     );
 }
 
+/**
+ * DEFINITIVE FIX: The 'build_cost_noub' column has been added to the select query
+ * to match the data structure expected by economy.js, resolving the fetch error.
+ */
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient.from('player_factories').select(`id, level, production_start_time, assigned_card_instance_id, player_cards (instance_id, level, cards ( name, image_url, power_score )), factories!inner (id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, required_level, build_cost_noub, items!factories_output_item_id_fkey (id, name, type, image_url, base_value), factory_recipes (input_quantity, items (id, name, type, image_url, base_value)))`).eq('player_id', playerId);
 }
@@ -157,6 +152,7 @@ export async function claimProduction(playerId, playerFactoryId, itemId, newQuan
 export async function updateItemQuantity(playerId, itemId, newQuantity) {
     return await supabaseClient.from('player_inventory').upsert({ player_id: playerId, item_id: itemId, quantity: newQuantity });
 }
+
 
 export async function claimUcpTaskReward(playerId, taskNumber) {
     const updateObject = {};
@@ -321,3 +317,4 @@ export async function addXp(playerId, amount) {
     }
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
+
