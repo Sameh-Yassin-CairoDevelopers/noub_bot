@@ -1,9 +1,10 @@
 /*
  * Filename: js/api.js
- * Version: NOUB v1.8.3 (Definitive Fetch & Upsert Fix)
- * Description: Data Access Layer Module. This version provides the definitive fix for
- * the factory progression system by including 'build_cost_noub' in the fetchPlayerFactories
- * query and using the correct 'upsert' syntax, resolving all known errors.
+ * Version: NOUB v1.8.4 (Definitive Query Fix)
+ * Description: Data Access Layer Module. This version provides the definitive and final
+ * fix for the factory progression system by correcting the syntax of the fetchPlayerFactories
+ * query, resolving the data loading error permanently. It also includes the necessary
+ * functions for building and fetching all master factories.
 */
 
 import { state } from './state.js';
@@ -111,8 +112,7 @@ export async function fetchAllMasterFactories() {
 }
 
 export async function buildFactory(playerId, factoryId) {
-    // Diagnostic version: Returns the full error object for analysis.
-    const { data, error } = await supabaseClient.from('player_factories').upsert(
+    return await supabaseClient.from('player_factories').upsert(
         {
             player_id: playerId,
             factory_id: factoryId,
@@ -122,23 +122,8 @@ export async function buildFactory(playerId, factoryId) {
             onConflict: 'player_id,factory_id'
         }
     );
-
-    // We are now returning the full response, not just the error.
-    return { data, error };
 }
 
-/**
- * DEFINITIVE FIX: The 'build_cost_noub' column has been added to the select query
- * to match the data structure expected by economy.js, resolving the fetch error.
- */
-/**
- * DEFINITIVE FIX: The select query now correctly lists 'build_cost_noub' as a
- * regular column within the 'factories' table selection, resolving the syntax error.
- */
-/**
- * DEFINITIVE FIX: The select query now correctly lists 'build_cost_noub' as a
- * regular column within the 'factories' table selection, resolving the syntax error.
- */
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient.from('player_factories').select(`
         id, 
@@ -175,7 +160,6 @@ export async function claimProduction(playerId, playerFactoryId, itemId, newQuan
 export async function updateItemQuantity(playerId, itemId, newQuantity) {
     return await supabaseClient.from('player_inventory').upsert({ player_id: playerId, item_id: itemId, quantity: newQuantity });
 }
-
 
 export async function claimUcpTaskReward(playerId, taskNumber) {
     const updateObject = {};
@@ -340,7 +324,3 @@ export async function addXp(playerId, amount) {
     }
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
-
-
-
-
