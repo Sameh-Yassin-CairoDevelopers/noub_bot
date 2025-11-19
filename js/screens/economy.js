@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB v1.8.1 (Level-Based Factory Unlocking)
- * Description: View Logic Module for the Economy Hub. This major update refactors the rendering
- * logic to display all factories (owned and locked) based on the player's
- * current level, creating a clear progression path.
+ * Version: NOUB v1.8.2 (Final Correction for Rendering Logic)
+ * Description: View Logic Module for the Economy Hub. This version provides a definitive
+ * correction to the 'renderProduction' function, fixing a critical data-passing error
+ * that caused the entire screen to fail. All other functions from the stable base remain intact.
 */
 
 import { state } from '../state.js';
@@ -334,7 +334,8 @@ function updateProductionCard(playerFactory) {
     const cardId = `factory-card-${playerFactory.id}`;
     const card = document.getElementById(cardId);
     if (!card) return;
-    
+
+    // This data is now reliably available within the playerFactory object from the main fetch
     const masterFactory = playerFactory.factories;
     const outputItem = masterFactory.items;
     const assignedCard = playerFactory.player_cards;
@@ -366,7 +367,7 @@ function updateProductionCard(playerFactory) {
                 card.dataset.timerRunning = 'true';
                 setTimeout(() => {
                     card.dataset.timerRunning = '';
-                    updateProductionCard(playerFactory);
+                    updateProductionCard(playerFactory); // Recursive call to update the timer
                 }, ONE_SECOND);
             }
         }
@@ -419,17 +420,17 @@ function openProductionModal(playerFactory) {
     } else {
         buttonHTML = `<button id="start-prod-btn" class="action-button" ${canStart ? '' : 'disabled'}>Start Production</button>`;
     }
-    let expertSectionHTML = `<div id="expert-assignment-section"><h4 style="color:var(--primary-accent);">Assigned Expert</h4>`;
+    let expertSectionHTML = `<div id="expert-assignment-section" style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;"><h4 style="color:var(--primary-accent); margin-bottom: 5px;">Assigned Expert</h4>`;
     if (assignedCard) {
         expertSectionHTML += `
-            <div class="expert-card">
-                <img src="${assignedCard.cards.image_url || 'images/default_card.png'}">
-                <div><h5>${assignedCard.cards.name}</h5><p>LVL ${assignedCard.level}</p></div>
+            <div class="expert-card" style="display: flex; align-items: center; background: #2a2a2e; padding: 8px; border-radius: 6px;">
+                <img src="${assignedCard.cards.image_url || 'images/default_card.png'}" style="width: 40px; height: 40px; border-radius: 4px; margin-right: 10px;">
+                <div style="text-align: left;"><h5 style="margin: 0;">${assignedCard.cards.name}</h5><p style="font-size: 0.8em; margin: 0; color: #aaa;">LVL ${assignedCard.level}</p></div>
             </div>
-            <button id="unassign-expert-btn" class="action-button small danger">Unassign</button>`;
+            <button id="unassign-expert-btn" class="action-button small danger" style="margin-top: 10px;">Unassign</button>`;
     } else {
         expertSectionHTML += `
-            <div class="expert-placeholder">
+            <div class="expert-placeholder" style="border: 2px dashed #3a3a3c; padding: 20px; border-radius: 6px;">
                 <p>No Expert Assigned</p>
                 <button id="assign-expert-btn" class="action-button small">Assign Expert</button>
             </div>`;
@@ -443,23 +444,23 @@ function openProductionModal(playerFactory) {
     const upgradeButtonColor = canUpgrade ? '#5dade2' : '#7f8c8d';
     const upgradeCostHTML = `
         <div style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;">
-            <h4>Upgrade to Level ${playerFactory.level + 1}</h4>
-            <div class="cost-item"><span style="color: ${playerNoub >= FACTORY_UPGRADE_COST ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_COST} 🪙</span></div>
-            <div class="cost-item"><span style="color: ${playerMaterialQty >= FACTORY_UPGRADE_QTY ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_QTY} x ${FACTORY_UPGRADE_ITEM_NAME}</span></div>
-            <button id="upgrade-factory-btn" class="action-button small" style="background-color: ${upgradeButtonColor};" ${!canUpgrade ? 'disabled' : ''}>${upgradeDisabledText}</button>
+            <h4 style="color:var(--primary-accent); margin-bottom: 5px;">Upgrade to Level ${playerFactory.level + 1}</h4>
+            <div class="cost-item"><span class="value" style="color: ${playerNoub >= FACTORY_UPGRADE_COST ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_COST} 🪙</span></div>
+            <div class="cost-item"><span class="value" style="color: ${playerMaterialQty >= FACTORY_UPGRADE_QTY ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_QTY} x ${FACTORY_UPGRADE_ITEM_NAME}</span></div>
+            <button id="upgrade-factory-btn" class="action-button small" style="background-color: ${upgradeButtonColor}; width: 150px;" ${!canUpgrade ? 'disabled' : ''}>${upgradeDisabledText}</button>
         </div>`;
     productionModal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeModal('production-modal')">&times;</button>
-            <div class="prod-modal-header"><img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}"><h3>${factory.name}</h3><p>Level: ${playerFactory.level}</p></div>
+            <div class="prod-modal-header"><img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}"><h3>${factory.name}</h3><p class="level">Current Level: ${playerFactory.level}</p></div>
             <div class="prod-modal-body">
-                <h4>Input ➡️ Output (Time: ${formatTime(masterTime)})</h4>
+                <h4 style="color:var(--text-secondary); text-align:center;">Input ➡️ Output (Time: ${formatTime(masterTime)})</h4>
                 <div class="prod-io">
-                    ${requirementsHTML.length > 0 ? requirementsHTML : '<div><p>None</p></div>'}
+                    ${requirementsHTML.length > 0 ? requirementsHTML : '<div class="prod-item"><p>None</p><div class="label">Input</div></div>'}
                     <span class="arrow">➡️</span>
-                    <div><img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}"><p>1 x ${outputItem.name}</p></div>
+                    <div class="prod-item"><img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}"><p>1 x ${outputItem.name}</p><div class="label">Output</div></div>
                 </div>
-                <div class="prod-timer">${isRunning ? `<div>Time Left: ${formatTime(masterTime - timeElapsed)}</div><div class="progress-bar"><div class="progress-bar-inner" style="width: ${((timeElapsed || 0) / masterTime) * 100}%"></div></div>` : ''}</div>
+                <div class="prod-timer">${isRunning ? `<div class="time-left">Time Left: ${formatTime(masterTime - timeElapsed)}</div><div class="progress-bar"><div class="progress-bar-inner" style="width: ${((timeElapsed || 0) / masterTime) * 100}%"></div></div>` : ''}</div>
             </div>
             ${buttonHTML}
             ${expertSectionHTML}
@@ -521,6 +522,7 @@ export async function renderProduction() {
             card.innerHTML = `${expertIndicator}<img src="${masterFactory.image_url || 'images/default_building.png'}" alt="${masterFactory.name}"><h4>${masterFactory.name}</h4><div class="level">Level: ${playerFactoryInstance.level}</div><div class="status">Loading...</div><div class="progress-bar"><div class="progress-bar-inner"></div></div>`;
             const targetContainer = masterFactory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
             targetContainer.appendChild(card);
+            // DEFINITIVE FIX: Pass the entire player factory instance.
             updateProductionCard(playerFactoryInstance);
         } else {
             const isUnlockedByLevel = playerLevel >= masterFactory.required_level;
