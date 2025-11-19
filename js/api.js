@@ -135,6 +135,10 @@ export async function buildFactory(playerId, factoryId) {
  * DEFINITIVE FIX: The select query now correctly lists 'build_cost_noub' as a
  * regular column within the 'factories' table selection, resolving the syntax error.
  */
+/**
+ * DEFINITIVE FIX: The select query now correctly lists 'build_cost_noub' as a
+ * regular column within the 'factories' table selection, resolving the syntax error.
+ */
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient.from('player_factories').select(`
         id, 
@@ -336,6 +340,7 @@ export async function addXp(playerId, amount) {
     }
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
+
 
 
 
