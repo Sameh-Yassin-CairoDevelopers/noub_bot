@@ -150,11 +150,27 @@ async function handleBuildFactory(masterFactory) {
     });
     if (costError) return showToast('Failed to deduct construction cost.', 'error');
 
-    const { error: buildError } = await api.buildFactory(state.currentUser.id, masterFactory.id);
+    // --- DIAGNOSTIC CODE BLOCK ---
+    const { data: buildData, error: buildError } = await api.buildFactory(state.currentUser.id, masterFactory.id);
+    
     if (buildError) {
-        // In production, we should refund the cost here.
-        return showToast('An error occurred during construction. Check console for details.', 'error');
+        // This is the most important part. We will display the full error.
+        const errorMessage = `An error occurred during construction.\n\n` +
+                             `Message: ${buildError.message}\n` +
+                             `Details: ${buildError.details}\n` +
+                             `Hint: ${buildError.hint}\n` +
+                             `Code: ${buildError.code}`;
+        
+        // Use alert() because it's impossible to miss and can show multi-line text.
+        alert(errorMessage);
+        
+        // Log the full object to the console as well for detailed inspection.
+        console.error("CONSTRUCTION FAILED - FULL ERROR OBJECT:", buildError);
+
+        // In production, we should refund the cost here. For now, we just stop.
+        return;
     }
+    // --- END DIAGNOSTIC CODE BLOCK ---
 
     showToast(`${masterFactory.name} has been built!`, 'success');
     await refreshPlayerState();
@@ -658,3 +674,4 @@ export async function renderStock() {
         stockGoodsContainer.innerHTML = '<p style="text-align:center;">No goods found.</p>';
     }
 }
+
