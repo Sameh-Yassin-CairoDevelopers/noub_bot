@@ -4,7 +4,7 @@
  * Description: A complete refactor of the Great Projects screen. This version introduces
  * a robust, state-auditing mechanism that self-corrects "zombie" projects (active projects
  * with fulfilled requirements) upon loading. It uses strict data categorization and
- * dedicated rendering functions to ensure a flawless and logical user experience.
+ * dedicated rendering functions for each state to eliminate UI inconsistencies and logical flaws.
 */
 
 import { state } from '../state.js';
@@ -27,7 +27,6 @@ function formatTime(ms) {
 
 // --- Core Logic: Project Interaction ---
 async function handleSubscribe(project) {
-    // This function's logic is sound and remains unchanged.
     const playerProfile = state.playerProfile;
     if ((playerProfile.noub_score || 0) < project.cost_noub) return showToast(`Not enough NOUB. Required: ${project.cost_noub}`, 'error');
     if ((playerProfile.prestige || 0) < project.cost_prestige) return showToast(`Not enough Prestige. Required: ${project.cost_prestige}`, 'error');
@@ -69,18 +68,22 @@ async function handleDeliver(activeProject, itemId, amount) {
     showToast("Resources delivered successfully!", 'success');
     
     // Check for completion immediately after the state update
-    await checkForCompletionAndFinalize(activeProject, updatedProgress);
+    const wasCompleted = await checkForCompletionAndFinalize(activeProject, updatedProgress);
 
-    // Refresh state and re-render the entire screen
-    await refreshPlayerState();
-    renderProjects();
+    // Only re-render if a completion didn't already trigger it.
+    if (!wasCompleted) {
+        await refreshPlayerState();
+        renderProjects();
+    }
 }
 
 /**
  * NEW: A dedicated function to check if a project is complete and finalize it.
- * This can be called after delivery or during the initial screen load audit.
  */
 async function checkForCompletionAndFinalize(projectInstance, currentProgress) {
+    // Prevent re-triggering for already completed projects.
+    if (projectInstance.status === 'completed') return false;
+
     const masterProject = projectInstance.master_great_projects;
     let allRequirementsMet = true;
     for (const req of masterProject.requirements.item_requirements) {
@@ -135,7 +138,7 @@ function renderActiveProjectView(container, projectInstance) {
         reqElement.style.marginBottom = '15px';
         reqElement.innerHTML = `
             <p style="display: flex; justify-content: space-between;"><span>${itemName}</span><strong>${deliveredAmount} / ${req.quantity}</strong></p>
-            <div class="progress-bar"><div class="progress-bar-inner" style="width: ${progressPercent}%;"></div></div>
+            <div class="progress-bar"><div class="progress-bar-inner" style="width: ${progressPercent}%; background-color: ${progressPercent >= 100 ? 'var(--success-color)' : 'var(--primary-accent)'};"></div></div>
             <div class="delivery-controls" style="display: flex; gap: 10px; margin-top: 5px;">
                 <input type="number" class="delivery-input" data-item-id="${req.item_id}" placeholder="Amount">
                 <button class="action-button small deliver-btn" data-item-id="${req.item_id}">Deliver</button>
@@ -191,24 +194,27 @@ function renderAvailableProjectCard(container, project) {
 }
 
 function openProjectDetailsModal(project) {
-    // This function's logic is sound and remains unchanged.
     const modal = document.getElementById('project-detail-modal');
     const requirements = project.requirements?.item_requirements || [];
     const rewards = project.rewards || {};
     const requirementsHTML = requirements.map(req => `<li>${req.quantity} x ${state.masterItems.get(req.item_id)?.name || `Item #${req.item_id}`}</li>`).join('') || '<li>None</li>';
-    const rewardsHTML = Object.entries(rewards).map(([key, value]) => `<li>${value} ${key.toUpperCase()}</li>`).join('') || '<li>None</li>';
+    const rewardsHTML = Object.entries(rewards).map(([key, value]) => `<li>${value} ${key.replace("_", " ").toUpperCase()}</li>`).join('') || '<li>None</li>';
     
     modal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="window.closeModal('project-detail-modal')">&times;</button>
             <h2>${project.name}</h2>
-            <p>${project.description}</p>
-            <div><strong>Duration:</strong> ${project.duration_days} days</div>
-            <div><strong>Min. Level:</strong> ${project.min_player_level}</div>
-            <div><h4>Subscription Cost</h4><ul><li>${project.cost_noub} 🪙</li><li>${project.cost_prestige} 🐞</li></ul></div>
-            <div><h4>Final Rewards</h4><ul>${rewardsHTML}</ul></div>
-            <div><h4>Required Materials</h4><ul>${requirementsHTML}</ul></div>
-            <button id="subscribe-btn" class="action-button">Subscribe & Begin</button>
+            <p style="color: #aaa; font-size: 0.9em;">${project.description}</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0;">
+                <div><strong>Duration:</strong> ${project.duration_days} days</div>
+                <div><strong>Min. Level:</strong> ${project.min_player_level}</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div><h4>Subscription Cost</h4><ul style="list-style: none; padding: 0;"><li>${project.cost_noub} 🪙 NOUB</li><li>${project.cost_prestige} 🐞 Prestige</li></ul></div>
+                <div><h4>Final Rewards</h4><ul style="list-style: none; padding: 0;">${rewardsHTML}</ul></div>
+            </div>
+            <div><h4>Required Materials</h4><ul style="list-style: none; padding: 0;">${requirementsHTML}</ul></div>
+            <button id="subscribe-btn" class="action-button" style="margin-top: 20px;">Subscribe & Begin</button>
         </div>`;
     modal.querySelector('#subscribe-btn').onclick = () => handleSubscribe(project);
     openModal('project-detail-modal');
@@ -230,7 +236,6 @@ function startProjectTimers() {
 
 /**
  * Main render function (REBUILT with Self-Correction).
- * Audits project states on load before rendering to fix inconsistencies.
  */
 export async function renderProjects() {
     if (!state.currentUser || !projectsContainer) return;
@@ -248,24 +253,25 @@ export async function renderProjects() {
         return;
     }
     
-    // --- DEFINITIVE FIX: SELF-CORRECTION AUDIT ---
+    // --- SELF-CORRECTION AUDIT ---
     let correctionNeeded = false;
-    const activeProjectsToCheck = playerProjects.filter(p => p.status === 'active');
-    for (const project of activeProjectsToCheck) {
-        const wasCompleted = await checkForCompletionAndFinalize(project, project.progress);
-        if (wasCompleted) {
-            correctionNeeded = true;
+    for (const project of playerProjects) {
+        if (project.status === 'active') {
+            const wasCompleted = await checkForCompletionAndFinalize(project, project.progress);
+            if (wasCompleted) {
+                correctionNeeded = true;
+            }
         }
     }
     
-    // If a correction was made, re-fetch the data to get the absolute latest state
     if (correctionNeeded) {
-        showToast("Correcting project states...", "info");
+        showToast("Correcting completed project states...", "info");
+        // Re-fetch the data to get the absolute latest state
         const { data: correctedProjects } = await api.fetchPlayerGreatProjects(state.currentUser.id);
         playerProjects = correctedProjects;
         await refreshPlayerState();
     }
-    // --- END OF FIX ---
+    // --- END OF AUDIT ---
 
     projectsContainer.innerHTML = '';
     
@@ -275,12 +281,13 @@ export async function renderProjects() {
         return;
     }
 
+    // Strict Categorization
     const activeProjects = playerProjects.filter(p => p.status === 'active');
     const completedProjects = playerProjects.filter(p => p.status === 'completed');
     const playerInvolvedProjectIds = new Set(playerProjects.map(p => p.project_id));
     const availableProjects = allProjects.filter(p => !playerInvolvedProjectIds.has(p.id));
 
-    // Render sections based on the corrected and categorized data
+    // Render sections in a fixed, logical order
     if (activeProjects.length > 0) {
         const title = document.createElement('h3');
         title.textContent = "Your Active Projects";
