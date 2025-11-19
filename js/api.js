@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: NOUB v1.5.1 (XP System Implementation)
- * Description: Data Access Layer Module. This version introduces the core 'addXp'
- * function, which is the engine for the new player leveling system.
+ * Version: NOUB v1.8.1 (Factory Progression Update)
+ * Description: Data Access Layer Module. This version exports the new fetchAllMasterFactories
+ * function and adds a new buildFactory function to support the level-based factory unlocking system.
 */
 
 import { state } from './state.js';
@@ -105,8 +105,20 @@ export async function transactUpgradeCosts(playerId, costs, itemCost = null) {
 
 // --- Economy API Functions ---
 
+export async function fetchAllMasterFactories() {
+    return await supabaseClient.from('factories').select('*');
+}
+
+export async function buildFactory(playerId, factoryId) {
+    return await supabaseClient.from('player_factories').insert({
+        player_id: playerId,
+        factory_id: factoryId,
+        level: 1
+    });
+}
+
 export async function fetchPlayerFactories(playerId) {
-    return await supabaseClient.from('player_factories').select(`id, level, production_start_time, assigned_card_instance_id, player_cards (instance_id, level, cards ( name, image_url, power_score )), factories!inner (id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, required_level, items!factories_output_item_id_fkey (id, name, type, image_url, base_value), factory_recipes (input_quantity, items (id, name, type, image_url, base_value)))`).eq('player_id', playerId);
+    return await supabaseClient.from('player_factories').select(`id, level, production_start_time, assigned_card_instance_id, player_cards (instance_id, level, cards ( name, image_url, power_score )), factories!inner (id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, required_level, build_cost_noub, items!factories_output_item_id_fkey (id, name, type, image_url, base_value), factory_recipes (input_quantity, items (id, name, type, image_url, base_value)))`).eq('player_id', playerId);
 }
 
 export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
@@ -134,15 +146,6 @@ export async function claimUcpTaskReward(playerId, taskNumber) {
     const updateObject = {};
     updateObject[`ucp_task_${taskNumber}_claimed`] = true;
     return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
-}
-
-
-/**
- * NEW: Fetches all master factory definitions from the 'factories' table.
- * This is crucial for displaying locked/unlockable factories to the player.
- */
-export async function fetchAllMasterFactories() {
-    return await supabaseClient.from('factories').select('*, items(*), factory_recipes(*, items(*))');
 }
 
 // --- Contract API Functions ---
@@ -237,120 +240,68 @@ export async function deliverToProject(playerProjectId, newProgress) {
     return await supabaseClient.from('player_great_projects').update({ progress: newProgress }).eq('id', playerProjectId);
 }
 
-/**
- * NEW: Finalizes a great project for a player.
- * This function sets the project status to 'completed' and atomically adds the
- * final rewards to the player's profile.
- * @param {number} playerProjectId - The unique ID of the player's project instance.
- * @param {object} rewards - An object containing the final rewards (e.g., { noub: 1000, prestige: 100 }).
- * @returns {Promise<{error: object|null}>} - An object containing an error if the transaction failed.
- */
 export async function completeGreatProject(playerProjectId, rewards) {
     if (!playerProjectId || !rewards) {
         return { error: { message: "Invalid project ID or rewards." } };
     }
-
-    // 1. Mark the project as completed
     const { error: statusError } = await supabaseClient
         .from('player_great_projects')
         .update({ status: 'completed' })
         .eq('id', playerProjectId);
-
     if (statusError) {
         console.error("Error updating project status:", statusError);
         return { error: statusError };
     }
-
-    // 2. Grant the final rewards to the player
-    // Note: This is a simplified client-side read-modify-write.
-    // For enhanced security and atomicity, this should ideally be a single RPC call.
     const player = state.playerProfile;
     const profileUpdate = {
         noub_score: (player.noub_score || 0) + (rewards.noub || 0),
         prestige: (player.prestige || 0) + (rewards.prestige || 0),
         ankh_premium: (player.ankh_premium || 0) + (rewards.ankh || 0),
     };
-
     const { error: rewardError } = await updatePlayerProfile(player.id, profileUpdate);
-
     if (rewardError) {
         console.error("Error granting project rewards:", rewardError);
-        // In a real production app, you might want to roll back the status update here.
         return { error: rewardError };
     }
-
     return { error: null };
 }
 
+// --- Player Leveling System ---
 
-// --- NEW: Player Leveling System ---
-
-/**
- * Atomically adds XP to a player's profile and handles level ups.
- * This is the core engine of the new player progression system.
- * @param {string} playerId - The ID of the player to grant XP to.
- * @param {number} amount - The amount of XP to grant.
- * @returns {Promise<{error: object|null}>} - An object containing an error if the transaction failed.
- */
 export async function addXp(playerId, amount) {
     if (!playerId || !amount || amount <= 0) {
         return { error: { message: 'Invalid player ID or XP amount.' } };
     }
-
-    // Since we can't perform complex read-modify-write atomically with just Supabase client-side updates,
-    // this is a prime candidate for a PostgreSQL function (RPC). For now, we'll do it client-side.
-    // NOTE: This can lead to race conditions in a high-concurrency environment.
-    
-    // 1. Fetch the current player state
     const { data: currentProfile, error: fetchError } = await supabaseClient
         .from('profiles')
         .select('level, xp, xp_to_next_level')
         .eq('id', playerId)
         .single();
-
     if (fetchError) {
         console.error("addXp: Error fetching profile.", fetchError);
         return { error: fetchError };
     }
-    
-    // 2. Calculate new XP and handle level-ups
     let { level, xp, xp_to_next_level } = currentProfile;
     xp += amount;
-    
     let leveledUp = false;
-    // Use a while loop to handle multi-level ups from a single large XP grant
     while (xp >= xp_to_next_level) {
         leveledUp = true;
         level++;
         xp -= xp_to_next_level;
-        
-        // Increase the XP required for the next level (e.g., by 10%)
         xp_to_next_level = Math.floor(xp_to_next_level * 1.1);
     }
-    
-    // 3. Prepare the final update object
     const updateObject = {
         xp: xp,
         level: level,
         xp_to_next_level: xp_to_next_level
     };
-
-    // 4. Update the player's profile in the database
     const { error: updateError } = await updatePlayerProfile(playerId, updateObject);
-    
     if (updateError) {
         console.error("addXp: Error updating profile.", updateError);
         return { error: updateError };
     }
-    
-    // If the player leveled up, show a notification
     if (leveledUp) {
-        // We need access to showToast, so this is better handled by the calling function.
-        // We can return a flag indicating a level up occurred.
         console.log(`Player ${playerId} leveled up to level ${level}!`);
     }
-
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
-
-
