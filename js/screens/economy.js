@@ -1,9 +1,9 @@
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB v1.8.2 (Final Correction for Rendering Logic)
- * Description: View Logic Module for the Economy Hub. This version provides a definitive
- * correction to the 'renderProduction' function, fixing a critical data-passing error
- * that caused the entire screen to fail. All other functions from the stable base remain intact.
+ * Version: Pharaoh's Legacy 'NOUB' v1.5.1 (XP System Integration & Refactor)
+ * Description: View Logic Module for the Economy Hub. This version integrates XP rewards
+ * for claiming production and upgrading factories, tying the core economic loop into the
+ * new player progression system. It also internalizes the factory upgrade logic for better encapsulation.
 */
 
 import { state } from '../state.js';
@@ -52,6 +52,7 @@ const stockMaterialsContainer = document.getElementById('stock-materials-contain
 const stockGoodsContainer = document.getElementById('stock-goods-container');
 
 // --- Specialization Logic ---
+
 async function handleSelectSpecialization(pathId) {
     if (!state.currentUser) return;
     showToast('Unlocking specialization path...', 'info');
@@ -78,6 +79,7 @@ async function handleSelectSpecialization(pathId) {
     window.closeModal('specialization-choice-modal');
     renderProduction();
 }
+
 async function renderSpecializationChoice() {
     const modal = document.getElementById('specialization-choice-modal');
     if (!modal) return;
@@ -117,6 +119,7 @@ async function renderSpecializationChoice() {
 }
 
 // --- Utility Functions ---
+
 function formatTime(ms) {
     if (ms < 0) return '00:00';
     const totalSeconds = Math.floor(ms / ONE_SECOND);
@@ -129,7 +132,8 @@ function formatTime(ms) {
 }
 
 // --- Core Production Logic ---
-async function handleStartProduction(playerFactory, recipes) {
+
+async function handleStartProduction(factoryId, recipes) {
     if (!state.currentUser) return;
     showToast('Checking resources...');
     let missingResources = false;
@@ -151,7 +155,7 @@ async function handleStartProduction(playerFactory, recipes) {
     });
     await Promise.all(consumePromises);
     const startTime = new Date().toISOString();
-    const { error } = await api.startProduction(playerFactory.id, startTime);
+    const { error } = await api.startProduction(factoryId, startTime);
     if (error) {
         showToast('Error starting production!', 'error');
         return;
@@ -160,10 +164,16 @@ async function handleStartProduction(playerFactory, recipes) {
     await refreshPlayerState();
     renderProduction();
 }
+
+/**
+ * Handles claiming finished production from a factory.
+ * NEW: Grants the player +2 XP upon successful claim.
+ */
 async function handleClaimProduction(playerFactory, outputItem) {
     if (!state.currentUser || !outputItem) return;
     const factory = playerFactory.factories;
     const assignedCard = playerFactory.player_cards;
+
     let productionTimeMs = factory.base_production_time * ONE_MINUTE;
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
@@ -175,12 +185,15 @@ async function handleClaimProduction(playerFactory, outputItem) {
             }
         }
     }
+    
     const timeElapsed = new Date().getTime() - new Date(playerFactory.production_start_time).getTime();
     if (timeElapsed < productionTimeMs) {
         showToast('Production is not finished yet.', 'info');
         return;
     }
+
     showToast('Claiming resources...', 'info');
+
     let quantityProduced = 1;
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
@@ -195,63 +208,95 @@ async function handleClaimProduction(playerFactory, outputItem) {
             }
         }
     }
+    
     const currentQty = state.inventory.get(outputItem.id)?.qty || 0;
     const newQuantity = currentQty + quantityProduced;
+    
     const [claimResult] = await Promise.all([
         api.claimProduction(state.currentUser.id, playerFactory.id, outputItem.id, newQuantity),
         outputItem.type === 'RESOURCE' ? trackDailyActivity('resources', quantityProduced, outputItem.name) : null
     ]);
+
     if (claimResult.error) {
         showToast('Error claiming production!', 'error');
         return;
     }
+
+    // --- NEW: Grant XP for production claim ---
     const { leveledUp, newLevel } = await api.addXp(state.currentUser.id, 2);
     if (leveledUp) {
         showToast(`LEVEL UP! You have reached Level ${newLevel}!`, 'success');
     }
+    // --- END NEW ---
+    
     await trackTaskProgress('production_claim', quantityProduced);
+
     showToast(`Claimed ${quantityProduced} x ${outputItem.name}!`, 'success');
     await refreshPlayerState();
     renderProduction();
     window.closeModal('production-modal');
 }
 
-// --- Factory Upgrade Logic ---
+// --- Factory Upgrade Logic (Internalized) ---
+
+/**
+ * Executes the factory upgrade transaction.
+ * NEW: Grants the player +20 XP upon successful upgrade.
+ * @param {object} playerFactory - The player_factories object.
+ */
 async function executeFactoryUpgrade(playerFactory) { 
     if (!state.currentUser || !playerFactory) return;
+
     if (playerFactory.level >= FACTORY_UPGRADE_LEVEL_CAP) {
         showToast('Factory has reached its maximum level.', 'error');
         return;
     }
+
     showToast('Processing factory upgrade...', 'info');
-    const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => item.details.name === FACTORY_UPGRADE_ITEM_NAME);
+    
+    const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => 
+        item.details.name === FACTORY_UPGRADE_ITEM_NAME
+    );
+    
     const materialId = requiredMaterialEntry?.details.id;
     const playerMaterialQty = requiredMaterialEntry?.qty || 0;
     const playerNoub = state.playerProfile.noub_score || 0;
+
     if (!materialId || playerNoub < FACTORY_UPGRADE_COST || playerMaterialQty < FACTORY_UPGRADE_QTY) {
         showToast(`Error: Missing ${FACTORY_UPGRADE_QTY} ${FACTORY_UPGRADE_ITEM_NAME} or ${FACTORY_UPGRADE_COST} NOUB for upgrade.`, 'error');
         return;
     }
+
     const newNoub = playerNoub - FACTORY_UPGRADE_COST;
     const newMaterialQty = playerMaterialQty - FACTORY_UPGRADE_QTY;
+    
     const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoub });
     const { error: inventoryError } = await api.updateItemQuantity(state.currentUser.id, materialId, newMaterialQty);
+
     if (profileError || inventoryError) {
         showToast('Error consuming resources for upgrade!', 'error');
         return;
     }
+    
     const newLevel = playerFactory.level + 1;
     const { error: factoryError } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); 
+    
     if (factoryError) {
         showToast('Error updating factory level!', 'error');
         return;
     }
-    const { leveledUp, newLevel: playerNewLevel } = await api.addXp(state.currentUser.id, 20);
+    
+    // --- NEW: Grant XP for factory upgrade ---
+    const { leveledUp, newLevel: playerNewLevel } = await api.addXp(state.currentUser.id, 20); // Grant 20 XP for a factory upgrade
     if (leveledUp) {
         showToast(`LEVEL UP! You have reached Level ${playerNewLevel}!`, 'success');
     }
+    // --- END NEW ---
+
     showToast(`Factory Upgraded! ${playerFactory.factories.name} LVL ${playerFactory.level} → LVL ${newLevel}`, 'success');
+    
     await refreshPlayerState(); 
+    
     if (document.getElementById('economy-screen').classList.contains('hidden')) {
         navigateTo('economy-screen');
     } else {
@@ -259,7 +304,9 @@ async function executeFactoryUpgrade(playerFactory) {
     }
 }
 
+
 // --- Expert Assignment Logic ---
+
 async function openExpertSelectionModal(playerFactoryId) {
     const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
         api.fetchPlayerCards(state.currentUser.id),
@@ -302,9 +349,14 @@ async function openExpertSelectionModal(playerFactoryId) {
     });
     openModal('expert-selection-modal');
 }
+
 async function assignExpert(playerFactoryId, cardInstanceId) {
     showToast("Assigning expert...", 'info');
-    const { error } = await api.supabaseClient.from('player_factories').update({ assigned_card_instance_id: cardInstanceId }).eq('id', playerFactoryId);
+    const { error } = await api.supabaseClient
+        .from('player_factories')
+        .update({ assigned_card_instance_id: cardInstanceId })
+        .eq('id', playerFactoryId);
+
     if (error) {
         showToast("Failed to assign expert!", 'error');
         console.error("Assign Expert Error:", error);
@@ -315,9 +367,14 @@ async function assignExpert(playerFactoryId, cardInstanceId) {
         renderProduction();
     }
 }
+
 async function unassignExpert(playerFactoryId) {
     showToast("Unassigning expert...", 'info');
-    const { error } = await api.supabaseClient.from('player_factories').update({ assigned_card_instance_id: null }).eq('id', playerFactoryId);
+    const { error } = await api.supabaseClient
+        .from('player_factories')
+        .update({ assigned_card_instance_id: null })
+        .eq('id', playerFactoryId);
+    
     if (error) {
         showToast("Failed to unassign expert!", 'error');
         console.error(error);
@@ -329,19 +386,18 @@ async function unassignExpert(playerFactoryId) {
     }
 }
 
+
 // --- UI Rendering ---
-function updateProductionCard(playerFactory) {
-    const cardId = `factory-card-${playerFactory.id}`;
+
+function updateProductionCard(factory, outputItem) {
+    const cardId = `factory-card-${factory.id}`;
     const card = document.getElementById(cardId);
     if (!card) return;
 
-    // This data is now reliably available within the playerFactory object from the main fetch
-    const masterFactory = playerFactory.factories;
-    const outputItem = masterFactory.items;
-    const assignedCard = playerFactory.player_cards;
-    const startTime = playerFactory.production_start_time;
+    const assignedCard = factory.player_cards;
+    const startTime = factory.production_start_time;
     
-    let masterTime = masterFactory.base_production_time * ONE_MINUTE;
+    let masterTime = factory.factories.base_production_time * ONE_MINUTE;
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
         const cardLevel = assignedCard.level;
@@ -352,11 +408,13 @@ function updateProductionCard(playerFactory) {
             }
         }
     }
+    
     if (startTime) {
         const timeElapsed = new Date().getTime() - new Date(startTime).getTime();
         const timeLeft = masterTime - timeElapsed;
         const statusEl = card.querySelector('.status');
         const progressEl = card.querySelector('.progress-bar-inner');
+
         if (timeLeft <= 0) {
             statusEl.textContent = `Ready: ${outputItem.name}`;
             progressEl.style.width = '100%';
@@ -366,8 +424,8 @@ function updateProductionCard(playerFactory) {
             if (!card.dataset.timerRunning) {
                 card.dataset.timerRunning = 'true';
                 setTimeout(() => {
+                    updateProductionCard(factory, outputItem);
                     card.dataset.timerRunning = '';
-                    updateProductionCard(playerFactory); // Recursive call to update the timer
                 }, ONE_SECOND);
             }
         }
@@ -375,14 +433,15 @@ function updateProductionCard(playerFactory) {
         card.querySelector('.status').textContent = 'Ready to Start';
         card.querySelector('.progress-bar-inner').style.width = '0%';
     }
-    card.onclick = () => openProductionModal(playerFactory);
+    card.onclick = () => openProductionModal(factory, outputItem);
 }
-function openProductionModal(playerFactory) {
+
+function openProductionModal(playerFactory, outputItem) {
     const factory = playerFactory.factories;
-    const outputItem = factory.items;
     let masterTime = factory.base_production_time * ONE_MINUTE;
     const startTime = playerFactory.production_start_time;
     const assignedCard = playerFactory.player_cards;
+
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
         const cardLevel = assignedCard.level;
@@ -393,22 +452,27 @@ function openProductionModal(playerFactory) {
             }
         }
     }
+    
     let canStart = true;
     const requirementsHTML = factory.factory_recipes.map(recipe => {
         const materialId = recipe.items.id; 
         const playerQty = state.inventory.get(materialId)?.qty || 0;
         const hasEnough = playerQty >= recipe.input_quantity;
         if (!hasEnough) canStart = false;
+        
         return `
             <div class="prod-item">
                 <img src="${recipe.items.image_url || 'images/default_item.png'}" alt="${recipe.items.name}">
                 <p>${recipe.input_quantity} x <span style="color:${hasEnough ? 'var(--success-color)' : 'var(--danger-color)'}">${recipe.items.name}</span></p>
                 <div class="label">(Owned: ${playerQty})</div>
-            </div>`;
+            </div>
+        `;
     }).join('');
+    
     const isRunning = startTime !== null;
     let buttonHTML = '';
     let timeElapsed = 0;
+
     if (isRunning) {
         timeElapsed = new Date().getTime() - new Date(startTime).getTime();
         const timeLeft = masterTime - timeElapsed;
@@ -420,22 +484,33 @@ function openProductionModal(playerFactory) {
     } else {
         buttonHTML = `<button id="start-prod-btn" class="action-button" ${canStart ? '' : 'disabled'}>Start Production</button>`;
     }
-    let expertSectionHTML = `<div id="expert-assignment-section" style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;"><h4 style="color:var(--primary-accent); margin-bottom: 5px;">Assigned Expert</h4>`;
+
+    let expertSectionHTML = `
+        <div id="expert-assignment-section" style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;">
+            <h4 style="color:var(--primary-accent); margin-bottom: 5px;">Assigned Expert</h4>
+    `;
+
     if (assignedCard) {
         expertSectionHTML += `
             <div class="expert-card" style="display: flex; align-items: center; background: #2a2a2e; padding: 8px; border-radius: 6px;">
                 <img src="${assignedCard.cards.image_url || 'images/default_card.png'}" style="width: 40px; height: 40px; border-radius: 4px; margin-right: 10px;">
-                <div style="text-align: left;"><h5 style="margin: 0;">${assignedCard.cards.name}</h5><p style="font-size: 0.8em; margin: 0; color: #aaa;">LVL ${assignedCard.level}</p></div>
+                <div style="text-align: left;">
+                    <h5 style="margin: 0;">${assignedCard.cards.name}</h5>
+                    <p style="font-size: 0.8em; margin: 0; color: #aaa;">LVL ${assignedCard.level}</p>
+                </div>
             </div>
-            <button id="unassign-expert-btn" class="action-button small danger" style="margin-top: 10px;">Unassign</button>`;
+            <button id="unassign-expert-btn" class="action-button small danger" style="margin-top: 10px;">Unassign</button>
+        `;
     } else {
         expertSectionHTML += `
             <div class="expert-placeholder" style="border: 2px dashed #3a3a3c; padding: 20px; border-radius: 6px;">
                 <p>No Expert Assigned</p>
                 <button id="assign-expert-btn" class="action-button small">Assign Expert</button>
-            </div>`;
+            </div>
+        `;
     }
     expertSectionHTML += `</div>`;
+
     const playerNoub = state.playerProfile.noub_score || 0;
     const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => item.details.name === FACTORY_UPGRADE_ITEM_NAME);
     const playerMaterialQty = requiredMaterialEntry?.qty || 0;
@@ -445,110 +520,151 @@ function openProductionModal(playerFactory) {
     const upgradeCostHTML = `
         <div style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;">
             <h4 style="color:var(--primary-accent); margin-bottom: 5px;">Upgrade to Level ${playerFactory.level + 1}</h4>
-            <div class="cost-item"><span class="value" style="color: ${playerNoub >= FACTORY_UPGRADE_COST ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_COST} 🪙</span></div>
-            <div class="cost-item"><span class="value" style="color: ${playerMaterialQty >= FACTORY_UPGRADE_QTY ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_QTY} x ${FACTORY_UPGRADE_ITEM_NAME}</span></div>
+            <div class="cost-item">
+                <span class="value" style="color: ${playerNoub >= FACTORY_UPGRADE_COST ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_COST} 🪙</span>
+            </div>
+            <div class="cost-item">
+                <span class="value" style="color: ${playerMaterialQty >= FACTORY_UPGRADE_QTY ? 'var(--success-color)' : 'var(--danger-color)'};">${FACTORY_UPGRADE_QTY} x ${FACTORY_UPGRADE_ITEM_NAME}</span>
+            </div>
             <button id="upgrade-factory-btn" class="action-button small" style="background-color: ${upgradeButtonColor}; width: 150px;" ${!canUpgrade ? 'disabled' : ''}>${upgradeDisabledText}</button>
-        </div>`;
+        </div>
+    `;
+
     productionModal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeModal('production-modal')">&times;</button>
-            <div class="prod-modal-header"><img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}"><h3>${factory.name}</h3><p class="level">Current Level: ${playerFactory.level}</p></div>
+            <div class="prod-modal-header">
+                <img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}">
+                <h3>${factory.name}</h3>
+                <p class="level">Current Level: ${playerFactory.level}</p>
+            </div>
             <div class="prod-modal-body">
                 <h4 style="color:var(--text-secondary); text-align:center;">Input ➡️ Output (Time: ${formatTime(masterTime)})</h4>
                 <div class="prod-io">
                     ${requirementsHTML.length > 0 ? requirementsHTML : '<div class="prod-item"><p>None</p><div class="label">Input</div></div>'}
                     <span class="arrow">➡️</span>
-                    <div class="prod-item"><img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}"><p>1 x ${outputItem.name}</p><div class="label">Output</div></div>
+                    <div class="prod-item">
+                        <img src="${outputItem.image_url || 'images/default_item.png'}" alt="${outputItem.name}">
+                        <p>1 x ${outputItem.name}</p>
+                        <div class="label">Output</div>
+                    </div>
                 </div>
-                <div class="prod-timer">${isRunning ? `<div class="time-left">Time Left: ${formatTime(masterTime - timeElapsed)}</div><div class="progress-bar"><div class="progress-bar-inner" style="width: ${((timeElapsed || 0) / masterTime) * 100}%"></div></div>` : ''}</div>
+                <div class="prod-timer">
+                    ${isRunning ? `<div class="time-left">Time Left: ${formatTime(masterTime - timeElapsed)}</div><div class="progress-bar"><div class="progress-bar-inner" style="width: ${((timeElapsed || 0) / masterTime) * 100}%"></div></div>` : ''}
+                </div>
             </div>
             ${buttonHTML}
             ${expertSectionHTML}
             ${upgradeCostHTML}
-        </div>`;
+        </div>
+    `;
+
     openModal('production-modal');
-    if (document.getElementById('start-prod-btn')) document.getElementById('start-prod-btn').onclick = () => handleStartProduction(playerFactory, factory.factory_recipes);
-    if (document.getElementById('claim-prod-btn')) document.getElementById('claim-prod-btn').onclick = () => handleClaimProduction(playerFactory, outputItem);
-    if (document.getElementById('assign-expert-btn')) document.getElementById('assign-expert-btn').onclick = () => openExpertSelectionModal(playerFactory.id);
-    if (document.getElementById('unassign-expert-btn')) document.getElementById('unassign-expert-btn').onclick = () => unassignExpert(playerFactory.id);
+
+    if (document.getElementById('start-prod-btn')) {
+        document.getElementById('start-prod-btn').onclick = () => handleStartProduction(playerFactory.id, factory.factory_recipes);
+    }
+    if (document.getElementById('claim-prod-btn')) {
+        document.getElementById('claim-prod-btn').onclick = () => handleClaimProduction(playerFactory, outputItem);
+    }
+    if (document.getElementById('assign-expert-btn')) {
+        document.getElementById('assign-expert-btn').onclick = () => openExpertSelectionModal(playerFactory.id);
+    }
+    if (document.getElementById('unassign-expert-btn')) {
+        document.getElementById('unassign-expert-btn').onclick = () => unassignExpert(playerFactory.id);
+    }
     const upgradeFactoryBtn = document.getElementById('upgrade-factory-btn');
-    if(upgradeFactoryBtn && canUpgrade) upgradeFactoryBtn.onclick = () => { window.closeModal('production-modal'); executeFactoryUpgrade(playerFactory); };
+    if(upgradeFactoryBtn && canUpgrade) {
+        upgradeFactoryBtn.onclick = () => {
+            window.closeModal('production-modal'); 
+            executeFactoryUpgrade(playerFactory); 
+        };
+    }
 }
+
 /**
- * Main render function for the Economy Hub screen (REBUILT).
+ * Main render function for the Economy Hub screen.
  */
 export async function renderProduction() {
     if (!state.currentUser || !state.playerProfile) return;
+    
+    // Ensure player profile is fresh, especially level data
     if (state.playerProfile.level === undefined) await refreshPlayerState();
     
+    // Check for specialization unlock condition
     const hasSpecialization = state.specializations && state.specializations.size > 0;
     if (state.playerProfile.level >= SPECIALIZATION_UNLOCK_LEVEL && !hasSpecialization) {
         renderSpecializationChoice();
-        return;
+        return; // Stop rendering the main economy screen until a choice is made
     }
     
-    resourcesContainer.innerHTML = 'Loading production buildings...';
+    resourcesContainer.innerHTML = 'Loading resources buildings...';
     workshopsContainer.innerHTML = 'Loading crafting workshops...';
     
-    const [
-        { data: playerFactories, error: playerFactoriesError }, 
-        { data: masterFactories, error: masterFactoriesError }
-    ] = await Promise.all([
-        api.fetchPlayerFactories(state.currentUser.id),
-        api.fetchAllMasterFactories()
-    ]);
+    const { data: factories, error } = await api.fetchPlayerFactories(state.currentUser.id);
 
-    if (playerFactoriesError || masterFactoriesError) {
-        resourcesContainer.innerHTML = '<p class="error-message">Error loading factory data.</p>';
-        workshopsContainer.innerHTML = '<p class="error-message">Error loading factory data.</p>';
+    if (error) {
+        resourcesContainer.innerHTML = '<p class="error-message">Error loading factories.</p>';
+        workshopsContainer.innerHTML = '<p class="error-message">Error loading factories.</p>';
         return;
     }
 
     resourcesContainer.innerHTML = '';
     workshopsContainer.innerHTML = '';
+    
+    const resourceBuildings = factories.filter(f => f.factories.type === 'RESOURCE');
+    const workshops = factories.filter(f => f.factories.type === 'WORKSHOP');
 
-    const playerLevel = state.playerProfile.level;
-    const ownedFactoryMap = new Map(playerFactories.map(pf => [pf.factories.id, pf]));
-
-    masterFactories.sort((a, b) => a.id - b.id).forEach(masterFactory => {
-        const playerFactoryInstance = ownedFactoryMap.get(masterFactory.id);
+    [...resourceBuildings, ...workshops].forEach(playerFactory => {
+        const factory = playerFactory.factories;
         
-        if (playerFactoryInstance) {
-            const card = document.createElement('div');
-            card.className = 'building-card';
-            card.id = `factory-card-${playerFactoryInstance.id}`;
-            const hasExpert = !!playerFactoryInstance.player_cards;
-            const expertIndicator = hasExpert ? '<span class="expert-indicator" style="position: absolute; top: 5px; right: 5px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold);">✨</span>' : '';
-            card.innerHTML = `${expertIndicator}<img src="${masterFactory.image_url || 'images/default_building.png'}" alt="${masterFactory.name}"><h4>${masterFactory.name}</h4><div class="level">Level: ${playerFactoryInstance.level}</div><div class="status">Loading...</div><div class="progress-bar"><div class="progress-bar-inner"></div></div>`;
-            const targetContainer = masterFactory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
-            targetContainer.appendChild(card);
-            // DEFINITIVE FIX: Pass the entire player factory instance.
-            updateProductionCard(playerFactoryInstance);
-        } else {
-            const isUnlockedByLevel = playerLevel >= masterFactory.required_level;
-            const card = document.createElement('div');
-            card.className = 'building-card';
-            card.style.opacity = '0.5';
-            card.style.border = '1px solid #444';
-            card.innerHTML = `<img src="${masterFactory.image_url || 'images/default_building.png'}" alt="${masterFactory.name}"><h4>${masterFactory.name}</h4><div class="level" style="color: ${isUnlockedByLevel ? 'var(--success-color)' : 'var(--danger-color)'};">Requires Lvl ${masterFactory.required_level}</div><div class="status">Locked</div>`;
-            card.onclick = () => showToast(`Unlock this building by reaching Level ${masterFactory.required_level}`, 'info');
-            const targetContainer = masterFactory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
-            targetContainer.appendChild(card);
+        // Skip rendering factories that require a level the player hasn't reached yet
+        if (factory.required_level > state.playerProfile.level) {
+            return;
         }
+
+        const outputItem = factory.items;
+        const card = document.createElement('div');
+        card.className = 'building-card';
+        card.id = `factory-card-${playerFactory.id}`;
+
+        const hasExpert = !!playerFactory.player_cards;
+        const expertIndicator = hasExpert ? '<span class="expert-indicator" style="position: absolute; top: 5px; right: 5px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold);">✨</span>' : '';
+
+        card.innerHTML = `
+            ${expertIndicator}
+            <img src="${factory.image_url || 'images/default_building.png'}" alt="${factory.name}">
+            <h4></h4>
+            <div class="level"></div>
+            <div class="status">Loading Status...</div>
+            <div class="progress-bar"><div class="progress-bar-inner"></div></div>
+        `;
+        card.querySelector('h4').textContent = factory.name;
+        card.querySelector('.level').textContent = `Level: ${playerFactory.level}`;
+        
+        const targetContainer = factory.type === 'RESOURCE' ? resourcesContainer : workshopsContainer;
+        targetContainer.appendChild(card);
+        
+        updateProductionCard(playerFactory, outputItem);
     });
     
     await renderStock();
 }
+
 /**
  * Renders the player's current inventory stock.
  */
 export async function renderStock() {
     if (!state.currentUser) return;
+    
     await refreshPlayerState(); 
+    
     stockResourcesContainer.innerHTML = '';
     stockMaterialsContainer.innerHTML = '';
     stockGoodsContainer.innerHTML = '';
+
     let hasStock = false;
+    
     state.inventory.forEach(item => {
         if (item.qty > 0) {
             hasStock = true;
@@ -556,14 +672,30 @@ export async function renderStock() {
             itemElement.className = 'stock-item';
             const itemName = item.details.name;
             const itemQty = item.qty;
-            itemElement.innerHTML = `<img src="${item.details.image_url || 'images/default_item.png'}" alt="${itemName}"><div class="details"><h4>${itemName}</h4><span class="quantity">x ${itemQty}</span></div>`;
+            itemElement.innerHTML = `
+                <img src="${item.details.image_url || 'images/default_item.png'}" alt="${itemName}">
+                <div class="details">
+                    <h4></h4>
+                    <span class="quantity"></span>
+                </div>
+            `;
+            itemElement.querySelector('h4').textContent = itemName;
+            itemElement.querySelector('.quantity').textContent = `x ${itemQty}`;
+            
             switch (item.details.type) {
-                case 'RESOURCE': stockResourcesContainer.appendChild(itemElement); break;
-                case 'MATERIAL': stockMaterialsContainer.appendChild(itemElement); break;
-                case 'GOOD': stockGoodsContainer.appendChild(itemElement); break;
+                case 'RESOURCE':
+                    stockResourcesContainer.appendChild(itemElement);
+                    break;
+                case 'MATERIAL':
+                    stockMaterialsContainer.appendChild(itemElement);
+                    break;
+                case 'GOOD':
+                    stockGoodsContainer.appendChild(itemElement);
+                    break;
             }
         }
     });
+
     if (!hasStock) {
         if (stockResourcesContainer.innerHTML === '') stockResourcesContainer.innerHTML = '<p style="text-align:center;">No resources found.</p>';
         if (stockMaterialsContainer.innerHTML === '') stockMaterialsContainer.innerHTML = '<p style="text-align:center;">No materials found.</p>';
