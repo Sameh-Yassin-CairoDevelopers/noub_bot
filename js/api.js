@@ -112,14 +112,13 @@ export async function fetchAllMasterFactories() {
 }
 
 export async function buildFactory(playerId, factoryId) {
-    return await supabaseClient.from('player_factories').upsert(
+    // DEFINITIVE FIX: Revert to a simple 'insert'. The UNIQUE constraint in the DB
+    // will now handle the prevention of duplicates correctly.
+    return await supabaseClient.from('player_factories').insert(
         {
             player_id: playerId,
             factory_id: factoryId,
             level: 1
-        },
-        {
-            onConflict: 'player_id,factory_id'
         }
     );
 }
@@ -324,3 +323,4 @@ export async function addXp(playerId, amount) {
     }
     return { error: null, leveledUp: leveledUp, newLevel: level };
 }
+
