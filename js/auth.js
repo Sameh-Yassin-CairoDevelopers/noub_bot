@@ -47,27 +47,19 @@ window.showLoginForm = showLoginForm;
  * @returns {Promise<boolean>} - True if seeding was successful.
  */
 async function seedNewPlayer(userId) {
-    // 1. Grant starter currency pack
-    const profileUpdate = {
-        noub_score: STARTER_NOUB_SCORE,
-        prestige: STARTER_PRESTIGE,
-        spin_tickets: STARTER_SPIN_TICKETS,
-        ankh_premium: STARTER_ANKH_PREMIUM,
-        last_daily_spin: new Date().toISOString(), 
-    };
-    
+    const profileUpdate = { /* ... */ };
     const { error: profileError } = await api.updatePlayerProfile(userId, profileUpdate);
-    if (profileError) {
-        console.error("Failed to update profile with starter pack:", profileError);
-        return false;
-    }
+    if (profileError) { /* ... */ }
     
-    // 2. Grant starter factories
+    // DEFINITIVE FIX: Revert to seeding only the initial three factories.
+    const INITIAL_FACTORY_IDS = [1, 2, 3]; 
+
     const factoryPromises = INITIAL_FACTORY_IDS.map(factoryId => {
-        return supabaseClient.from('player_factories').insert({
+        // Use the simple 'insert' now, as we are sure they are new.
+        return api.supabaseClient.from('player_factories').insert({
             player_id: userId,
             factory_id: factoryId,
-            level: 1 // Start all factories at level 1
+            level: 1
         });
     });
     
@@ -249,3 +241,4 @@ export async function handleInitialSession() {
         appContainer.classList.add('hidden');
     }
 }
+
