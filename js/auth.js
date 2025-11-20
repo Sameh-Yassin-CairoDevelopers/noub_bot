@@ -1,9 +1,9 @@
 /*
  * Filename: js/auth.js
- * Version: NOUB v1.8.0 (New Player Factory Seeding)
- * Description: Authentication Module. This version enhances the new player experience by
- * automatically seeding the three basic resource factories into a new player's account
- * upon successful registration, ensuring they can start the core gameplay loop immediately.
+ * Version: NOUB v1.9.1 (Post-Login Seeding Fix)
+ * Description: Authentication Module. This version provides the definitive fix for the
+ * new player seeding issue by moving the seeding logic (granting starter items/factories)
+ * to the login process, ensuring it only runs after a user is fully authenticated.
 */
 
 import { supabaseClient } from './config.js';
@@ -16,15 +16,11 @@ const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 
-// --- STARTER PACK & FACTORY SEEDING CONSTANTS ---
 const STARTER_NOUB_SCORE = 2000;
 const STARTER_PRESTIGE = 10;
 const STARTER_SPIN_TICKETS = 5;
-const STARTER_ANKH_PREMIUM = 0;
-// These IDs MUST correspond to the basic resource factory IDs in your 'factories' table.
 const INITIAL_FACTORY_IDS = [1, 2, 3]; 
 
-// Make these functions globally available for onclick attributes in index.html
 export function showRegisterForm() {
     if (loginForm && registerForm) {
         loginForm.classList.add('hidden');
@@ -42,25 +38,29 @@ window.showLoginForm = showLoginForm;
 
 /**
  * Seeds the necessary initial data for a brand new player.
- * NEW: This now includes granting the initial three resource factories.
+ * This is now called ONLY after the first successful login.
  * @param {string} userId - The ID of the newly created user.
  * @returns {Promise<boolean>} - True if seeding was successful.
  */
 async function seedNewPlayer(userId) {
-    const profileUpdate = { /* ... */ };
-    const { error: profileError } = await api.updatePlayerProfile(userId, profileUpdate);
-    if (profileError) { /* ... */ }
+    console.log(`Seeding new player: ${userId}`);
+    // Update profile to grant starter currencies and set the is_new_player flag to false
+    const profileUpdate = {
+        noub_score: STARTER_NOUB_SCORE,
+        prestige: STARTER_PRESTIGE,
+        spin_tickets: STARTER_SPIN_TICKETS,
+        is_new_player: false 
+    };
     
-    // DEFINITIVE FIX: Revert to seeding only the initial three factories.
-    const INITIAL_FACTORY_IDS = [1, 2, 3]; 
-
+    const { error: profileError } = await api.updatePlayerProfile(userId, profileUpdate);
+    if (profileError) {
+        console.error("Failed to update profile with starter pack:", profileError);
+        return false;
+    }
+    
+    // Grant the initial three factories
     const factoryPromises = INITIAL_FACTORY_IDS.map(factoryId => {
-        // Use the simple 'insert' now, as we are sure they are new.
-        return api.supabaseClient.from('player_factories').insert({
-            player_id: userId,
-            factory_id: factoryId,
-            level: 1
-        });
+        return api.buildFactory(userId, factoryId);
     });
     
     const factoryResults = await Promise.all(factoryPromises);
@@ -68,19 +68,16 @@ async function seedNewPlayer(userId) {
 
     if (factoryError) {
         console.error("Failed to seed initial factories for new player:", factoryResults.map(r => r.error).filter(Boolean));
-        // Note: In a production environment, you might want to roll back the profile update here.
         return false;
     }
     
-    // 3. Log the starter pack activity
     await api.logActivity(userId, 'STARTER_PACK', `Received Starter Pack and initial factories.`);
-    
+    console.log(`Seeding successful for player: ${userId}`);
     return true;
 }
 
 /**
- * Refreshes the player's entire state (profile, inventory, specializations, etc.)
- * from the database and updates the UI header.
+ * Refreshes the player's entire state from the database.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
@@ -129,10 +126,24 @@ export async function refreshPlayerState() {
     }
 }
 
-
+/**
+ * Initializes the app for a logged-in user and handles new player seeding.
+ */
 async function initializeApp(user) {
     state.currentUser = user;
     
+    const { data: profile } = await api.fetchProfile(user.id);
+
+    if (profile && profile.is_new_player) {
+        showToast("Welcome! Preparing your kingdom...", 'info');
+        const seedSuccess = await seedNewPlayer(user.id);
+        if (!seedSuccess) {
+            showToast("Error setting up your account. Please contact support.", 'error');
+            await logout();
+            return;
+        }
+    }
+
     await refreshPlayerState();
 
     if (!state.playerProfile) {
@@ -149,10 +160,15 @@ async function initializeApp(user) {
 async function login(email, password) {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) return { error };
-    if (data.user) await initializeApp(data.user);
+    if (data.user) {
+        await initializeApp(data.user);
+    }
     return { data };
 }
 
+/**
+ * Sign up function is simplified. It only creates the auth user.
+ */
 async function signUp(email, password, username) {
     const { data, error } = await supabaseClient.auth.signUp({
         email,
@@ -163,15 +179,8 @@ async function signUp(email, password, username) {
     if (error) return { error };
 
     if (data.user) {
-        // Seed the new player with starter items and factories
-        const seedSuccess = await seedNewPlayer(data.user.id);
-        
-        if (seedSuccess) {
-            showToast('Account created! Check your email to confirm, then log in.', 'success');
-            return { message: 'Account created successfully!' };
-        } else {
-            return { error: { message: "Account created, but failed to grant starter items. Please contact support." } };
-        }
+        showToast('Account created! Please check your email to confirm, then log in.', 'success');
+        return { message: 'Account created successfully!' };
     }
     
     return { error: { message: "Sign up successful, but could not retrieve user data." } };
@@ -198,7 +207,7 @@ export function setupAuthEventListeners() {
     
     if (loginButton) {
         loginButton.addEventListener('click', async (e) => {
-            e.preventDefault(); // Prevent form submission
+            e.preventDefault();
             e.target.disabled = true;
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -212,16 +221,14 @@ export function setupAuthEventListeners() {
 
     if (registerButton) {
         registerButton.addEventListener('click', async (e) => {
-            e.preventDefault(); // Prevent form submission
+            e.preventDefault();
             e.target.disabled = true;
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
             const username = document.getElementById('register-username').value;
             const errorDiv = document.getElementById('register-error');
             errorDiv.textContent = '';
-            
             const result = await signUp(email, password, username);
-            
             if (result.error) {
                 errorDiv.textContent = 'Signup Error: ' + result.error.message;
             } else {
@@ -241,4 +248,3 @@ export async function handleInitialSession() {
         appContainer.classList.add('hidden');
     }
 }
-
