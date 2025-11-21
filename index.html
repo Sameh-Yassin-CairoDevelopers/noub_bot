@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pharaoh's Legacy 'NOUB' v1.5</title>
+    <title>Pharaoh's Legacy 'NOUB' v1.6</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -18,6 +18,7 @@
 </head>
 <body>
 
+    <!-- Authentication overlay for login and registration -->
     <div id="auth-overlay">
         <div class="auth-container">
             <div class="auth-header">
@@ -44,6 +45,7 @@
         </div>
     </div>
 
+    <!-- Main application container -->
     <div id="app-container" class="hidden">
         
         <header>
@@ -58,6 +60,7 @@
 
         <main id="content-container">
             
+            <!-- Home Screen: Main dashboard -->
             <div id="home-screen" class="screen active">
                 <div class="home-layout">
                     <div class="home-section">
@@ -72,15 +75,17 @@
                         <div class="home-secondary-actions">
                             <a class="action-icon-link" data-target="albums-screen"><div class="icon-box">📖</div><span>Albums</span></a>
                             <a class="action-icon-link" data-target="contracts-screen"><div class="icon-box">📜</div><span>Contracts</span></a>
+                            <a class="action-icon-link" data-target="projects-screen"><div class="icon-box">🏗️</div><span>Projects</span></a>
                             <a class="action-icon-link" data-target="chat-screen"><div class="icon-box">💬</div><span>Chat</span></a>
-                            <a class="action-icon-link" data-target="exchange-screen"><div class="icon-box">🔄</div><span>Exchange</span></a>
-                            <a class="action-icon-link" data-target="library-screen"><div class="icon-box">📚</div><span>Library</span></a>
+                            <a class="action-icon-link" data-target="swap-screen"><div class="icon-box">🔄</div><span>Swap</span></a>
+                            <a class="action-icon-link" data-target="ms-game-screen"><div class="icon-box">🔢</div><span>MS Drop</span></a>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div id="collection-screen" class="screen hidden"><h2>My Collection</h2><div class="card-grid" id="collection-container"></div></div>
+            <!-- All other screens -->
+            <div id="collection-screen" class="screen hidden"><h2>My Cards</h2><div class="card-grid" id="collection-container"></div></div>
             
             <div id="economy-screen" class="screen hidden">
                 <h2>Economy Hub</h2>
@@ -155,13 +160,6 @@
             <div id="settings-screen" class="screen hidden"></div>
             <div id="activity-screen" class="screen hidden"></div>
             
-            <div id="exchange-screen" class="screen hidden">
-                <h2>Currency Swap (DEX Style)</h2>
-                <div id="exchange-rate-container" style="text-align: center; margin-bottom: 15px;">
-                    <p id="conversion-display-rate" class="swap-rate-display"></p>
-                </div>
-            </div>
-            
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
                 <div id="chat-messages"></div>
@@ -175,9 +173,14 @@
                 <h2>Great Projects</h2>
                 <div id="projects-container"></div>
             </div>
+
+            <!-- NEW Placeholder screens -->
+            <div id="swap-screen" class="screen hidden"><h2>Player Swap Market</h2></div>
+            <div id="ms-game-screen" class="screen hidden"><h2>Magic Square Drop</h2></div>
             
         </main>
         
+        <!-- All modal overlays -->
         <div id="shop-modal" class="modal-overlay hidden">
             <div class="modal-content">
                 <button class="modal-close-btn" onclick="closeModal('shop-modal')">&times;</button>
@@ -196,11 +199,20 @@
         <div id="toast-container"></div>
         <div id="production-modal" class="modal-overlay hidden"></div>
         <div id="contract-detail-modal" class="modal-overlay hidden"></div>
-        
         <div id="card-interaction-modal" class="modal-overlay hidden"></div>
-
         <div id="specialization-choice-modal" class="modal-overlay hidden"></div>
         <div id="project-detail-modal" class="modal-overlay hidden"></div>
+        
+        <div id="confirmation-modal" class="modal-overlay hidden">
+            <div class="modal-content" style="max-width: 320px; text-align: center;">
+                <h3 id="confirmation-title">Confirm Action</h3>
+                <p id="confirmation-message"></p>
+                <div style="display: flex; gap: 10px;">
+                    <button id="cancel-btn" class="action-button small danger" style="flex: 1;">Cancel</button>
+                    <button id="confirm-btn" class="action-button small" style="flex: 1;">Confirm</button>
+                </div>
+            </div>
+        </div>
         
         <div id="more-modal" class="modal-overlay hidden">
             <div class="modal-content more-menu">
@@ -216,11 +228,11 @@
         </div>
     </div>
 
+    <!-- Bottom navigation bar (Updated) -->
     <nav class="bottom-nav">
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
         <a class="nav-item" data-target="economy-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
         <a class="nav-item" data-target="collection-screen" title="My Cards"><div class="icon">🏛️</div><span>My Cards</span></a>
-        <a class="nav-item" data-target="projects-screen" title="Great Projects"><div class="icon">🏗️</div><span>Projects</span></a>
         <a class="nav-item" data-target="tasks-screen" title="Tasks"><div class="icon">📜</div><span>Tasks</span></a>
         <a class="nav-item" id="bottom-shop-btn" title="Shop"><div class="icon">💰</div><span>Shop</span></a>
         <a class="nav-item" id="more-nav-btn" title="More"><div class="icon">☰</div><span>More</span></a>
