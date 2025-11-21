@@ -78,10 +78,10 @@ body {
 }
 
 /* --- SCREEN BACKGROUNDS --- */
-#home-screen { background-image: url('../images/bgs/home_bg.jpg'); }
-#kv-game-screen { background-image: url('../images/bgs/kvgame_bg.jpg'); background-size: 150%; }
-#economy-screen { background-image: url('../images/bgs/economy_bg.jpg'); }
-#collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('../images/bgs/cards_bg.jpg'); }
+#home-screen { background-image: url('images/bgs/home_bg.jpg'); }
+#kv-game-screen { background-image: url('images/bgs/kvgame_bg.jpg'); background-size: 150%; }
+#economy-screen { background-image: url('images/bgs/economy_bg.jpg'); }
+#collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('images/bgs/cards_bg.jpg'); }
 
 /* =================================================================================
    --- 2. Authentication ---
