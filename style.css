@@ -439,15 +439,15 @@ input:focus, textarea:focus {
     font-size: 1em;
 }
 
-/* --- DEFINITIVE FIX for secondary actions on large screens --- */
+/* --- DEFINITIVE FIX for secondary actions on large screens (4-column layout) --- */
 .home-secondary-actions {
     display: grid;
-    /* Create 3 columns of equal size, ensuring 2 rows for 6 items */
-    grid-template-columns: repeat(3, 1fr);
+    /* Create 4 columns of equal size, ensuring 2 rows for 8 items */
+    grid-template-columns: repeat(4, 1fr);
     gap: 15px;
     
     /* Set a max-width to prevent extreme stretching on desktop */
-    max-width: 400px; 
+    max-width: 480px; 
     
     /* Center the grid container itself within its section */
     margin: 0 auto; 
