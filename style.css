@@ -76,11 +76,11 @@ body {
 }
 
 /* --- SCREEN BACKGROUNDS (Fixed & Final) --- */
-#home-screen { background-image: url('images/bgs/home_bg.jpg'); }
-#kv-game-screen { background-image: url('images/bgs/kvgame_bg.jpg'); }
-#economy-screen { background-image: url('images/bgs/economy_bg.jpg'); }
-#collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('images/bgs/cards_bg.jpg'); }
-#projects-screen { background-image: url('images/bgs/projects_bg.jpg'); }
+#home-screen { background-image: url('images/bgs/home_bg.png'); }
+#kv-game-screen { background-image: url('images/bgs/kvgame_bg.png'); }
+#economy-screen { background-image: url('images/bgs/economy_bg.png'); }
+#collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('images/bgs/cards_bg.png'); }
+#projects-screen { background-image: url('images/bgs/projects_bg.png'); }
 #auth-overlay { background-image: url('images/bgs/login_bg.png'); }
 
 
