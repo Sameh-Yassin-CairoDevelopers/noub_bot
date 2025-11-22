@@ -339,25 +339,48 @@ input:focus, textarea:focus, select:focus {
 
 /* --- Modals (Transparent Blur) --- */
 .modal-overlay {
+    position: fixed; /* <--- CRITICAL FIX: Ensures modal stays fixed on screen */
+    inset: 0;
+    background-color: rgba(0,0,0,0.7);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 200;
-    display: flex;
-    align-items: flex-end;
+    display: flex; /* Ensures modal content is positioned correctly */
+    align-items: flex-end; /* Usually modals come from the bottom */
     justify-content: center;
+    padding: 0;
+    /* NEW: Ensure it starts hidden, just in case JS failed */
+    visibility: hidden; 
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
 }
 
+/* Class added by JS to show the modal */
+.modal-overlay:not(.hidden) {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* NOTE: We removed the .hidden class usage from the CSS logic itself, 
+   but kept the .hidden utility class in the HTML to ensure the JS logic (openModal/closeModal) works.
+   The JS logic must remove the 'hidden' class.
+*/
+
 .modal-content {
-    background-color: rgba(30, 30, 30, 0.95); /* Semi-transparent */
+    position: relative; /* Relative to the fixed overlay */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(30, 30, 30, 0.95);
     border-top-left-radius: 14px;
     border-top-right-radius: 14px;
-    padding: 20px; /* Larger padding for better look */
+    padding: 20px;
     width: 100%;
     max-height: 85vh;
     overflow-y: auto;
     border-top: 2px solid var(--primary-accent);
     box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp 0.3s ease-out; /* The animation causes a slide up */
 }
 .modal-close-btn {
     color: var(--text-secondary);
