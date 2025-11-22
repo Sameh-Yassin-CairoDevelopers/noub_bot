@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pharaoh's Legacy 'NOUB' v1.6</title>
+    <title>Pharaoh's Legacy 'NOUB' v2.0</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -60,7 +60,7 @@
 
         <main id="content-container">
             
-            <!-- Home Screen: Main dashboard -->
+            <!-- Home Screen: Main dashboard (v2.0 Layout) -->
             <div id="home-screen" class="screen active">
                 <div class="home-layout">
                     <div class="home-section">
@@ -72,15 +72,16 @@
                     </div>
                     <div class="home-section">
                         <h3>Management & Growth</h3>
+                        <!-- NEW 4x2 GRID -->
                         <div class="home-secondary-actions">
                             <a class="action-icon-link" data-target="albums-screen"><div class="icon-box">📖</div><span>Albums</span></a>
                             <a class="action-icon-link" data-target="contracts-screen"><div class="icon-box">📜</div><span>Contracts</span></a>
                             <a class="action-icon-link" data-target="projects-screen"><div class="icon-box">🏗️</div><span>Projects</span></a>
                             <a class="action-icon-link" data-target="library-screen"><div class="icon-box">📚</div><span>Library</span></a>
                             <a class="action-icon-link" data-target="chat-screen"><div class="icon-box">💬</div><span>Chat</span></a>
-                            <a class="action-icon-link" data-target="swap-screen"><div class="icon-box">🔄</div><span>Swap</span></a>
+                            <a class="action-icon-link" data-target="swap-screen"><div class="icon-box">🤝</div><span>P2P Swap</span></a>
                             <a class="action-icon-link" data-target="exchange-screen"><div class="icon-box">💹</div><span>Exchange</span></a>
-                            <a class="action-icon-link" data-target="ms-game-screen"><div class="icon-box">🔢</div><span>MS Drop</span></a>
+                            <a class="action-icon-link" data-target="ms-game-screen"><div class="icon-box">🎲</div><span>Idle Drop</span></a>
                         </div>
                     </div>
                 </div>
@@ -120,47 +121,17 @@
             </div>
             
             <div id="albums-screen" class="screen hidden"></div>
-
-            <div id="card-upgrade-screen" class="screen hidden">
-                <h2>Card & Factory Upgrades</h2>
-                <div class="upgrade-select-area"><h3>Select Card to Upgrade:</h3><div id="upgrade-card-selection-container" class="card-grid"></div></div>
-                <div id="upgrade-detail-area" class="upgrade-detail-area hidden"></div>
-            </div>
-
+            <div id="card-upgrade-screen" class="screen hidden"></div>
             <div id="wheel-screen" class="screen hidden"></div>
-
-            <div id="kv-game-screen" class="screen hidden">
-                <h2>Valley of the Kings - Crack the Code</h2>
-                <div id="kv-game-content" class="game-container">
-                    <div id="kv-game-intro-content">
-                         <h2 style="margin-top: 0; padding-top: 0;"><span id="kv-level-name-display">KV Gate Name</span></h2>
-                         <button id="kv-start-btn" class="action-button small" style="width: 200px;">Load Game</button>
-                    </div>
-                    <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
-                        <div id="kv-progress-info" class="game-status-message">
-                            <div id="kv-timer-display">Time Left: 0s</div><div id="kv-attempts-display">Attempts Left: 0</div>
-                        </div>
-                        <div id="kv-message-label" style="margin-bottom: 10px;">Enter the secret code.</div>
-                        <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
-                            <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
-                        </div>
-                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;"></ul>
-                        <div class="kv-controls-grid">
-                            <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
-                            <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="profile-screen" class="screen hidden">
-                 <div class="profile-container"></div>
-            </div>
-            
+            <div id="kv-game-screen" class="screen hidden"></div>
+            <div id="profile-screen" class="screen hidden"></div>
             <div id="history-screen" class="screen hidden"></div>
             <div id="library-screen" class="screen hidden"></div>
             <div id="settings-screen" class="screen hidden"></div>
             <div id="activity-screen" class="screen hidden"></div>
+            
+            <!-- NEW/FIXED: Exchange Screen Name -->
+            <div id="exchange-screen" class="screen hidden"><h2>Currency Exchange</h2></div>
             
             <div id="chat-screen" class="screen hidden">
                 <h2>Chat with Eve</h2>
@@ -178,7 +149,7 @@
 
             <!-- NEW Placeholder screens -->
             <div id="swap-screen" class="screen hidden"><h2>Player Swap Market</h2></div>
-            <div id="ms-game-screen" class="screen hidden"><h2>Magic Square Drop</h2></div>
+            <div id="ms-game-screen" class="screen hidden"><h2>Idle Drop Generator</h2></div>
             
         </main>
         
@@ -230,7 +201,7 @@
         </div>
     </div>
 
-    <!-- Bottom navigation bar (Updated) -->
+    <!-- Bottom navigation bar (Finalized) -->
     <nav class="bottom-nav">
         <a class="nav-item active" data-target="home-screen" title="Home"><div class="icon">🏠</div><span>Home</span></a>
         <a class="nav-item" data-target="economy-screen" title="Economy Hub"><div class="icon">⛏️</div><span>Economy</span></a>
@@ -259,4 +230,3 @@
     </script>
 </body>
 </html>
-
