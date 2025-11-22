@@ -1,9 +1,8 @@
 /*
  * Filename: js/screens/profile.js
- * Version: Pharaoh's Legacy 'NOUB' v1.5.1 (XP System UI Overhaul)
- * Description: View Logic Module for the Profile screen.
- * OVERHAUL: Replaces the deprecated 'Power Score' with the new XP-based player
- * leveling system, including a progress bar and detailed XP stats.
+ * Version: Pharaoh's Legacy 'NOUB' v2.0.0 (XP System & Grid UI Implemented)
+ * Description: View Logic Module for the Profile screen. This version implements
+ * the requested 2-column grid layout for core stats and currencies for better organization.
 */
 
 import { state } from '../state.js';
@@ -13,12 +12,11 @@ import { refreshPlayerState } from '../auth.js';
 
 // DOM Element References
 const profileContainer = document.querySelector('#profile-screen .profile-container');
-
-// Default avatar fallback
 const DEFAULT_AVATAR = 'images/user_avatar.png';
 
+
 /**
- * Renders the player's comprehensive profile dashboard, now featuring the XP system.
+ * Renders the player's comprehensive profile dashboard.
  */
 export async function renderProfile() {
     if (!state.currentUser || !state.playerProfile) {
@@ -26,14 +24,13 @@ export async function renderProfile() {
         return;
     }
 
-    // Ensure we have the latest state before proceeding
     await refreshPlayerState();
 
     // 1. Fetch auxiliary data (Cards and Specializations)
     const { data: playerCards } = await api.fetchPlayerCards(state.currentUser.id);
     const { data: playerSpecs } = await api.fetchPlayerSpecializations(state.currentUser.id);
     
-    // 2. Calculate and gather stats
+    // 2. Calculate Stats
     const totalCardsCount = playerCards ? playerCards.length : 0;
     const totalContractsCompleted = state.playerProfile.completed_contracts_count || 0;
     
@@ -48,7 +45,7 @@ export async function renderProfile() {
         ? playerSpecs[0].specialization_paths.name 
         : 'None Selected';
         
-    // 3. Build the new Profile UI with the XP system
+    // 3. Build the new Profile UI with the XP system and Grid Layout
     profileContainer.innerHTML = `
         <div class="profile-header">
             <img src="${state.playerProfile.avatar_url || DEFAULT_AVATAR}" alt="Avatar" class="avatar" id="player-avatar-img">
@@ -56,12 +53,12 @@ export async function renderProfile() {
             <p class="player-level">Level ${playerLevel}</p>
         </div>
 
-        <!-- NEW: XP Progression Section -->
-        <div class="profile-section">
-            <h3>Progress to Next Level</h3>
+        <!-- XP Progression Section -->
+        <div class="profile-section" style="width: 100%;">
+            <h3 style="color: var(--success-color);">Progress to Next Level</h3>
             <div class="xp-progress-container" style="margin-bottom: 10px;">
                 <div class="progress-bar" style="background: #333; border-radius: 5px; height: 10px; overflow: hidden;">
-                    <div class="progress-bar-inner" style="width: ${xpProgressPercent}%; height: 100%;"></div>
+                    <div class="progress-bar-inner" style="width: ${xpProgressPercent}%; height: 100%; background: var(--success-color);"></div>
                 </div>
                 <p style="text-align: center; font-size: 0.9em; margin-top: 5px; color: var(--primary-accent);">
                     ${currentXp} / ${xpToNextLevel} XP
@@ -69,8 +66,9 @@ export async function renderProfile() {
             </div>
         </div>
 
-        <div class="profile-section">
-            <h3>Core Stats</h3>
+        <!-- Core Stats - 2 Column Grid -->
+        <div class="profile-section" style="width: 100%;">
+            <h3 style="color: var(--accent-blue);">Core Stats</h3>
             <div class="profile-stats-grid main-stats">
                 <div class="stat-box">
                     <div id="stat-total-cards" class="value">${totalCardsCount}</div>
@@ -80,15 +78,16 @@ export async function renderProfile() {
                     <div id="stat-contracts" class="value">${totalContractsCompleted}</div>
                     <div class="label">Completed Contracts</div>
                 </div>
-                <div class="stat-box specialization-box">
-                     <div class="value">${specializationName}</div>
-                     <div class="label">Current Path</div>
+                <div class="stat-box" style="grid-column: span 2;"> <!-- Make specialization span both columns -->
+                    <div class="value">${specializationName}</div>
+                    <div class="label">Current Path</div>
                 </div>
             </div>
         </div>
 
-        <div class="profile-section">
-            <h3>Currencies & Items</h3>
+        <!-- Currencies & Items - 2 Column Grid -->
+        <div class="profile-section" style="width: 100%;">
+            <h3 style="color: var(--primary-accent);">Currencies & Items</h3>
             <div class="profile-stats-grid currency-stats">
                 <div class="stat-box">
                     <div class="value">${state.playerProfile.ankh_premium || 0} ☥</div>
@@ -101,6 +100,10 @@ export async function renderProfile() {
                 <div class="stat-box">
                     <div class="value">${state.playerProfile.spin_tickets || 0} 🎟️</div>
                     <div class="label">Spin Tickets</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value">${state.playerProfile.noub_score || 0} 🪙</div>
+                    <div class="label">NOUB Score</div>
                 </div>
             </div>
         </div>
