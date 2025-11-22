@@ -1,41 +1,40 @@
 /*
  * Filename: style.css
- * Version: Pharaoh's Legacy 'NOUB' v0.2 - FINAL UI OVERHAUL (Exchange Fix)
- * Description: Main stylesheet for the "Noub" game.
- * FIXED: Applied styles to Swap UI elements to fix distortion and ensure proper spacing.
+ * Version: Pharaoh's Legacy 'NOUB' v2.0.3 (Final 12-Part Master File)
+ * Description: Main stylesheet. This is the definitive, complete, and fully verified
+ * version integrating all visual polish and functional necessities.
 */
 
-
 /* =================================================================================
-   --- 0. Global Settings & Variables (Dark Theme Standard) ---
+   --- 0. Global Settings & Variables ---
    ================================================================================= */
 :root {
     --background-dark: #121212;
     --surface-dark: #1e1e1e;
-    --primary-accent: #D4AF37; /* Gold/Bronze */
+    --primary-accent: #D4AF37; /* Gold/Bronze - الأساسي */
+    --accent-blue: #00AAB2;    /* Egyptian Turquoise - للتمييز والعناوين */
     --text-primary: #ffffff;
     --text-secondary: #aaaaaa;
     --noub-color: #f39c12;
     --ankh-premium-color: #29b6f6;
-    --success-color: #34c759;
-    --danger-color: #ff453a;
+    --success-color: #34c759; /* Green for success/completion */
+    --danger-color: #ff453a;   /* Red for errors/logout/burn */
     --ton-color: #0088cc;
     --input-bg: #2a2a2e;
     --kv-gate-color: #f7d794;
-    --chat-eve-color: #f0f0f0;
-    --chat-user-color: #d4edda;
+    
     /* Rarity Colors */
-    --rarity-common: #7f8c8d;
+    --rarity-common: #95a5a6;
     --rarity-rare: #3498db;
     --rarity-epic: #9b59b6;
     --rarity-legendary: #f39c12;
     --rarity-diamond: #f1c40f;
-    
-    /* KV Game Colors */
-    --kv-bull-color: var(--success-color); /* Green for Correct Position */
-    --kv-cow-color: var(--noub-color); /* Gold/Orange for Correct Digit, Wrong Position */
-    --kv-miss-color: var(--text-secondary); /* Grey for Miss */
 }
+
+/* =================================================================================
+   --- 1. Core Layout & Structure ---
+   (Body, Screens, Animations, Backgrounds)
+   ================================================================================= */
 
 * {
     box-sizing: border-box;
@@ -46,98 +45,129 @@ body {
     font-family: 'Cairo', sans-serif;
     background-color: var(--background-dark);
     color: var(--text-primary);
-    padding: 50px 10px 65px 10px;
+    padding: 50px 10px 65px 10px; 
+    margin: 0;
     min-height: 100vh;
     font-size: 0.95em;
+    overflow-x: hidden;
+    /* NEW: General Background */
+    background-image: url('images/bgs/main_bg.jpg'); 
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
 }
 
-.hidden { display: none !important; }
+.hidden { 
+    display: none !important; 
+}
 
 .screen {
-    animation: fadeIn 0.3s ease-in-out;
-    background-color: var(--background-dark);
+    animation: fadeIn 0.4s ease-in-out;
+    background-color: transparent; /* Allow body background to show through */
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
     min-height: calc(100vh - 115px);
 }
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(7px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-
-/* --- SCREEN BACKGROUNDS (Unchanged) --- */
+/* --- SCREEN BACKGROUNDS (Fixed & Final) --- */
 #home-screen { background-image: url('images/bgs/home_bg.jpg'); }
-#kv-game-screen { background-image: url('images/bgs/kvgame_bg.jpg'); background-size: 150%; }
+#kv-game-screen { background-image: url('images/bgs/kvgame_bg.jpg'); }
 #economy-screen { background-image: url('images/bgs/economy_bg.jpg'); }
-#collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('images/bgs/cards_bg.jpg'); background-size: cover; }
+#collection-screen, #albums-screen, #card-upgrade-screen { background-image: url('images/bgs/cards_bg.jpg'); }
+#projects-screen { background-image: url('images/bgs/projects_bg.jpg'); }
+#auth-overlay { background-image: url('images/bgs/login_bg.png'); }
 
 
-/* --- Authentication Overlay (NEW DESIGN) --- */
+/* =================================================================================
+   --- 2. Authentication ---
+   (Login, Signup Forms)
+   ================================================================================= */
+
 #auth-overlay {
     position: fixed;
     inset: 0;
-    background-color: var(--background-dark);
-    background-image: url('images/bgs/login_bg.png'); /* Assuming you will provide login_bg.png */
     background-size: cover;
     background-position: center;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    backdrop-filter: blur(2px);
 }
 .auth-container {
-    background-color: rgba(30, 30, 30, 0.9);
+    background-color: rgba(20, 20, 20, 0.9); /* Semi-transparent background */
     padding: 25px;
     border-radius: 12px;
     width: 90%;
     max-width: 350px;
     text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    border: 1px solid var(--primary-accent);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); /* Stronger shadow */
+    border: 1px solid rgba(212, 175, 55, 0.5); 
 }
 .auth-header { margin-bottom: 20px; }
 .auth-header .auth-logo {
     width: 60px;
     height: 60px;
     margin-bottom: 10px;
+    filter: drop-shadow(0 0 5px var(--primary-accent)); /* Gold glow on logo */
 }
 .auth-header h2 {
     color: var(--primary-accent);
     margin: 0;
     font-size: 1.5em;
-    border-bottom: none;
-    padding-bottom: 0;
 }
-.auth-form h3 { color: var(--text-primary); margin-bottom: 15px; border-bottom: 1px solid #3a3a3c; padding-bottom: 5px; }
+.auth-form h3 { 
+    color: var(--text-primary); 
+    margin-bottom: 15px; 
+    border-bottom: 1px solid #3a3a3c; 
+    padding-bottom: 5px; 
+}
+.switch-form {
+    margin-top: 15px;
+    color: var(--accent-blue);
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.auth-error {
+    color: var(--danger-color);
+    min-height: 1.2em;
+    font-size: 0.8em;
+    margin-bottom: 10px;
+}
 
-
-/* --- Header & Bottom Navigation (NEW REDESIGN) --- */
+/* =================================================================================
+   --- 3. Main Navigation (Header & Footer) ---
+   (Header and Balances)
+   ================================================================================= */
 header, .bottom-nav {
     position: fixed;
     left: 0;
     right: 0;
     background-color: rgba(28, 28, 30, 0.95);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     z-index: 100;
 }
-
 header {
     top: 0;
     padding: 7px 10px;
     border-bottom: 1px solid #3a3a3c;
-}
-
-/* NEW: Horizontal arrangement and distribution */
-.balance-bar {
+    height: 50px; /* NEW: Fixed header height for alignment */
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Space between the three main elements */
+}
+.balance-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
 }
-
-/* Currency Display - Only NOUB is in the header now */
 .currency-display {
     display: flex;
     align-items: center;
@@ -146,52 +176,41 @@ header {
     background: var(--input-bg);
     padding: 3px 7px;
     border-radius: 6px;
-    order: 2; /* NOUB is in the middle */
     flex-grow: 1;
     max-width: 150px;
     justify-content: center;
 }
-
-.currency-display .icon {
-    font-size: 15px;
-    margin-right: 3px;
-    color: var(--primary-accent);
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+.currency-display .currency-img { 
+    width: 18px; 
+    height: 18px; 
+    margin-right: 5px; 
+}
+.ton-connect-btn { 
+    width: 35px; 
+    height: 35px; 
+    border-radius: 50%; 
+    overflow: hidden; 
+}
+.header-profile-btn { 
+    display: block; 
+    width: 35px; 
+    height: 35px; 
+    border-radius: 50%; 
+    overflow: hidden; 
+    border: 2px solid var(--primary-accent); 
+}
+#header-avatar-img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
 }
 
-.currency-display .currency-img {
-    width: 18px;
-    height: 18px;
-    margin-right: 3px;
-    vertical-align: middle;
-}
 
-/* TON Connect Button (New Style) */
-.ton-connect-btn {
-    flex-shrink: 0;
-    width: 35px;
-    height: 35px;
-    overflow: hidden;
-    order: 3; /* TON is on the right */
-    border-radius: 50%;
-}
 
-/* Header Profile Button */
-.header-profile-btn {
-    display: block;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-    order: 1; /* Profile is on the left */
-    border: 2px solid var(--primary-accent);
-}
-#header-avatar-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+/* =================================================================================
+   --- 3. Main Navigation (Header & Footer) ---
+   (Footer and Nav Items)
+   ================================================================================= */
 
 .bottom-nav {
     bottom: 0;
@@ -201,7 +220,6 @@ header {
     border-top: 1px solid #3a3a3c;
     overflow-x: auto;
 }
-
 .nav-item {
     display: flex;
     flex-direction: column;
@@ -215,157 +233,161 @@ header {
     flex-shrink: 0;
     padding: 0 5px; 
 }
+.nav-item.active { color: var(--primary-accent); }
+.nav-item .icon { font-size: 20px; margin-bottom: 3px; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif; }
 
-.nav-item.active {
-    color: var(--primary-accent);
-}
-
-.nav-item .icon {
-    font-size: 20px;
-    margin-bottom: 3px;
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
-}
-
-
-/* --- General Content, Buttons, Inputs (Unchanged) --- */
+/* =================================================================================
+   --- 4. Generic UI Components ---
+   (Headings, Buttons, Inputs, Modals)
+   ================================================================================= */
 .screen h2 {
     color: var(--primary-accent);
-    margin-bottom: 18px;
-    border-bottom: 1px solid #3a3a3c;
-    padding-bottom: 7px;
-}
-.error-message {
-    color: var(--danger-color);
+    margin: 0 0 20px 0;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.3); /* Subtle gold line */
+    padding-bottom: 10px;
+    font-size: 1.5em;
+    font-weight: 700;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
+/* --- Base Component Setup --- */
+.action-button, .text-button, input, textarea, select { font-family: 'Cairo', sans-serif; }
+
+/* --- NEW: 3D Button Style --- */
 .action-button {
     width: 95%;
     max-width: 250px;
-    margin-top: 10px;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 10px auto;
     display: block;
-    padding: 8px;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    font-family: inherit;
-    font-size: 0.9em;
+    padding: 10px 15px;
+    border: 1px solid #111;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.95em;
     cursor: pointer;
-    color: #121212;
-    background: linear-gradient(45deg, var(--primary-accent), #c79c2e);
+    color: #fff;
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.4);
+    background: linear-gradient(to bottom, #7d6b3a, var(--primary-accent)); /* Gold Gradient */
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.3), /* Inner highlight */
+        0 4px 0 #5a4b2a, /* Bottom shadow for 3D effect */
+        0 5px 10px rgba(0,0,0,0.5); /* Drop shadow */
+    transition: all 0.1s ease-in-out;
     text-transform: uppercase;
     letter-spacing: 0.7px;
-    box-shadow: 0 2px 0 #9e7f2c;
 }
 
 .action-button:disabled {
-    background: var(--text-secondary);
+    background: #555;
+    color: #888;
     cursor: not-allowed;
-    box-shadow: none;
+    box-shadow: inset 0 1px 0 #666;
+    transform: none;
+    text-shadow: none;
 }
 .action-button:active:not(:disabled) {
-    transform: translateY(1px);
-    box-shadow: none;
+    transform: translateY(3px); /* Button press effect */
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.3),
+        0 1px 0 #5a4b2a; /* Reduced bottom shadow */
 }
+
 .action-button.danger {
-    background: var(--danger-color);
-    color: white;
+    background: linear-gradient(to bottom, #e74c3c, var(--danger-color)); /* Red Gradient */
+    box-shadow: inset 0 1px 0 #f5b7b1, 0 4px 0 #922b21, 0 5px 10px rgba(0,0,0,0.5);
 }
+.action-button.danger:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 #f5b7b1, 0 1px 0 #922b21;
+}
+
 .action-button.small {
-    padding: 5px 8px;
+    padding: 6px 12px;
     font-size: 0.8em;
     width: auto;
     max-width: none;
     display: inline-block;
 }
+
 .text-button {
     background: none;
     border: none;
-    color: var(--ankh-premium-color);
+    color: var(--accent-blue);
     cursor: pointer;
     font-size: 0.8em;
     padding: 3px;
 }
 
-input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea {
+/* --- Input Fields (Semi-Transparent and Depth) --- */
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea, select {
     width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-    background: var(--input-bg);
+    padding: 10px; /* Slightly larger padding */
+    margin-bottom: 15px;
+    background: rgba(10, 10, 10, 0.7); /* Semi-transparent background */
     border: 1px solid #3a3a3c;
-    border-radius: 6px;
+    border-radius: 8px;
     color: var(--text-primary);
     font-size: 0.9em;
     box-sizing: border-box;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); /* Inner shadow for depth */
 }
-input:focus, textarea:focus {
+input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--primary-accent);
+    background: rgba(20, 20, 20, 0.9);
 }
 
-
-/* --- MODAL STYLES (Unchanged) --- */
+/* --- Modals (Transparent Blur) --- */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0,0,0,0.7);
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 200;
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    padding: 0;
 }
 
 .modal-content {
-    position: relative;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: var(--surface-dark);
+    background-color: rgba(30, 30, 30, 0.95); /* Semi-transparent */
     border-top-left-radius: 14px;
     border-top-right-radius: 14px;
-    padding: 14px;
+    padding: 20px; /* Larger padding for better look */
     width: 100%;
-    max-width: none;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow-y: auto;
     border-top: 2px solid var(--primary-accent);
-    box-shadow: 0 -3px 10px rgba(0,0,0,0.5);
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
     animation: slideUp 0.3s ease-out;
 }
-@keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-}
-
 .modal-close-btn {
-    position: absolute;
-    top: 7px;
-    right: 10px;
-    font-size: 1.5em;
-    cursor: pointer;
-    background: none;
-    border: none;
     color: var(--text-secondary);
 }
 
 
-/* --- NEW HOME SCREEN STYLES (Unchanged) --- */
+/* =================================================================================
+   --- 5. Home Screen ---
+   (Final Layout and Card Styles)
+   ================================================================================= */
 .home-layout {
     display: flex;
     flex-direction: column;
     gap: 25px; 
 }
 
+.home-section {
+    background-color: rgba(0, 0, 0, 0.2); /* Subtle transparent background for sections */
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
 .home-section h3 {
     text-align: left;
-    font-size: 1.1em;
+    font-size: 1.2em;
     color: var(--primary-accent);
-    margin-bottom: 12px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #3a3a3c;
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
 }
 
 .home-featured-actions {
@@ -375,19 +397,21 @@ input:focus, textarea:focus {
 }
 
 .action-card-link {
-    background-color: var(--surface-dark);
+    background: linear-gradient(to bottom, #2a2a2e, #1a1a1e);
     border-radius: 12px;
     padding: 15px;
     text-decoration: none;
     color: var(--text-primary);
     text-align: center;
     border: 1px solid #3a3a3c;
-    transition: background-color 0.3s, transform 0.2s;
+    transition: all 0.2s ease-in-out;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 3px 6px rgba(0,0,0,0.4);
 }
 
 .action-card-link:hover {
-    background-color: #2a2a2e;
-    transform: translateY(-3px);
+    background-color: #333333;
+    transform: translateY(-4px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 15px rgba(0,0,0,0.6);
 }
 
 .action-card-link .icon-box.large {
@@ -395,12 +419,10 @@ input:focus, textarea:focus {
     height: 60px;
     font-size: 32px;
     margin: 0 auto 10px auto;
-    border-width: 2px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+    background-color: var(--primary-accent);
+    color: #121212;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.7);
 }
 
 .action-card-link span {
@@ -408,12 +430,13 @@ input:focus, textarea:focus {
     font-size: 1em;
 }
 
+/* --- CORRECTED: Secondary actions 4x2 grid (Fixed size on large screens) --- */
 .home-secondary-actions {
-    /* NEW: Arrange 6 icons in 2 rows of 3 */
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 15px;
-    padding: 10px; /* Add some padding for better look */
+    max-width: 480px; 
+    margin: 0 auto; 
 }
 
 .action-icon-link {
@@ -426,140 +449,68 @@ input:focus, textarea:focus {
     font-weight: bold;
 }
 
-.home-secondary-actions .icon-box {
+.action-icon-link .icon-box {
     width: 100%;
     aspect-ratio: 1 / 1;
-    height: auto;
-    background: var(--surface-dark);
-    border-radius: 8px;
+    background: linear-gradient(to bottom, #3c3c3c, #2a2a2e);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 28px;
     margin-bottom: 5px;
-    border: 1px solid #3a3a3c;
-    transition: background-color 0.3s;
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+    border: 1px solid #111;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 2px 3px rgba(0,0,0,0.5);
 }
 
-.home-secondary-actions .action-icon-link:hover .icon-box {
-    background-color: #2a2a2e;
-}
-
-
-/* --- TASKS SCREEN STYLES (Unchanged) --- */
-.daily-quest-card {
-    background-color: var(--surface-dark);
-    padding: 8px 10px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 7px;
-}
-.quest-details {
-    flex-grow: 1;
-    margin-right: 10px;
-}
-.quest-details h4 {
-    margin: 0 0 3px 0;
-    font-size: 0.9em;
-}
-.quest-details p {
-    font-size: 0.7em;
-    color: var(--text-secondary);
-    margin: 0 0 3px 0;
-}
-.quest-details .progress-bar {
-    width: 100%;
-    height: 4px;
-    background: #444;
-    border-radius: 2px;
-    overflow: hidden;
-}
-.quest-action {
-    text-align: center;
-    flex-shrink: 0;
-}
-.quest-action .reward {
-    color: var(--primary-accent);
-    font-weight: bold;
-    font-size: 0.9em;
-    margin-bottom: 3px;
-}
-
-/* --- ALBUM CATALOG (Unchanged) --- */
-.album-list-item {
-    padding: 8px 10px;
-    margin-bottom: 7px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    background: var(--surface-dark);
-}
-.album-list-item .icon {
-    font-size: 20px;
-    margin-right: 10px;
-}
-.album-list-item .details {
-    flex-grow: 1;
-}
-.album-list-item .details h4 {
-    margin: 0 0 3px 0;
-}
-.album-list-item .progress-bar {
-    height: 5px;
-    border-radius: 3px;
-    background: #444;
-}
-.album-list-item .progress-fill {
-    height: 100%;
-    border-radius: 3px;
-}
-.album-list-item .count {
-    font-size: 0.7em;
-    margin-top: 3px;
-}
-.claim-btn {
-    padding: 5px 10px;
-    font-size: 0.8em;
+.action-icon-link:hover .icon-box {
+    transform: translateY(-3px);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 5px 10px rgba(0,0,0,0.6);
 }
 
 
-/* --- Cards & Grids (Unchanged) --- */
-.card-grid, .buildings-grid {
+/* =================================================================================
+   --- 6. Collection & Cards ---
+   ================================================================================= */
+.card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 12px;
 }
 
-.card-stack, .building-card {
-    background-color: var(--surface-dark);
-    border-radius: 8px;
-    padding: 5px;
+.card-stack {
+    background: linear-gradient(to bottom, #3a3a3a, #222);
+    border-radius: 10px;
+    padding: 6px;
     position: relative;
-    border: 1px solid #3a3a3c;
+    border: 1px solid #111;
     cursor: pointer;
     text-align: center;
-    transition: transform 0.2s, border-color 0.2s;
+    transition: all 0.2s ease-in-out;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 3px 5px rgba(0,0,0,0.5);
 }
+.card-stack:hover {
+    transform: translateY(-4px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 6px 12px rgba(0,0,0,0.6);
+}
+
 .card-stack[data-rarity="0"] { border-color: var(--rarity-common); }
 .card-stack[data-rarity="2"] { border-color: var(--rarity-rare); }
 .card-stack[data-rarity="4"] { border-color: var(--rarity-epic); }
 .card-stack[data-rarity="6"] { border-color: var(--rarity-legendary); }
 .card-stack[data-rarity="8"] { border-color: var(--rarity-diamond); }
 
-.card-stack .card-image, .building-card img {
+.card-stack .card-image {
     width: 100%;
     aspect-ratio: 1 / 1;
     border-radius: 6px;
     object-fit: cover;
     margin-bottom: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
 }
 
-.card-stack h4, .building-card h4 {
-    margin: 2px 0;
+.card-stack h4 {
+    margin: 4px 0 2px 0;
     font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
@@ -577,24 +528,101 @@ input:focus, textarea:focus {
     font-weight: bold;
     color: var(--primary-accent);
 }
-.burn-btn {
-    padding: 3px;
-    margin-top: 3px;
-    font-size: 0.7em;
-    width: 100%;
-    border-radius: 3px;
+
+/* --- Card Status Indicators --- */
+.card-stack.assigned-expert {
+    box-shadow: 0 0 12px 3px var(--primary-accent), inset 0 1px 0 rgba(255,255,255,0.1);
+    border-color: var(--primary-accent);
+}
+.card-stack.assigned-expert::after {
+    content: '⚒️'; /* Expert Icon */
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 1.2em;
+    filter: drop-shadow(0 0 3px black);
+    z-index: 2;
 }
 
-
-/* --- ECONOMY HUB CARD FORMATTING (Unchanged) --- */
-.building-card .level {
-    font-size: 0.6em;
+/* =================================================================================
+   --- 7. Economy Hub ---
+   (Factory Cards, Stock Tabs & Grid)
+   ================================================================================= */
+.buildings-grid { 
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); 
+    gap: 12px;
 }
-.building-card .status {
-    font-size: 0.6em;
-    margin-top: 2px;
+
+.production-section {
+    background: rgba(0,0,0,0.2); /* Subtle transparent background for sections */
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.production-section h3 {
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    color: var(--primary-accent);
 }
 
+.building-card {
+    background: linear-gradient(to bottom, #3a3a3a, #222);
+    border-radius: 10px;
+    padding: 6px;
+    position: relative;
+    border: 1px solid #111;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 3px 5px rgba(0,0,0,0.5);
+}
+.building-card:hover {
+    transform: translateY(-4px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 6px 12px rgba(0,0,0,0.6);
+}
+.building-card img {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* --- Factory Status Styles --- */
+.building-card.unlockable {
+    border: 2px dashed var(--primary-accent);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5); /* Gold glow for buildable */
+    background: rgba(40, 40, 40, 0.8);
+}
+.building-card.locked {
+    border: 1px solid #333;
+    opacity: 0.5;
+    cursor: default;
+    background: #111;
+}
+.building-card.locked:hover {
+    transform: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 3px 5px rgba(0,0,0,0.5);
+}
+
+.building-card h4 { margin: 4px 0 2px 0; font-size: 11px; }
+.building-card .level, .building-card .status { 
+    font-size: 0.7em; 
+    color: var(--text-secondary);
+    min-height: 1.2em;
+    font-weight: bold;
+}
+.building-card .status { color: var(--success-color); } /* Default status color */
+
+.expert-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 1.4em;
+    filter: drop-shadow(0 0 4px gold);
+    z-index: 2;
+}
+
+/* --- Stock Tabs and Grid --- */
 .stock-tabs-container {
     display: flex;
     justify-content: space-around;
@@ -612,9 +640,9 @@ input:focus, textarea:focus {
 }
 .stock-tab-btn.active {
     color: var(--primary-accent);
-    border-bottom: 1px solid var(--primary-accent);
+    border-bottom: 2px solid var(--primary-accent);
 }
-.stock-content-tab { display: none; }
+.stock-content-tab { display: none; padding-top: 10px; }
 .stock-content-tab.active { display: block; }
 
 .stock-grid {
@@ -624,71 +652,245 @@ input:focus, textarea:focus {
 }
 
 .stock-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: var(--surface-dark);
+    background: linear-gradient(to bottom, #3a3a3a, #222);
     padding: 7px;
-    border-radius: 6px;
-    text-align: center;
-    border: 1px solid #3a3a3c;
-}
-.stock-item img {
-    width: 40px;
-    height: 40px;
-    margin-bottom: 3px;
-}
-.stock-item .details h4 {
-    margin: 0 0 2px 0;
-    font-size: 0.8em;
-}
-.stock-item .quantity {
-    font-size: 0.8em;
-    font-weight: bold;
-    color: var(--ankh-premium-color);
-}
-
-/* --- Production Modal (Unchanged) --- */
-.prod-modal-header { text-align: center; }
-.prod-modal-header img { width: 60px; height: 60px; }
-.prod-modal-header h3 { color: var(--primary-accent); margin: 7px 0 3px 0; }
-.prod-io { display: flex; justify-content: space-around; align-items: center; background-color: #121212; padding: 10px; border-radius: 7px; }
-.prod-item { text-align: center; }
-.prod-item img { width: 35px; height: 35px; }
-.prod-item p { margin: 3px 0 0 0; }
-.prod-item .label { font-size: 0.7em; color: var(--text-secondary); }
-.arrow { font-size: 1.5em; color: var(--primary-accent); }
-.prod-timer { text-align: center; margin-top: 14px; }
-.prod-timer .time-left { font-size: 1.3em; font-weight: bold; letter-spacing: 1px; }
-.progress-bar { background-color: #444; border-radius: 3px; height: 7px; overflow: hidden; margin-top: 7px; }
-.progress-bar-inner { background-color: var(--success-color); height: 100%; width: 0%; transition: width 0.5s; }
-
-
-/* --- Games Screen (KV) (Reverted to stable input) --- */
-.game-container {
-    background-color: var(--surface-dark);
-    padding: 14px;
     border-radius: 8px;
     text-align: center;
+    border: 1px solid #111;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 3px rgba(0,0,0,0.4);
 }
-.balance-info {
+.stock-item img { width: 40px; height: 40px; margin-bottom: 3px; }
+.stock-item .details h4 { margin: 0 0 2px 0; font-size: 0.8em; }
+.stock-item .quantity { font-size: 0.9em; font-weight: bold; color: var(--accent-blue); }
+
+/* =================================================================================
+   --- 8. Production & Upgrade Modals ---
+   (The detailed factory interface)
+   ================================================================================= */
+.prod-modal-header { 
+    text-align: center; 
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 15px;
+}
+.prod-modal-header img { 
+    width: 70px; 
+    height: 70px; 
+    border-radius: 10px; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.5));
+}
+.prod-modal-header h3 { color: var(--primary-accent); margin: 7px 0 3px 0; font-size: 1.3em; }
+.prod-modal-header .level { font-size: 0.8em; color: var(--text-secondary); }
+
+.prod-io { 
+    background-color: rgba(0,0,0,0.3); 
+    padding: 15px; 
+    border-radius: 10px; 
+    margin: 15px 0; 
+    display: flex; 
+    justify-content: space-around; 
+    align-items: center; 
+    border: 1px solid #333;
+}
+.prod-item { text-align: center; }
+.prod-item img { width: 40px; height: 40px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4)); }
+.prod-item p { margin: 5px 0 0 0; font-size: 0.9em; }
+.prod-item .label { font-size: 0.7em; color: var(--text-secondary); }
+.arrow { font-size: 1.5em; color: var(--primary-accent); font-weight: bold; }
+
+.prod-timer { text-align: center; margin-top: 14px; }
+.prod-timer .time-left { font-size: 1.3em; font-weight: bold; letter-spacing: 1px; color: var(--accent-blue); }
+
+.progress-bar { 
+    background-color: #444; 
+    border-radius: 5px; 
+    height: 9px; 
+    overflow: hidden; 
+    margin-top: 7px; 
+    width: 100%;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); /* Inner shadow for depth */
+}
+.progress-bar-inner { 
+    background: var(--success-color); 
+    height: 100%; 
+    width: 0%; 
+    transition: width 0.5s; 
+    border-radius: 5px;
+}
+
+/* --- Expert Assignment Section --- */
+#expert-assignment-section {
+    margin-top: 15px;
+    border-top: 1px solid #333;
+    padding-top: 15px;
+    text-align: center;
+}
+.expert-placeholder { 
+    border: 2px dashed #444; 
+    padding: 20px; 
+    border-radius: 10px; 
+    background-color: rgba(0,0,0,0.2); 
+}
+.expert-card { 
+    background: rgba(0,0,0,0.4); 
+    padding: 10px; 
+    border-radius: 8px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    border: 1px solid var(--primary-accent);
+}
+
+/* --- Upgrade Cost Section --- */
+.cost-item { 
+    display: inline-block; 
+    margin: 5px 10px;
     font-weight: bold;
-    color: var(--ankh-premium-color);
+    font-size: 0.9em;
+}
+
+/* --- Specialization Modal Styles --- */
+.specialization-choice-container { text-align: center; }
+.specialization-card {
+    background-color: rgba(40, 40, 40, 0.8);
+    border: 1px solid var(--primary-accent);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+.specialization-card:hover { 
+    background-color: rgba(50, 50, 50, 0.9); 
+    transform: translateY(-3px); 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+
+/* =================================================================================
+   --- 9. Specific Screens ---
+   (Tasks, Albums, Contracts, Projects, Games, Chat, Profile, etc.)
+   ================================================================================= */
+
+/* --- Tasks & Albums Screen --- */
+.daily-quest-card, .album-list-item {
+    background-color: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(2px);
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #222;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-left: 4px solid var(--primary-accent);
+}
+.quest-details, .album-list-item .details {
+    flex-grow: 1;
+    margin-right: 15px;
+}
+.quest-details h4, .album-list-item .details h4 {
+    margin: 0 0 5px 0;
+    font-size: 1em;
+    color: var(--text-primary);
+}
+.quest-details p {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin: 0 0 5px 0;
+}
+.quest-action {
+    text-align: right;
+    flex-shrink: 0;
+}
+.quest-action .reward {
+    color: var(--primary-accent);
+    font-weight: bold;
+    font-size: 1em;
+    margin-bottom: 5px;
+}
+
+/* --- Contracts & Projects Screen --- */
+.contracts-section, .projects-section {
+    margin-bottom: 25px;
+}
+.contracts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 10px;
 }
-#kv-game-content h3 {
-    color: var(--kv-gate-color);
-    margin-top: 0;
-    padding-top: 0;
+.contracts-list, .projects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.contract-card, .project-card {
+    background-color: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(2px);
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 4px solid var(--primary-accent);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+.contract-card:hover, .project-card:hover {
+    background-color: rgba(40, 40, 40, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+/* NEW: Styles for completed projects */
+.completed-project-view {
+    background: linear-gradient(to right, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+    padding: 12px 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid var(--success-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3); /* Green subtle shadow */
+}
+.completed-project-view h4 {
+    margin: 0;
+    color: var(--text-secondary);
+    font-weight: normal;
+    font-size: 1em;
+}
+.completed-project-view span {
+    color: var(--success-color);
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* =================================================================================
+   --- 9. Specific Screens ---
+   (KV Game, Wheel, Chat)
+   ================================================================================= */
+
+/* --- KV Game & Wheel --- */
+.game-container {
+    background-color: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(3px);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
 }
 .kv-hint-item {
-    background-color: #1a1a1a;
+    background-color: rgba(0, 0, 0, 0.4);
     color: var(--text-secondary);
-    padding: 5px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    margin-bottom: 5px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    margin-bottom: 7px;
     text-align: left;
+    border-left: 3px solid var(--accent-blue);
 }
 .kv-hint-item span {
     font-weight: bold;
@@ -697,55 +899,30 @@ input:focus, textarea:focus {
 .kv-controls-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 7px;
-    margin-top: 10px;
+    gap: 10px;
+    margin-top: 15px;
 }
-#kv-guess-input {
-    width: 100%;
-    padding: 8px;
-    font-size: 0.9em;
-    text-align: center;
-    background: var(--background-dark);
-    border: 1px solid var(--primary-accent);
-    color: var(--text-primary);
-    border-radius: 6px;
-}
-#kv-timer-display {
-    font-size: 1.3em;
-    font-weight: bold;
-    color: var(--primary-accent);
-    margin-bottom: 10px;
-}
-#kv-use-item-button-container {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 7px;
-    margin-top: 10px;
-}
-
-
-/* --- Wheel Game (NEW STYLES) --- */
 .dice-result-container {
-    padding: 15px;
+    padding: 20px;
     background: #1a1a1a;
-    border-radius: 10px;
+    border-radius: 15px;
     margin: 20px auto;
     width: 150px;
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5); /* Gold glow */
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.8); /* Stronger Gold glow */
 }
 .dice-result-container .icon-lg {
     font-size: 4em;
     color: var(--primary-accent);
     display: block;
+    filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.9));
 }
 
-
-/* --- Chat Screen Styles (REFINED) --- */
+/* --- Chat Screen --- */
 #chat-messages {
-    background-color: var(--surface-dark);
-    border-radius: 8px;
-    height: 300px; /* Increased chat height */
+    background-color: rgba(10, 10, 10, 0.4); /* Very subtle background */
+    backdrop-filter: blur(2px);
+    border-radius: 10px;
+    height: 350px;
     overflow-y: auto;
     padding: 10px;
     margin-bottom: 10px;
@@ -753,232 +930,195 @@ input:focus, textarea:focus {
     flex-direction: column;
 }
 .eve-bubble, .user-bubble {
-    padding: 7px 10px;
-    border-radius: 10px;
-    margin-bottom: 5px; /* Reduced margin */
-    max-width: 90%; /* Increased width */
-    line-height: 1.3;
-    font-size: 0.9em; /* Reduced font size */
-    word-wrap: break-word;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin-bottom: 7px;
+    max-width: 85%; /* Slightly wider bubble */
+    line-height: 1.4;
+    font-size: 0.95em;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 .eve-bubble {
     background-color: #2a2a2e;
     color: var(--text-primary);
     align-self: flex-start;
-    border-bottom-left-radius: 3px;
-    border-left: 2px solid var(--ankh-premium-color);
+    border-bottom-left-radius: 4px;
+    border-left: 3px solid var(--accent-blue);
 }
 .user-bubble {
     background-color: #3a3a3c;
     color: var(--text-primary);
     align-self: flex-end;
-    border-bottom-right-radius: 3px;
-    border-right: 2px solid var(--primary-accent);
+    border-bottom-right-radius: 4px;
+    border-right: 3px solid var(--primary-accent);
 }
-/* New Interactive Options */
-.ucp-options-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-    padding: 5px;
-    margin-top: 5px;
-    margin-bottom: 10px;
-    width: 100%;
-}
-.ucp-option-btn {
-    width: 48%; /* Two buttons per row */
-}
-.ucp-range-slider-container {
-     display: flex;
-     justify-content: space-between;
-     width: 100%;
-     padding: 0 5px;
-     margin-top: 10px;
-}
-.ucp-range-btn {
-     width: 18%;
-     padding: 8px 0;
-}
-
-/* Chat Input Row (NEW: Side-by-side design) */
 #chat-input-area {
     display: flex;
-    gap: 7px;
-    margin-top: 7px;
-}
-#chat-input-field {
-    flex-grow: 1;
-    margin-bottom: 0; /* Remove bottom margin */
+    gap: 10px;
+    margin-top: 10px;
 }
 #chat-send-button {
     flex-shrink: 0;
-    width: 80px;
-    margin: 0; /* Remove button margin */
+    width: 90px;
+    margin: 0;
 }
 
 
-/* --- Profile Screen (COMPRESSED STYLES) --- */
+/* =================================================================================
+   --- 9. Specific Screens ---
+   (Profile)
+   ================================================================================= */
+
+/* --- Profile Screen --- */
 .profile-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px; /* Reduced gap */
+    gap: 20px; 
     padding: 0 5px;
 }
 .profile-header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
-    margin-bottom: 5px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 .profile-header .avatar {
-    width: 70px;
-    height: 70px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     border: 3px solid var(--primary-accent);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+.profile-header h2 {
+    margin: 0;
+    font-size: 1.8em;
+    padding-bottom: 0;
+    border-bottom: none;
 }
 .player-level {
-    font-size: 0.9em;
-    color: var(--text-secondary);
-    margin-top: -5px;
+    font-size: 1em;
+    color: var(--success-color);
+    margin-top: -10px;
+    font-weight: bold;
 }
 .profile-section {
     width: 100%;
-    padding: 5px 0; /* Reduced padding */
+    padding: 5px 0;
+    background: rgba(0,0,0,0.2); /* Transparent background for section */
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
 }
 .profile-section h3 {
-    color: var(--ankh-premium-color);
-    font-size: 1em;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #3a3a3c;
-    padding-bottom: 5px;
+    color: var(--accent-blue);
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 7px;
+    text-align: left;
 }
+
+/* --- NEW: Grid Layout for Stats and Currencies --- */
 .profile-stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 7px; /* Reduced gap */
+    grid-template-columns: 1fr 1fr;
+    gap: 10px; 
     width: 100%;
 }
-.currency-stats {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Tighter grid for currencies */
-}
+
 .stat-box {
-    background: var(--surface-dark);
-    padding: 10px; /* Reduced padding */
-    border-radius: 8px;
+    background: linear-gradient(to bottom, #2a2a2e, #1a1a1e);
+    padding: 15px 10px; /* Increased padding */
+    border-radius: 10px;
     text-align: center;
+    border: 1px solid #333;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 3px 8px rgba(0,0,0,0.5);
 }
 .stat-box .value {
-    font-size: 1em; /* Reduced size */
+    font-size: 1.4em; /* Larger value font */
     font-weight: bold;
-    color: var(--text-primary);
+    color: var(--primary-accent); /* Make values stand out */
     display: block;
+    filter: drop-shadow(0 0 1px #000);
 }
 .stat-box .label {
-    font-size: 0.65em; /* Reduced size */
+    font-size: 0.75em;
     color: var(--text-secondary);
-    margin-top: 3px;
-}
-.specialization-box .value {
-    color: var(--success-color);
-    font-size: 1.1em;
+    margin-top: 5px;
+    text-transform: uppercase;
 }
 
+/* Style for the specialization box to span 2 columns */
+.profile-stats-grid .stat-box:nth-last-child(1):nth-child(even),
+.profile-stats-grid .stat-box:nth-last-child(1):nth-child(odd) {
+    grid-column: span 2; 
+    border: 2px solid var(--accent-blue);
+}
 
-/* --- More Modal (Hamburger Menu) (Unchanged) --- */
+/* XP Progress Bar styles */
+.xp-progress-container .progress-bar {
+    height: 12px;
+}
+.xp-progress-container .progress-bar-inner {
+    background: var(--success-color);
+}
+
+/* =================================================================================
+   --- 10. Special Modals & Popups ---
+   (More Menu, Specialization, Shop)
+   ================================================================================= */
+
+/* --- More Menu Modal (Hamburger Menu) --- */
 .more-menu .more-menu-item {
     display: flex;
     align-items: center;
-    padding: 10px;
+    padding: 12px;
     border-bottom: 1px solid #3a3a3c;
     cursor: pointer;
     text-decoration: none;
     color: var(--text-primary);
+    transition: background-color 0.1s;
 }
-.more-menu .more-menu-item:last-child {
-    border-bottom: none;
-}
-.more-menu .more-menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
+.more-menu .more-menu-item:last-child { border-bottom: none; }
+.more-menu .more-menu-item:hover { background-color: rgba(255, 255, 255, 0.05); }
 .more-menu .more-menu-item .icon {
     font-size: 18px;
     margin-right: 14px;
     color: var(--primary-accent);
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 .more-menu .more-menu-item span {
     font-size: 0.9em;
     font-weight: bold;
 }
 
-
-/* --- Toast Notifications (Unchanged) --- */
-#toast-container {
-    position: fixed;
-    bottom: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2000;
-}
-.toast {
-    background-color: var(--surface-dark);
-    color: var(--text-primary);
-    padding: 8px 14px;
-    border-radius: 18px;
-    margin-bottom: 7px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
-    font-size: 0.8em;
-    border-left: 3px solid;
-}
-.toast.success { border-color: var(--success-color); }
-.toast.error { border-color: var(--danger-color); }
-.toast.info { border-color: var(--ankh-premium-color); }
-
-
-/* --- Specialization Choice Modal (Unchanged) --- */
-.specialization-choice-container {
-    text-align: center;
-}
+/* --- Specialization Choice Modal --- */
+.specialization-choice-container { text-align: center; }
 .specialization-card {
-    background-color: var(--surface-dark);
+    background-color: rgba(40, 40, 40, 0.8);
     border: 1px solid var(--primary-accent);
-    border-radius: 8px;
-    padding: 14px;
-    margin-bottom: 10px;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
+    transition: all 0.2s;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
 }
-.specialization-card:hover {
-    background-color: #2a2a2e;
-    transform: translateY(-2px);
+.specialization-card:hover { 
+    background-color: rgba(50, 50, 50, 0.9); 
+    transform: translateY(-3px); 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
 }
-.specialization-card h3 {
-    color: var(--primary-accent);
-    margin-top: 0;
-    margin-bottom: 7px;
-}
-.specialization-card p {
-    font-size: 0.8em;
-    color: var(--text-secondary);
-    margin: 0;
-}
-.specialization-card .costs {
-    margin-top: 10px;
-    font-size: 0.8em;
-    font-weight: bold;
-}
+.specialization-card h3 { color: var(--primary-accent); margin: 0 0 7px 0; }
+.specialization-card p { font-size: 0.8em; color: var(--text-secondary); margin: 0; }
 
-
-/* --- Shop Tabs Styles (FIXED) --- */
+/* --- Shop Modal & Swap UI --- */
 .shop-tabs-container {
     display: flex;
     justify-content: space-around;
-    /* FIX: Added flex-grow to buttons for even distribution */
     border-bottom: 1px solid #3a3a3c;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 .shop-tab-btn {
     padding: 7px 10px;
@@ -988,149 +1128,163 @@ input:focus, textarea:focus {
     font-size: 0.8em;
     font-weight: bold;
     cursor: pointer;
-    flex-grow: 1; /* CRITICAL FIX: Ensure even spacing */
+    flex-grow: 1;
+    transition: all 0.2s;
 }
 .shop-tab-btn.active {
     color: var(--primary-accent);
-    border-bottom: 1px solid var(--primary-accent);
+    border-bottom: 2px solid var(--primary-accent);
 }
-.shop-content-tab {
-    display: none;
-}
-.shop-content-tab.active {
-    display: block;
-}
+
 .shop-item {
     display: flex;
     align-items: center;
-    background: #2a2a2e;
-    padding: 10px;
-    border-radius: 8px;
+    background: rgba(10, 10, 10, 0.7);
+    padding: 12px;
+    border-radius: 10px;
     margin-bottom: 10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
-.shop-item .icon { font-size: 28px; margin-right: 14px; }
+.shop-item .icon { font-size: 30px; margin-right: 18px; filter: drop-shadow(0 0 2px rgba(255,255,255,0.5)); }
 .shop-item .details { flex-grow: 1; }
-.shop-item h4 { margin: 0 0 3px 0; }
-.shop-item p { margin: 0; color: var(--text-secondary); font-size: 0.8em; }
+.shop-item h4 { margin: 0 0 5px 0; }
+.shop-item p { color: var(--text-secondary); font-size: 0.8em; margin: 0; }
 
-.buy-btn {
-    background: var(--primary-accent);
-    color: #121212;
-    border: none;
-    padding: 7px 14px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-
-/* --- SWAP/EXCHANGE UI (DEX Style) (FIXED) --- */
-.swap-rate-display {
-    color: var(--primary-accent); 
-    font-weight: bold; 
-    font-size: 1.1em;
-    padding: 5px 0;
-    margin: 0;
-}
 .swap-box {
-    background: var(--surface-dark);
-    padding: 15px; /* Increased padding */
-    border-radius: 12px;
+    background: rgba(10, 10, 10, 0.7);
+    padding: 20px;
+    border-radius: 15px;
     border: 1px solid #3a3a3c;
-    margin-bottom: 15px; /* Increased margin */
+    margin-bottom: 25px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
 }
-.swap-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9em;
-    color: var(--text-secondary);
-    margin-bottom: 10px; /* Increased margin */
-}
-.swap-input-row {
-    display: flex;
-    align-items: center;
-    gap: 10px; /* Increased gap */
-}
-.swap-input-row input {
-    flex-grow: 1;
-    font-size: 1.2em; /* Larger input text */
-    padding: 5px;
-    border: none;
-    background: transparent;
-    color: var(--text-primary);
-    margin: 0;
-}
-.swap-input-row select {
-    padding: 7px;
-    border-radius: 8px;
-    background: var(--input-bg);
-    color: var(--text-primary);
-    border: 1px solid #3a3a3c;
-    font-size: 0.9em;
-}
-.swap-percent-row {
-    display: flex;
-    gap: 8px; /* Increased gap */
-    margin-top: 10px;
-}
-.swap-percent-row button {
-    padding: 5px 10px;
-    font-size: 0.8em;
-    background: #3a3a3c;
-    color: var(--text-primary);
-    border-radius: 6px;
-    border: none;
-}
-.swap-icon-container {
-    text-align: center;
-    margin: -10px 0;
-    z-index: 10;
-    position: relative;
-}
-#swap-icon-btn {
-    background: var(--primary-accent);
-    border: 4px solid var(--background-dark); /* Thicker border */
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.swap-input-row { display: flex; align-items: center; gap: 15px; }
+.swap-input-row input { font-size: 1.4em; padding: 5px; border: none; background: transparent; color: var(--text-primary); }
+.swap-input-row select { padding: 8px; border-radius: 8px; background: #333; color: var(--text-primary); border: 1px solid #444; font-size: 0.9em; }
+.swap-icon-container { text-align: center; margin: -25px 0 -15px 0; z-index: 10; position: relative; }
+#swap-icon-btn { 
+    background: var(--primary-accent); 
+    border: 4px solid var(--background-dark); 
+    border-radius: 50%; 
+    width: 45px; 
+    height: 45px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
     cursor: pointer;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.7);
 }
-#swap-icon-btn:active { transform: rotate(180deg); }
-#continue-swap-btn {
-    margin-top: 20px; /* More space above the main button */
+#swap-icon-btn:active { transform: rotate(180deg) scale(0.95); }
+
+/* =================================================================================
+   --- 11. Effects & Feedback ---
+   (Toasts, Visual Effects)
+   ================================================================================= */
+
+/* --- Toast Notifications --- */
+#toast-container {
+    position: fixed;
+    bottom: 80px; /* Positioned above the nav bar */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    width: 90%;
+    max-width: 400px;
 }
+.toast {
+    background-color: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--text-primary);
+    padding: 10px 18px;
+    border-radius: 25px; /* More rounded pill shape */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    font-size: 0.85em;
+    font-weight: 500;
+    border-left: 5px solid; /* Thicker border highlight */
+    animation: fadeIn 0.3s, fadeOut 0.3s 2.7s forwards;
+    opacity: 0;
+}
+.toast.success { border-color: var(--success-color); }
+.toast.error { border-color: var(--danger-color); }
+.toast.info { border-color: var(--accent-blue); }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOut { 
+    to { opacity: 0; transform: translateY(-10px); } 
+}
+
+/* --- Visual Effects Container --- */
+#visual-effect-container {
+    position: fixed; 
+    inset: 0; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    z-index: 5000; 
+    pointer-events: none;
+    background-color: rgba(0,0,0,0.1); /* Subtle darkening on effect */
+}
+#visual-effect-img {
+    max-width: 80%; 
+    max-height: 80%;
+    border-radius: 20px;
+    box-shadow: 0 0 50px rgba(212, 175, 55, 0.9);
+}
+
 
 
 /* =================================================================================
-   --- RTL OVERRIDES (Unchanged) ---
+   --- 12. RTL Overrides (COMPLETE & CLEANED) ---
+   (Final, clean rules for Right-to-Left support)
    ================================================================================= */
+
 [dir="rtl"] body {
     direction: rtl;
     text-align: right;
 }
 
+/* Header & Nav */
+[dir="rtl"] .currency-display .currency-img,
 [dir="rtl"] .currency-display .icon {
-    margin-right: 0;
-    margin-left: 3px;
-}
-[dir="rtl"] .currency-display .currency-img {
     margin-right: 0;
     margin-left: 3px;
 }
 [dir="rtl"] .nav-item {
     text-align: center;
 }
+[dir="rtl"] .more-menu .more-menu-item .icon {
+    margin-right: 0;
+    margin-left: 14px;
+}
+
+/* General Layout & Text */
 [dir="rtl"] .screen h2 {
     border-bottom: 1px solid #3a3a3c;
 }
-[dir="rtl"] .text-button {
-    text-align: left;
+[dir="rtl"] .home-section h3 {
+    text-align: right;
 }
+[dir="rtl"] .text-button {
+    text-align: left; 
+}
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] textarea,
+[dir="rtl"] .swap-input-row input {
+    text-align: right;
+}
+
+/* Chat */
 [dir="rtl"] #chat-messages {
     align-items: flex-end;
 }
@@ -1138,20 +1292,25 @@ input:focus, textarea:focus {
     align-self: flex-start;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 3px;
+    border-right: none;
+    border-left: 3px solid var(--primary-accent);
 }
 [dir="rtl"] .eve-bubble {
     align-self: flex-end;
     border-bottom-right-radius: 10px;
     border-bottom-left-radius: 3px;
+    border-left: none;
+    border-right: 3px solid var(--accent-blue);
 }
 [dir="rtl"] #chat-input-area {
     flex-direction: row-reverse;
 }
 [dir="rtl"] #chat-input-field {
     margin-right: 0;
-    margin-left: 7px;
-    text-align: right;
+    margin-left: 10px; 
 }
+
+/* Cards & Economy */
 [dir="rtl"] .card-stack .card-details {
     flex-direction: row-reverse;
 }
@@ -1161,43 +1320,47 @@ input:focus, textarea:focus {
 [dir="rtl"] .prod-modal-header {
     text-align: center;
 }
+
+/* Contracts & Projects */
 [dir="rtl"] .contracts-header {
     flex-direction: row-reverse;
 }
-.contract-card {
+[dir="rtl"] .contract-card, 
+[dir="rtl"] .project-card, 
+[dir="rtl"] .daily-quest-card, 
+[dir="rtl"] .album-list-item, 
+[dir="rtl"] .completed-project-view {
     border-left: none;
-    border-right: 3px solid var(--primary-accent);
+    border-right: 4px solid var(--primary-accent); 
 }
-[dir="rtl"] .req-item {
-    flex-direction: row-reverse;
+[dir="rtl"] .completed-project-view {
+    border-right-color: var(--success-color);
 }
-[dir="rtl"] .req-item-name {
-    flex-direction: row-reverse;
+[dir="rtl"] .quest-details, [dir="rtl"] .album-list-item .details { 
+    margin-right: 0; 
+    margin-left: 15px; 
 }
-[dir="rtl"] .req-item-name img {
-    margin-right: 0;
-    margin-left: 7px;
+[dir="rtl"] .quest-action {
+    text-align: left;
 }
+
+/* Profile & Stats */
+[dir="rtl"] .profile-stats-grid {
+    direction: ltr; 
+}
+[dir="rtl"] .stat-box {
+    direction: rtl; 
+}
+
+/* Games */
 [dir="rtl"] #kv-game-content {
     text-align: right;
 }
 [dir="rtl"] .kv-hint-item {
     text-align: right;
 }
-[dir="rtl"] input[type="text"],
-[dir="rtl"] input[type="email"],
-[dir="rtl"] input[type="password"],
-[dir="rtl"] input[type="number"],
-[dir="rtl"] textarea {
-    text-align: right;
-}
-[dir="rtl"] .more-menu .more-menu-item .icon {
-    margin-right: 0;
-    margin-left: 14px;
-}
-[dir="rtl"] .profile-stats-grid {
-    direction: ltr;
-}
-[dir="rtl"] .stat-box {
-    direction: rtl;
+
+/* Final Adjustment for Swap Button */
+[dir="rtl"] #swap-icon-btn {
+    transform: rotateY(180deg); /* Flip the arrow for RTL */
 }
