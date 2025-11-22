@@ -5,6 +5,7 @@
  * FIXED: Uses the unified CURRENCY_MAP and dynamically calculates all conversion rates.
 */
 
+
 import { state } from '../state.js';
 import * as api from '../api.js';
 import { showToast, updateHeaderUI } from '../ui.js';
@@ -358,3 +359,4 @@ window.executeSwap = async function() {
         showToast('Error processing swap!', 'error');
     }
 }
+
