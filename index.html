@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pharaoh's Legacy 'NOUB' v2.0</title>
+    <title>Pharaoh's Legacy 'NOUB' v2.0.4 - FIX</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -72,16 +72,17 @@
                     </div>
                     <div class="home-section">
                         <h3>Management & Growth</h3>
-                        <!-- NEW 4x2 GRID -->
-                        <div class="home-secondary-actions">
+                        <!-- NEW 4x2 GRID - REMOVED IDLE/SWAP AS REQUESTED -->
+                        <div class="home-secondary-actions" style="grid-template-columns: repeat(4, 1fr); max-width: 480px;">
                             <a class="action-icon-link" data-target="albums-screen"><div class="icon-box">📖</div><span>Albums</span></a>
                             <a class="action-icon-link" data-target="contracts-screen"><div class="icon-box">📜</div><span>Contracts</span></a>
                             <a class="action-icon-link" data-target="projects-screen"><div class="icon-box">🏗️</div><span>Projects</span></a>
                             <a class="action-icon-link" data-target="library-screen"><div class="icon-box">📚</div><span>Library</span></a>
                             <a class="action-icon-link" data-target="chat-screen"><div class="icon-box">💬</div><span>Chat</span></a>
-                            <a class="action-icon-link" data-target="swap-screen"><div class="icon-box">🤝</div><span>P2P Swap</span></a>
                             <a class="action-icon-link" data-target="exchange-screen"><div class="icon-box">💹</div><span>Exchange</span></a>
-                            <a class="action-icon-link" data-target="ms-game-screen"><div class="icon-box">🎲</div><span>Idle Drop</span></a>
+                            <!-- Replaced with placeholders to maintain grid structure and allow future re-insertion -->
+                            <a class="action-icon-link" data-target="swap-screen"><div class="icon-box" style="opacity: 0.5;">🤝</div><span>P2P Swap</span></a>
+                            <a class="action-icon-link" data-target="ms-game-screen"><div class="icon-box" style="opacity: 0.5;">🎲</div><span>Idle Drop</span></a>
                         </div>
                     </div>
                 </div>
@@ -123,14 +124,42 @@
             <div id="albums-screen" class="screen hidden"></div>
             <div id="card-upgrade-screen" class="screen hidden"></div>
             <div id="wheel-screen" class="screen hidden"></div>
-            <div id="kv-game-screen" class="screen hidden"></div>
-            <div id="profile-screen" class="screen hidden"></div>
+            
+            <!-- FIXED: KV Game Content Structure -->
+            <div id="kv-game-screen" class="screen hidden">
+                <h2>Valley of the Kings - Crack the Code</h2>
+                <div id="kv-game-content" class="game-container">
+                    <div id="kv-game-intro-content">
+                         <h2 style="margin-top: 0; padding-top: 0;"><span id="kv-level-name-display">KV Gate Name</span></h2>
+                         <button id="kv-start-btn" class="action-button small" style="width: 200px;">Load Game</button>
+                    </div>
+                    <div id="kv-game-controls-content" class="game-controls hidden" style="width: 100%;">
+                        <div id="kv-progress-info" class="game-status-message">
+                            <div id="kv-timer-display">Time Left: 0s</div><div id="kv-attempts-display">Attempts Left: 0</div>
+                        </div>
+                        <div id="kv-message-label" style="margin-bottom: 10px;">Enter the secret code.</div>
+                        <div class="game-input-area" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 14px;">
+                            <input type="number" id="kv-guess-input" style="width: 150px; font-size: 0.9em; text-align: center;" placeholder="Enter code...">
+                        </div>
+                        <ul id="kv-hints-list" style="list-style: none; padding: 0; margin-bottom: 10px; text-align: left; display: flex; flex-direction: column; gap: 3px;"></ul>
+                        <div class="kv-controls-grid">
+                            <button id="kv-submit-guess-btn" class="action-button small">Submit</button>
+                            <button id="kv-end-game-btn" class="action-button danger small">End Expedition</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- FIXED: Profile Screen Content Container -->
+            <div id="profile-screen" class="screen hidden">
+                 <div class="profile-container"></div>
+            </div>
+            
             <div id="history-screen" class="screen hidden"></div>
             <div id="library-screen" class="screen hidden"></div>
             <div id="settings-screen" class="screen hidden"></div>
             <div id="activity-screen" class="screen hidden"></div>
             
-            <!-- NEW/FIXED: Exchange Screen Name -->
             <div id="exchange-screen" class="screen hidden"><h2>Currency Exchange</h2></div>
             
             <div id="chat-screen" class="screen hidden">
@@ -147,9 +176,9 @@
                 <div id="projects-container"></div>
             </div>
 
-            <!-- NEW Placeholder screens -->
-            <div id="swap-screen" class="screen hidden"><h2>Player Swap Market</h2></div>
-            <div id="ms-game-screen" class="screen hidden"><h2>Idle Drop Generator</h2></div>
+            <!-- Placeholders for JS to target (Hidden) -->
+            <div id="swap-screen" class="screen hidden"></div>
+            <div id="ms-game-screen" class="screen hidden"></div>
             
         </main>
         
