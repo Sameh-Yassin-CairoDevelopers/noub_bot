@@ -1,9 +1,8 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB v1.8.0 (Prevent Burn of Assigned Experts)
- * Description: View Logic Module for the "My Cards" screen. This version introduces a
- * critical safeguard that prevents players from accidentally burning or sacrificing
- * a card (Expert) that is currently assigned to a factory, improving game logic integrity.
+ * Version: NOUB v1.9.0 (Final Card Status Visual & Logic)
+ * Description: Implements the final visual and functional logic for card states
+ * based on the Executive Specification (Expert/Burn Lock).
 */
 
 import { state } from '../state.js';
@@ -13,9 +12,8 @@ import { refreshPlayerState } from '../auth.js';
 
 const collectionContainer = document.getElementById('collection-container');
 
-// --- Comprehensive Card Rewards Dictionary ---
+// --- Comprehensive Card Rewards Dictionary (Unchanged) ---
 const CARD_BURN_REWARDS = {
-    // This data remains unchanged
     1: { type: 'CURRENCY', payload: { noub: 50, prestige: 1 } },
     2: { type: 'CURRENCY', payload: { noub: 75, prestige: 2 } },
     3: { type: 'CURRENCY', payload: { noub: 100, prestige: 3 } },
@@ -144,7 +142,6 @@ async function showUpgradeDetails(playerCard) {
 
 /**
  * Displays the burn/sacrifice confirmation details.
- * NEW: Checks if the card is assigned as an expert before showing the confirmation.
  * @param {object} playerCard - The specific instance of the player's card.
  * @param {object} burnInfo - The reward information for this card type.
  * @param {string} actionType - The display name of the action ('Burn' or 'Sacrifice').
@@ -153,17 +150,16 @@ async function showUpgradeDetails(playerCard) {
 function showBurnDetails(playerCard, burnInfo, actionType, assignedCardInstanceIds) {
     const detailsContainer = document.getElementById('card-interaction-details');
 
-    // --- NEW: Safeguard Logic ---
+    // --- Safeguard Logic ---
     if (assignedCardInstanceIds.has(playerCard.instance_id)) {
         detailsContainer.innerHTML = `
             <div style="background: #2a2a2e; padding: 10px; border-radius: 6px; text-align: center;">
                 <p style="color: var(--danger-color); font-weight: bold; margin: 0;">This expert is assigned to a factory and cannot be burned. Please unassign it first.</p>
             </div>`;
-        // Also disable the main "Burn" button
         document.getElementById('card-burn-btn').disabled = true;
         return;
     }
-    // --- END NEW ---
+    // --- End Safeguard ---
 
     let confirmationText = '';
     switch (burnInfo.type) {
@@ -185,6 +181,7 @@ function showBurnDetails(playerCard, burnInfo, actionType, assignedCardInstanceI
             <button id="confirm-burn-btn" class="action-button danger">Yes, ${actionType} it!</button>
         </div>
     `;
+    document.getElementById('card-burn-btn').disabled = false; 
     detailsContainer.querySelector('#confirm-burn-btn').onclick = () => handleBurnOrSacrifice(playerCard, burnInfo);
 }
 
@@ -235,8 +232,9 @@ async function openCardInteractionModal(playerCard, assignedCardInstanceIds) {
     const burnInfo = CARD_BURN_REWARDS[masterCard.id];
     const actionType = burnInfo.type === 'SACRIFICE' ? 'Sacrifice' : 'Burn';
     
+    // Check max level and assignment status before rendering
     const isMaxLevel = playerCard.level >= 5;
-
+    
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 400px;">
             <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
@@ -258,19 +256,19 @@ async function openCardInteractionModal(playerCard, assignedCardInstanceIds) {
         upgradeBtn.onclick = () => showUpgradeDetails(playerCard);
     }
     
+    // Pass the logic to showBurnDetails for the final check before confirmation
     modal.querySelector('#card-burn-btn').onclick = () => showBurnDetails(playerCard, burnInfo, actionType, assignedCardInstanceIds);
     openModal('card-interaction-modal');
 }
 
 /**
  * Main render function for the "My Cards" screen.
- * NEW: Fetches factory data to determine which cards are assigned as experts.
+ * FIXED: Applies the 'assigned-expert' class to the card if ANY instance is assigned.
  */
 export async function renderCollection() {
     if (!state.currentUser) return;
     collectionContainer.innerHTML = 'Loading your collection...';
 
-    // Fetch both cards and factories in parallel for efficiency
     const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
         api.fetchPlayerCards(state.currentUser.id),
         api.fetchPlayerFactories(state.currentUser.id)
@@ -283,11 +281,11 @@ export async function renderCollection() {
         return collectionContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">You have no cards yet. Visit the Shop!</p>';
     }
 
-    // --- NEW: Create a set of assigned expert IDs for quick lookup ---
+    // --- Create a set of assigned expert IDs for quick lookup ---
     const assignedCardInstanceIds = new Set(
         playerFactories
             .map(f => f.assigned_card_instance_id)
-            .filter(id => id !== null) // Filter out null/undefined values
+            .filter(id => id !== null)
     );
     // --- END NEW ---
 
@@ -307,28 +305,34 @@ export async function renderCollection() {
     sortedCards.forEach(cardData => {
         const masterCard = cardData.master;
         const instances = cardData.instances;
-        const highestLevelInstance = instances.reduce((max, current) => (current.level > max.level ? current : max), instances[0]);
+        // The instance we show in the collection grid (usually the highest level one)
+        const displayInstance = instances.reduce((max, current) => (current.level > max.level ? current : max), instances[0]);
+        
         const cardElement = document.createElement('div');
         cardElement.className = `card-stack`;
         cardElement.setAttribute('data-rarity', masterCard.rarity_level || 0);
         
-        // Add a visual indicator if any instance of this card type is assigned
+        // --- FIXED LOGIC: Check if ANY instance of this CARD TYPE is assigned ---
         const isAnyInstanceAssigned = instances.some(inst => assignedCardInstanceIds.has(inst.instance_id));
-        const assignedIndicator = isAnyInstanceAssigned ? '<span style="position: absolute; top: 5px; right: 5px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold);">✨</span>' : '';
+        
+        if (isAnyInstanceAssigned) {
+             // Apply the CSS class to the visual representation
+             cardElement.classList.add('assigned-expert'); 
+        }
+        // --- END FIXED LOGIC ---
 
         cardElement.innerHTML = `
-            ${assignedIndicator}
             <img src="${masterCard.image_url || 'images/default_card.png'}" alt="${masterCard.name}" class="card-image">
             <h4>${masterCard.name}</h4>
             <div class="card-details">
-                <span class="card-level">LVL ${highestLevelInstance.level}</span>
+                <span class="card-level">LVL ${displayInstance.level}</span>
                 <span class="card-count">x${instances.length}</span>
             </div>
         `;
         cardElement.onclick = () => {
             playSound('click');
             // Pass the set of assigned IDs to the modal function
-            openCardInteractionModal(highestLevelInstance, assignedCardInstanceIds);
+            openCardInteractionModal(displayInstance, assignedCardInstanceIds);
         };
         collectionContainer.appendChild(cardElement);
     });
