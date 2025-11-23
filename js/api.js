@@ -330,3 +330,89 @@ export async function completeGreatProject(playerProjectId, rewards) {
     }
     return { error: null };
 }
+
+// --- NEW: P2P Swap API Functions (Phase 3.2) ---
+
+/**
+ * Creates a new Swap Request and locks the offered card instance.
+ */
+export async function createSwapRequest(playerId, offeredInstanceId, offerCardId, requestCardId, priceNoub = 0) {
+    // NOTE: In a real app, this should be done in a single DB transaction.
+    
+    // 1. Lock the card instance (Preventing it from being burned/assigned elsewhere)
+    const { error: lockError } = await supabaseClient
+        .from('player_cards')
+        .update({ is_locked_for_swap: true }) // Assuming you have an 'is_locked_for_swap' column in player_cards
+        .eq('instance_id', offeredInstanceId)
+        .eq('player_id', playerId);
+        
+    if (lockError) return { error: { message: "Failed to lock card instance." } };
+
+    // 2. Create the Swap Request
+    return await supabaseClient.from('swap_requests').insert({
+        player_id_offering: playerId,
+        item_id_offer: offerCardId,
+        item_id_request: requestCardId,
+        card_instance_id_offer: offeredInstanceId,
+        price_noub: priceNoub,
+        status: 'active'
+    });
+}
+
+/**
+ * Fetches all ACTIVE swap requests excluding those created by the current player.
+ */
+export async function fetchActiveSwapRequests(playerId) {
+    // Selects active requests and details of the cards involved
+    return await supabaseClient
+        .from('swap_requests')
+        .select(`
+            id, player_id_offering, price_noub, created_at,
+            offer_card:item_id_offer (id, name, image_url),
+            request_card:item_id_request (id, name, image_url)
+        `)
+        .eq('status', 'active')
+        .not('player_id_offering', 'eq', playerId); // CRITICAL: Do not show own requests
+}
+
+/**
+ * Executes a swap transaction (Accepting a request).
+ * This function is complex and should be handled by a Database Function (RPC/Edge Function)
+ * for true atomic security, but we simulate it here with client-side steps.
+ */
+export async function acceptSwapRequest(requestId, playerReceivingId) {
+    // 1. Fetch Request details
+    const { data: request, error: fetchError } = await supabaseClient
+        .from('swap_requests')
+        .select(`
+            player_id_offering, card_instance_id_offer, 
+            item_id_offer, item_id_request, price_noub
+        `)
+        .eq('id', requestId)
+        .eq('status', 'active')
+        .single();
+
+    if (fetchError || !request) return { error: { message: "Request not found or already completed." } };
+    
+    // 2. Add the requested card (item_id_offer) to the playerReceivingId's collection
+    const { error: receiveError } = await addCardToPlayerCollection(playerReceivingId, request.item_id_offer);
+    
+    // 3. Delete the original card from the playerOffering's collection
+    const { error: deleteError } = await deleteCardInstance(request.card_instance_id_offer);
+
+    // 4. Create a NEW card (item_id_request) for the playerOffering
+    const { error: giveError } = await addCardToPlayerCollection(request.player_id_offering, request.item_id_request);
+    
+    // 5. Finalize by updating request status
+    const { error: statusError } = await supabaseClient
+        .from('swap_requests')
+        .update({ status: 'completed' })
+        .eq('id', requestId);
+
+    if (receiveError || deleteError || giveError || statusError) {
+        // NOTE: In production, rollback logic must be here!
+        return { error: { message: "Swap failed due to a database error." } };
+    }
+    
+    return { error: null, newCardId: request.item_id_offer };
+}
