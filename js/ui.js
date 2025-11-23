@@ -29,6 +29,7 @@ import { renderActiveContracts, renderAvailableContracts } from './screens/contr
 import { renderKVGame } from './screens/kvgame.js';
 import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js';
+import { renderMsGame } from './screens/ms_game.js'; 
 
 
 // --- Re-exporting render functions for standardized access ---
@@ -315,6 +316,7 @@ export function setupEventListeners() {
         });
     });
 }
+
 
 
 
