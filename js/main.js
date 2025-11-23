@@ -37,6 +37,10 @@ import './screens/tasks.js';
 // ... (بعد import './screens/tasks.js';)
 import './screens/projects.js';
 
+// NOW: Add the export statement at the end of the file or near the other exports
+
+// --- Re-export the new module function ---
+export const renderMsGame = msGameModule.renderMsGame; 
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -54,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     handleInitialSession();
 
 });
+
 
 
 
