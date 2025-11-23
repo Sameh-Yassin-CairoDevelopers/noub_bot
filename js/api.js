@@ -363,8 +363,12 @@ export async function createSwapRequest(playerId, offeredInstanceId, offerCardId
         status: 'active'
     });
 }
+
 /**
  * Cancels a swap request, changes its status to 'cancelled', and UNLOCKS the card instance.
+ * @param {string} requestId - The ID of the swap request.
+ * @param {string} playerOfferingId - The ID of the player who created the request.
+ * @param {string} offeredInstanceId - The instance ID of the card being unlocked.
  */
 export async function cancelSwapRequest(requestId, playerOfferingId, offeredInstanceId) {
     // 1. Unlock the card instance (CRITICAL)
@@ -377,9 +381,13 @@ export async function cancelSwapRequest(requestId, playerOfferingId, offeredInst
     if (unlockError) return { error: { message: "Failed to unlock card instance." } };
 
     // 2. Update the request status
-    return await supabaseClient.from('swap_requests')
+    const { error: statusError } = await supabaseClient.from('swap_requests')
         .update({ status: 'cancelled' })
         .eq('id', requestId);
+        
+    if (statusError) return { error: { message: "Failed to update request status." } };
+
+    return { error: null };
 }
 
 /**
@@ -457,6 +465,7 @@ export async function acceptSwapRequest(requestId, playerReceivingId) {
     
     return { error: null, newCardId: request.item_id_offer };
 }
+
 
 
 
