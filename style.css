@@ -1097,6 +1097,88 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* =================================================================================
+   --- NEW: P2P Swap Market Styles (Final Polish) ---
+   ================================================================================= */
+
+/* Style for the main swap tabs */
+#swap-tabs-container {
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 2px solid var(--primary-accent);
+    margin-bottom: 20px;
+}
+.swap-tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1em;
+    font-weight: bold;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.swap-tab-btn.active {
+    color: var(--primary-accent);
+    border-bottom: 2px solid var(--primary-accent);
+}
+
+/* Style for the card wrapper (The Card that shows the trade) */
+.swap-request-card {
+    background-color: rgba(30, 30, 30, 0.8);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    border-left: 4px solid var(--accent-blue);
+}
+
+/* Style for the core trade display (Offer vs Request) */
+.trade-display-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+/* Common style for the card item being shown */
+.trade-card-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1; /* Ensures both sides take equal space */
+}
+
+.trade-card-item img {
+    width: 90px; /* FIXED: Setting a fixed small size */
+    height: 90px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #555;
+    margin-bottom: 5px;
+}
+
+.trade-icon {
+    font-size: 1.8em;
+    color: var(--primary-accent);
+    flex-shrink: 0; /* Prevents icon from shrinking */
+}
+
+/* Layout for My Requests Action Buttons */
+.swap-request-card .actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.swap-request-card .actions .price {
+    font-weight: bold;
+    color: var(--success-color);
+}
+
+/* =================================================================================
    --- 10. Special Modals & Popups ---
    (More Menu, Specialization, Shop)
    ================================================================================= */
