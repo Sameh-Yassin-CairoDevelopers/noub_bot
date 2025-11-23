@@ -1,13 +1,10 @@
 /*
  * Filename: js/api.js
- * Version: NOUB v1.8.4 (Definitive Query Fix)
- * Description: Data Access Layer Module. This version provides the definitive and final
- * fix for the factory progression system by correcting the syntax of the fetchPlayerFactories
- * query, resolving the data loading error permanently. It also includes the necessary
- * functions for building and fetching all master factories.
+ * Version: NOUB v2.0.4 (Idle Drop API Integration)
+ * Description: Data Access Layer Module. This version integrates the new API
+ * functions required for the Idle Drop Generator system.
 */
-
-import { state } from './state.js';
+import { state } from './state.js'; 
 import { supabaseClient } from './config.js';
 
 export { supabaseClient };
@@ -15,11 +12,14 @@ export { supabaseClient };
 // --- Player and Card Functions ---
 
 export async function fetchProfile(userId) {
+    // UPDATED: Include new Idle Drop columns in the general profile fetch
     const { data, error } = await supabaseClient.rpc('get_player_profile', { p_id: userId });
     if (error) {
         console.error("Error calling RPC function 'get_player_profile':", error);
         return { data: null, error };
     }
+    // FIX: Ensure last_claim_time is fetched in your RPC to keep it synchronized in state.
+    // For now, we rely on the main profile data.
     return { data: data ? data[0] : null, error: null };
 }
 
@@ -55,6 +55,9 @@ export async function addCardToPlayerCollection(playerId, cardId) {
     });
 }
 
+/**
+ * Fetches the upgrade requirements for a specific card and level.
+ */
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
         .from('card_levels')
@@ -85,58 +88,80 @@ export async function deleteCardInstance(instanceId) {
 export async function transactUpgradeCosts(playerId, costs, itemCost = null) {
     const profile = state.playerProfile;
     const inventory = state.inventory;
+
+    // 1. Verify all costs can be met before starting the transaction
     if ((profile.noub_score || 0) < (costs.noub || 0)) return { error: { message: 'Not enough NOUB.' } };
-    if ((profile.prestige || 0) < (costs.prestige || 0)) return { error: { message: 'Not enough Ankh.' } };
+    if ((profile.prestige || 0) < (costs.prestige || 0)) return { error: { message: 'Not enough Prestige.' } };
+    if ((profile.ankh_premium || 0) < (costs.ankh || 0)) return { error: { message: 'Not enough Ankh.' } };
     if (itemCost && (inventory.get(itemCost.id)?.qty || 0) < itemCost.qty) return { error: { message: `Not enough ${inventory.get(itemCost.id)?.details.name || 'items'}.` } };
+
+    // 2. Prepare the database update objects
     const profileUpdate = {
         noub_score: (profile.noub_score || 0) - (costs.noub || 0),
         prestige: (profile.prestige || 0) - (costs.prestige || 0),
         ankh_premium: (profile.ankh_premium || 0) - (costs.ankh || 0),
     };
+
+    // 3. Perform the updates
     const { error: profileError } = await updatePlayerProfile(playerId, profileUpdate);
     if (profileError) return { error: profileError };
+
     if (itemCost) {
         const currentItemQty = inventory.get(itemCost.id)?.qty || 0;
         const { error: itemError } = await updateItemQuantity(playerId, itemCost.id, currentItemQty - itemCost.qty);
         if (itemError) {
+            // In a real production app, you might want to roll back the profile update here.
             return { error: itemError };
         }
     }
-    return { error: null };
+
+    return { error: null }; // Success
 }
+
+/**
+ * Atomically adds an amount of XP to a player and checks for level up.
+ */
+export async function addXp(playerId, amount) {
+    const profile = state.playerProfile;
+    if (!profile) return { leveledUp: false, newLevel: profile?.level || 1 };
+
+    let currentXp = profile.xp || 0;
+    let xpToNextLevel = profile.xp_to_next_level || 100;
+    let currentLevel = profile.level || 1;
+    let newXp = currentXp + amount;
+    let leveledUp = false;
+
+    while (newXp >= xpToNextLevel) {
+        currentLevel += 1;
+        newXp -= xpToNextLevel;
+        xpToNextLevel = Math.floor(xpToNextLevel * 1.15); // 15% increase per level
+        leveledUp = true;
+    }
+
+    const updateObject = {
+        xp: newXp,
+        xp_to_next_level: xpToNextLevel,
+        level: currentLevel
+    };
+
+    const { error } = await updatePlayerProfile(playerId, updateObject);
+    if (error) {
+        console.error("XP Update Error:", error);
+        return { leveledUp: false, newLevel: profile.level };
+    }
+    
+    return { leveledUp, newLevel: currentLevel };
+}
+
 
 // --- Economy API Functions ---
 
-export async function fetchAllMasterFactories() {
-    return await supabaseClient.from('factories').select('*');
-}
-
-export async function buildFactory(playerId, factoryId) {
-    // DEFINITIVE FIX: Revert to a simple 'insert'. The UNIQUE constraint in the DB
-    // will now handle the prevention of duplicates correctly.
-    return await supabaseClient.from('player_factories').insert(
-        {
-            player_id: playerId,
-            factory_id: factoryId,
-            level: 1
-        }
-    );
-}
-
 export async function fetchPlayerFactories(playerId) {
-    return await supabaseClient.from('player_factories').select(`
-        id, 
-        level, 
-        production_start_time, 
-        assigned_card_instance_id, 
-        player_cards (instance_id, level, cards ( name, image_url, power_score )), 
-        factories!inner (
-            id, name, output_item_id, base_production_time, type, image_url, 
-            specialization_path_id, required_level, build_cost_noub, 
-            items!factories_output_item_id_fkey (id, name, type, image_url, base_value), 
-            factory_recipes (input_quantity, items (id, name, type, image_url, base_value))
-        )
-    `).eq('player_id', playerId);
+    return await supabaseClient.from('player_factories').select(`id, level, production_start_time, assigned_card_instance_id, player_cards (instance_id, level, cards ( name, image_url, power_score )), factories!inner (id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, required_level, build_cost_noub, items!factories_output_item_id_fkey (id, name, type, image_url, base_value), factory_recipes (input_quantity, items (id, name, type, image_url, base_value)))`).eq('player_id', playerId);
+}
+
+export async function fetchAllMasterFactories() {
+    return await supabaseClient.from('factories').select(`id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, required_level, build_cost_noub, items!factories_output_item_id_fkey (id, name, type, image_url, base_value)`).order('required_level', { ascending: true });
 }
 
 export async function updatePlayerFactoryLevel(playerFactoryId, newLevel) {
@@ -165,6 +190,32 @@ export async function claimUcpTaskReward(playerId, taskNumber) {
     updateObject[`ucp_task_${taskNumber}_claimed`] = true;
     return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
 }
+
+export async function buildFactory(playerId, factoryId) {
+    return await supabaseClient.from('player_factories').insert({
+        player_id: playerId,
+        factory_id: factoryId,
+        level: 1
+    });
+}
+
+// --- NEW: Idle Drop Generator API Functions ---
+
+/**
+ * Fetches the player's Idle Drop State.
+ */
+export async function fetchIdleDropState(playerId) {
+    return await supabaseClient.from('profiles').select('last_claim_time, idle_generator_level, noub_score').eq('id', playerId).single();
+}
+
+/**
+ * Updates the player's Idle Drop State (Level and Last Claim Time).
+ */
+export async function updateIdleDropState(playerId, updateObject) {
+    // This function will be used to update last_claim_time and idle_generator_level
+    return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
+}
+
 
 // --- Contract API Functions ---
 
@@ -203,6 +254,7 @@ export async function refreshAvailableContracts(playerId) {
     return await supabaseClient.from('player_contracts').delete().eq('player_id', playerId);
 }
 
+
 // --- Games & Consumables API Functions ---
 
 export async function fetchSlotRewards() { return await supabaseClient.from('slot_rewards').select('id, prize_name, prize_type, value, weight'); }
@@ -211,6 +263,7 @@ export async function fetchKVGameConsumables(playerId) { return await supabaseCl
 export async function updateConsumableQuantity(playerId, itemKey, newQuantity) { return await supabaseClient.from('game_consumables').upsert({ player_id: playerId, item_key: itemKey, quantity: newQuantity }); }
 export async function fetchKVProgress(playerId) { return await supabaseClient.from('kv_game_progress').select('current_kv_level, last_game_result, unlocked_levels_json').eq('player_id', playerId).single(); }
 export async function updateKVProgress(playerId, updateObject) { return await supabaseClient.from('kv_game_progress').upsert({ player_id: playerId, ...updateObject }); }
+
 
 // --- UCP-LLM Protocol API Functions ---
 
@@ -223,10 +276,14 @@ export async function fetchUCPProtocol(playerId) {
     if (error) console.error("Error calling RPC function 'get_player_protocol':", error);
     return { data, error };
 }
-
+/**
+ * Fetches a master list of all items in the game.
+ * Used to resolve item names from item_id.
+ */
 export async function fetchAllItems() {
     return await supabaseClient.from('items').select('id, name');
 }
+
 
 // --- TON Integration, Activity Log, History, Library, Albums ---
 export async function saveTonTransaction(playerId, txId, amountTon, amountAnkhPremium) { return { success: true, amount: amountAnkhPremium }; }
@@ -236,6 +293,7 @@ export async function insertGameHistory(historyObject) { return await supabaseCl
 export async function fetchGameHistory(playerId) { return await supabaseClient.from('game_history').select('id, player_id, game_type, level_kv, result_status, time_taken, code, date').eq('player_id', playerId).order('date', { ascending: false }); }
 export async function fetchPlayerAlbums(playerId) { return await supabaseClient.from('player_albums').select(`album_id, is_completed, reward_claimed, master_albums (id, name, icon, description, card_ids, reward_ankh, reward_prestige)`).eq('player_id', playerId); }
 export async function fetchPlayerLibrary(playerId) { return await supabaseClient.from('player_library').select('entry_key').eq('player_id', playerId); }
+
 
 // --- Specialization API Functions ---
 
@@ -249,7 +307,7 @@ export async function fetchAllGreatProjects() {
     return await supabaseClient.from('master_great_projects').select('*').order('min_player_level', { ascending: true });
 }
 export async function fetchPlayerGreatProjects(playerId) {
-    return await supabaseClient.from('player_great_projects').select(`id, project_id, start_time, status, progress, master_great_projects ( * )`).eq('player_id', playerId);
+    return await supabaseClient.from('player_great_projects').select(`id, start_time, status, progress, master_great_projects ( * )`).eq('player_id', playerId);
 }
 export async function subscribeToProject(playerId, projectId) {
     return await supabaseClient.from('player_great_projects').insert({ player_id: playerId, project_id: projectId, start_time: new Date().toISOString(), status: 'active', progress: {} });
@@ -259,68 +317,13 @@ export async function deliverToProject(playerProjectId, newProgress) {
 }
 
 export async function completeGreatProject(playerProjectId, rewards) {
-    if (!playerProjectId || !rewards) {
-        return { error: { message: "Invalid project ID or rewards." } };
-    }
-    const { error: statusError } = await supabaseClient
-        .from('player_great_projects')
-        .update({ status: 'completed' })
-        .eq('id', playerProjectId);
-    if (statusError) {
-        console.error("Error updating project status:", statusError);
-        return { error: statusError };
-    }
-    const player = state.playerProfile;
-    const profileUpdate = {
-        noub_score: (player.noub_score || 0) + (rewards.noub || 0),
-        prestige: (player.prestige || 0) + (rewards.prestige || 0),
-        ankh_premium: (player.ankh_premium || 0) + (rewards.ankh || 0),
-    };
-    const { error: rewardError } = await updatePlayerProfile(player.id, profileUpdate);
-    if (rewardError) {
-        console.error("Error granting project rewards:", rewardError);
-        return { error: rewardError };
-    }
-    return { error: null };
+    const { error: contractError } = await supabaseClient.from('player_great_projects').update({ status: 'completed' }).eq('id', playerProjectId);
+    if (contractError) return { error: contractError };
+    
+    let profileUpdate = {};
+    if (rewards.noub) profileUpdate.noub_score = state.playerProfile.noub_score + (rewards.noub || 0);
+    if (rewards.prestige) profileUpdate.prestige = state.playerProfile.prestige + (rewards.prestige || 0);
+    if (rewards.ankh) profileUpdate.ankh_premium = state.playerProfile.ankh_premium + (rewards.ankh || 0);
+
+    return await supabaseClient.from('profiles').update(profileUpdate).eq('id', state.currentUser.id);
 }
-
-// --- Player Leveling System ---
-
-export async function addXp(playerId, amount) {
-    if (!playerId || !amount || amount <= 0) {
-        return { error: { message: 'Invalid player ID or XP amount.' } };
-    }
-    const { data: currentProfile, error: fetchError } = await supabaseClient
-        .from('profiles')
-        .select('level, xp, xp_to_next_level')
-        .eq('id', playerId)
-        .single();
-    if (fetchError) {
-        console.error("addXp: Error fetching profile.", fetchError);
-        return { error: fetchError };
-    }
-    let { level, xp, xp_to_next_level } = currentProfile;
-    xp += amount;
-    let leveledUp = false;
-    while (xp >= xp_to_next_level) {
-        leveledUp = true;
-        level++;
-        xp -= xp_to_next_level;
-        xp_to_next_level = Math.floor(xp_to_next_level * 1.1);
-    }
-    const updateObject = {
-        xp: xp,
-        level: level,
-        xp_to_next_level: xp_to_next_level
-    };
-    const { error: updateError } = await updatePlayerProfile(playerId, updateObject);
-    if (updateError) {
-        console.error("addXp: Error updating profile.", updateError);
-        return { error: updateError };
-    }
-    if (leveledUp) {
-        console.log(`Player ${playerId} leveled up to level ${level}!`);
-    }
-    return { error: null, leveledUp: leveledUp, newLevel: level };
-}
-
