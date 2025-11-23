@@ -34,6 +34,7 @@ import './screens/activity.js';
 import './screens/tasks.js';
 // ... (بعد import './screens/tasks.js';)
 import './screens/projects.js';
+import { renderMsGame } from './screens/ms_game.js'; 
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -51,4 +52,5 @@ document.addEventListener('DOMContentLoaded', () => {
     handleInitialSession();
 
 });
+
 
