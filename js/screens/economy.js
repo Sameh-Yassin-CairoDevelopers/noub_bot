@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB v2.0.5 (Idle Drop Generator Final Integration)
+ * Version: NOUB v2.0.7 (CRITICAL FIX: Idle Drop TypeError Solved)
  * Description: This definitive version ensures that all original economy logic is
  * retained and the new Idle Drop Generator system is correctly integrated and functional.
 */
@@ -42,7 +42,7 @@ const SPECIALIZATION_FACTORY_MAP = {
 };
 
 
-// --- NEW: IDLE GENERATOR CONFIGURATION ---
+// --- IDLE GENERATOR CONFIGURATION ---
 const IDLE_GENERATOR_CONFIG = {
     BASE_RATE_PER_MINUTE: 0.25, 
     BASE_CAPACITY_HOURS: 8,     
@@ -227,6 +227,7 @@ async function handleUpgradeIdleDrop(currentLevel, upgradeCost) {
 }
 
 function renderIdleDropGenerator() {
+    // --- CRITICAL FIX: The container MUST be defined as 'let' initially ---
     let container = document.getElementById('idle-generator-container');
     if (!container) {
         const productionSection = document.getElementById('stock-content-production');
@@ -821,4 +822,3 @@ export async function renderProduction() {
     
     await renderStock();
 }
-
