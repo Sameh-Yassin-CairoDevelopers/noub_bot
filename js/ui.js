@@ -197,9 +197,6 @@ export function navigateTo(targetId) {
             renderActiveContracts();
             renderAvailableContracts();
             break;
-        // case 'card-upgrade-screen': // This is now deprecated
-        //     upgradeModule.renderUpgrade();
-        //     break;
         case 'kv-game-screen':
             renderKVGame();
             break;
@@ -227,9 +224,20 @@ export function navigateTo(targetId) {
         case 'activity-screen':
             activityModule.renderActivity();
             break;
+        
+        // --- NEW: Idle Drop and P2P Swap Screen Links ---
+        case 'ms-game-screen': // Idle Drop Generator
+            // Assuming the render function is available (via import or global scope)
+            renderMsGame(); 
+            break;
+        case 'swap-screen': // P2P Swap Market
+            // This is a placeholder for future P2P swap logic
+            // For now, it could be empty or navigate to an existing screen for temporary use
+            // If you have a temporary render function, use it here, otherwise just leave it to load the empty screen
+            break;
+        // --- END NEW ---
     }
 }
-
 
 
 export function updateHeaderUI(profile) {
@@ -307,6 +315,7 @@ export function setupEventListeners() {
         });
     });
 }
+
 
 
 
