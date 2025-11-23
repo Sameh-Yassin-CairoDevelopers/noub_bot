@@ -1,8 +1,8 @@
 /*
  * Filename: js/api.js
- * Version: NOUB v2.1.0 (Master API - All Modules Unified)
- * Description: Data Access Layer Module. This is the definitive, unified API file
- * containing all functions for Player, Cards, Economy, XP, Idle Drop, and Projects.
+ * Version: NOUB v2.1.2 (Master API - IDLE DROP Functions Added)
+ * Description: The definitive, unified API file containing all functions.
+ * Includes the necessary fetch and update functions for the Idle Drop Generator.
 */
 import { state } from './state.js'; 
 import { supabaseClient } from './config.js';
@@ -111,9 +111,6 @@ export async function transactUpgradeCosts(playerId, costs, itemCost = null) {
     return { error: null }; // Success
 }
 
-/**
- * FIXED: Reverted XP increase multiplier to 1.15 to match previous working logic.
- */
 export async function addXp(playerId, amount) {
     const profile = state.playerProfile;
     if (!profile) return { leveledUp: false, newLevel: profile?.level || 1 };
@@ -127,7 +124,7 @@ export async function addXp(playerId, amount) {
     while (newXp >= xpToNextLevel) {
         currentLevel += 1;
         newXp -= xpToNextLevel;
-        xpToNextLevel = Math.floor(xpToNextLevel * 1.15); // Reverted to 1.15 multiplier
+        xpToNextLevel = Math.floor(xpToNextLevel * 1.15); // Correct Multiplier
         leveledUp = true;
     }
 
@@ -147,7 +144,7 @@ export async function addXp(playerId, amount) {
 }
 
 
-// --- Economy API Functions (All retained) ---
+// --- Economy API Functions (Retained) ---
 
 export async function fetchPlayerFactories(playerId) {
     return await supabaseClient.from('player_factories').select(`id, level, production_start_time, assigned_card_instance_id, player_cards (instance_id, level, cards ( name, image_url, power_score )), factories!inner (id, name, output_item_id, base_production_time, type, image_url, specialization_path_id, required_level, build_cost_noub, items!factories_output_item_id_fkey (id, name, type, image_url, base_value), factory_recipes (input_quantity, items (id, name, type, image_url, base_value)))`).eq('player_id', playerId);
@@ -192,12 +189,18 @@ export async function buildFactory(playerId, factoryId) {
     });
 }
 
-// --- NEW: Idle Drop Generator API Functions (Retained) ---
+// --- NEW: Idle Drop Generator API Functions (CRITICAL for the feature) ---
 
+/**
+ * Fetches the player's Idle Drop State.
+ */
 export async function fetchIdleDropState(playerId) {
     return await supabaseClient.from('profiles').select('last_claim_time, idle_generator_level, noub_score').eq('id', playerId).single();
 }
 
+/**
+ * Updates the player's Idle Drop State (Level and Last Claim Time).
+ */
 export async function updateIdleDropState(playerId, updateObject) {
     return await supabaseClient.from('profiles').update(updateObject).eq('id', playerId);
 }
