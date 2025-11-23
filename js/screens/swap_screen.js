@@ -182,20 +182,74 @@ async function renderBrowseRequests() {
     }).join('');
 }
 
+
 /**
  * Renders the current player's active requests.
  */
 async function renderMyRequests() {
     const content = document.getElementById('swap-content-my_requests');
-    // NOTE: Requires a new API function: api.fetchMySwapRequests(playerId)
-    content.innerHTML = `
-        <div class="swap-request-card my-request">
-            <p>Your current swap requests will appear here, showing what you offered and what you requested.</p>
-            <button class="action-button small danger" style="margin-top: 10px;">Cancel All Offers</button>
-        </div>
-    `;
+    content.innerHTML = '<p style="text-align:center;">Loading your active requests...</p>';
+    
+    // --- NEW: Fetch and Render Player's Requests ---
+    const { data: requests, error } = await api.fetchMySwapRequests(state.currentUser.id);
+
+    if (error) {
+        return content.innerHTML = '<p class="error-error">Error fetching your swap requests.</p>';
+    }
+
+    if (requests.length === 0) {
+        return content.innerHTML = `
+            <p style="text-align:center; margin-top:20px;">You have no active swap requests.</p>
+            <button class="action-button small" style="margin-top: 15px;" onclick="handleSwapTabSwitch('create')">Create a new offer</button>
+        `;
+    }
+
+    // --- Dynamic Rendering of Request Cards (Using the same visual style as browse) ---
+    content.innerHTML = requests.map(req => {
+        const offerRarityClass = `rarity-${req.offer_card.rarity_level || 0}`; 
+        const requestRarityClass = `rarity-${req.request_card.rarity_level || 0}`;
+
+        return `
+            <div class="swap-request-card my-request">
+                <div class="card-header">
+                    <span class="username">Your Offer</span>
+                    <span class="timestamp">${new Date(req.created_at).toLocaleTimeString()}</span>
+                </div>
+                
+                <div class="trade-summary">
+                    <div class="offer-side">
+                        <img src="${req.offer_card.image_url || 'images/default_card.png'}" alt="Offer Card">
+                        <div class="details">
+                            <h4>Offer: ${req.offer_card.name}</h4>
+                            <span class="rarity ${offerRarityClass}">Rarity Lvl ${req.offer_card.rarity_level || 0}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="trade-icon">🔄</div>
+                    
+                    <div class="request-side">
+                        <img src="${req.request_card.image_url || 'images/default_card.png'}" alt="Request Card">
+                        <div class="details">
+                            <h4>Requests: ${req.request_card.name}</h4>
+                            <span class="rarity ${requestRarityClass}">Rarity Lvl ${req.request_card.rarity_level || 0}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="action-button small danger" onclick="handleCancelOffer('${req.id}')">Cancel Offer</button>
+                    <span class="price">${req.price_noub > 0 ? `+${req.price_noub} 🪙` : '1:1 Swap'}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
+// --- Placeholder for Cancellation (Must be implemented later) ---
+function handleCancelOffer(requestId) {
+    showToast(`Cancellation logic for ${requestId} pending.`, 'info');
+    // NOTE: This will require another complex API function to unlock the card and change the status.
+}
 /**
  * Renders the form to create a new swap request.
  */
