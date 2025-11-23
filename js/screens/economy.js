@@ -227,7 +227,7 @@ async function handleUpgradeIdleDrop(currentLevel, upgradeCost) {
 }
 
 function renderIdleDropGenerator() {
-    const container = document.getElementById('idle-generator-container');
+    let container = document.getElementById('idle-generator-container');
     if (!container) {
         const productionSection = document.getElementById('stock-content-production');
         if (productionSection) {
@@ -821,3 +821,4 @@ export async function renderProduction() {
     
     await renderStock();
 }
+
