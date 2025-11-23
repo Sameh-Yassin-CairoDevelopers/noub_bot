@@ -1,8 +1,7 @@
 /*
  * Filename: js/main.js
- * Version: Pharaoh's Legacy 'NOUB' v0.2
+ * Version: Pharaoh's Legacy 'NOUB' v2.1.3 (Final JS Core Fix)
  * Description: Main entry point. Loads all modules and starts authentication.
- * REMOVED: Import for the deprecated tasks.js module.
 */
 
 // --- CORE MODULES ---
@@ -12,15 +11,11 @@ import './api.js';
 import { setupEventListeners } from './ui.js'; 
 import { setupAuthEventListeners, handleInitialSession } from './auth.js';
 
-import { renderMsGame } from './screens/ms_game.js'; 
-// ADD THIS LINE: Import the new module
-import * as msGameModule from './screens/ms_game.js'; 
 // --- SCREEN MODULES ---
-import './screens/contracts.js'; // Still needed for quest tracking logic
+import './screens/contracts.js'; 
 import './screens/upgrade.js'; 
 import './screens/home.js'; 
 import './screens/chat.js'; 
-// DELETED: slotgame.js import removed
 import './screens/kvgame.js'; 
 import './screens/collection.js'; 
 import './screens/economy.js'; 
@@ -34,13 +29,15 @@ import './screens/wheel.js';
 import './screens/exchange.js'; 
 import './screens/activity.js'; 
 import './screens/tasks.js';
-// ... (بعد import './screens/tasks.js';)
 import './screens/projects.js';
 
-// NOW: Add the export statement at the end of the file or near the other exports
+// --- NEW: Import the renderMsGame function from its module ---
+import { renderMsGame } from './screens/ms_game.js'; 
 
-// --- Re-export the new module function ---
-export const renderMsGame = msGameModule.renderMsGame; 
+// --- Re-export all necessary functions (including the newly imported one) ---
+// This is typically done through a file like ui.js, but since we are modifying main.js, 
+// we will ensure the function is available to the UI.
+export { renderMsGame }; // Makes renderMsGame available globally if needed, and to ui.js if it imports from main.js
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -58,7 +55,3 @@ document.addEventListener('DOMContentLoaded', () => {
     handleInitialSession();
 
 });
-
-
-
-
