@@ -380,6 +380,21 @@ export async function fetchActiveSwapRequests(playerId) {
         .not('player_id_offering', 'eq', playerId); // CRITICAL: Do not show own requests
 }
 
+/**
+ * Fetches all ACTIVE swap requests created by the current player.
+ */
+export async function fetchMySwapRequests(playerId) {
+    // Selects active requests and details of the cards involved
+    return await supabaseClient
+        .from('swap_requests')
+        .select(`
+            id, player_id_offering, price_noub, created_at,
+            offer_card:item_id_offer (id, name, image_url, rarity_level),
+            request_card:item_id_request (id, name, image_url, rarity_level)
+        `)
+        .eq('status', 'active')
+        .eq('player_id_offering', playerId); // CRITICAL: Only fetch this player's requests
+}
 
 /**
  * Executes a swap transaction (Accepting a request).
@@ -424,4 +439,5 @@ export async function acceptSwapRequest(requestId, playerReceivingId) {
     
     return { error: null, newCardId: request.item_id_offer };
 }
+
 
