@@ -42,16 +42,21 @@ export async function updatePlayerProfile(playerId, updateObject) {
     }
 }
 
+/**
+ * Adds a card to the player's collection. Simplified to bypass complex joins on 'cards' power_score.
+ * It inserts a card at Level 1 with a default power score.
+ */
 export async function addCardToPlayerCollection(playerId, cardId) {
-    const { data: cardDetails } = await supabaseClient.from('cards').select('power_score').eq('id', cardId).single();
-    const initialPower = cardDetails ? cardDetails.power_score : 1;
+    // NOTE: We no longer fetch power_score from master cards to prevent join errors.
+    const DEFAULT_INITIAL_POWER_SCORE = 10; // A safe default value
+    
     return await supabaseClient.from('player_cards').insert({ 
         player_id: playerId, 
         card_id: cardId,
-        power_score: initialPower
+        level: 1, // Ensure card starts at level 1
+        power_score: DEFAULT_INITIAL_POWER_SCORE // Use a safe default
     });
 }
-
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
         .from('card_levels')
@@ -416,3 +421,4 @@ export async function acceptSwapRequest(requestId, playerReceivingId) {
     
     return { error: null, newCardId: request.item_id_offer };
 }
+
