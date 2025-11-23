@@ -12,7 +12,9 @@ import './api.js';
 import { setupEventListeners } from './ui.js'; 
 import { setupAuthEventListeners, handleInitialSession } from './auth.js';
 
-
+import { renderMsGame } from './screens/ms_game.js'; 
+// ADD THIS LINE: Import the new module
+import * as msGameModule from './screens/ms_game.js'; 
 // --- SCREEN MODULES ---
 import './screens/contracts.js'; // Still needed for quest tracking logic
 import './screens/upgrade.js'; 
@@ -34,7 +36,7 @@ import './screens/activity.js';
 import './screens/tasks.js';
 // ... (بعد import './screens/tasks.js';)
 import './screens/projects.js';
-import { renderMsGame } from './screens/ms_game.js'; 
+
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -52,5 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     handleInitialSession();
 
 });
+
 
 
