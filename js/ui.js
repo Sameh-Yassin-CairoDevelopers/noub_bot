@@ -30,6 +30,8 @@ import { renderKVGame } from './screens/kvgame.js';
 import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js';
 import { renderMsGame } from './screens/ms_game.js'; 
+// ADD THIS LINE: Import the new render function (if you decide to use it)
+import { renderSwapScreen } from './screens/swap_screen.js'; 
 
 
 // --- Re-exporting render functions for standardized access ---
@@ -232,7 +234,7 @@ export function navigateTo(targetId) {
             renderMsGame(); 
             break;
         case 'swap-screen': // P2P Swap Market
-            // This is a placeholder for future P2P swap logic
+            renderSwapScreen(); // <--- Call the new render function
             // For now, it could be empty or navigate to an existing screen for temporary use
             // If you have a temporary render function, use it here, otherwise just leave it to load the empty screen
             break;
@@ -316,6 +318,7 @@ export function setupEventListeners() {
         });
     });
 }
+
 
 
 
