@@ -84,16 +84,17 @@ async function finalizeSwapRequest() {
 }
 
 
+
+// --- Finalized Cancellation Logic ---
 /**
  * Handles the logic for cancelling the player's own offer.
- * Unlocks the card instance and updates the request status.
+ * NOTE: Added 'export' to make it accessible by the onclick attribute in HTML.
  * @param {string} requestId - The ID of the swap request to cancel.
  */
-// --- Finalized Cancellation Logic ---
-async function handleCancelOffer(requestId) {
+export async function handleCancelOffer(requestId) { // <--- ADD 'export' HERE
     showToast("Attempting to cancel swap offer...", 'info');
 
-    // Fetch the necessary IDs from the request itself
+    // NOTE: This will require fetching the card_instance_id_offer first! 
     const { data: request, error: fetchError } = await api.supabaseClient
         .from('swap_requests')
         .select('card_instance_id_offer, player_id_offering')
