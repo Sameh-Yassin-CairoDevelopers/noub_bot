@@ -255,25 +255,41 @@ function renderDropContent() {
     }
 }
 
+
 /**
  * Renders the content of the 'Events' (Royal Calendar) tab.
  */
-function renderCalendarContent() {
+async function renderCalendarContent() {
     const content = document.getElementById('ms-content-events');
     if (!content) return;
     
     content.innerHTML = '<p style="text-align:center;">Loading Royal Calendar events...</p>';
 
-    // NOTE: PlayerClaims array is needed here, fetch it first.
-    const playerClaims = []; // MOCKUP: Should be fetched via API
+    // 1. Fetch all events and player's claims
+    const [{ data: events, error: eError }, { data: claims, error: cError }] = await Promise.all([
+        api.supabaseClient.from('game_events').select('*').order('event_month', { ascending: true }).order('event_day', { ascending: true }),
+        api.supabaseClient.from('player_event_claims').select('*').eq('player_id', state.currentUser.id)
+    ]);
 
-    const eventsHtml = [].map(event => { // MOCKUP: Should be fetched via API
+    if (eError || cError || !events) {
+        return content.innerHTML = '<p class="error-message">Error loading calendar data. Check network connection and table access.</p>';
+    }
+
+    const playerClaims = claims || [];
+    const eventsHtml = events.map(event => {
         const claimable = isClaimable(event, playerClaims);
         const eventDate = `${event.event_day.toString().padStart(2, '0')}-${event.event_month.toString().padStart(2, '0')}`;
-        const rewardDisplay = `${event.reward_value} ${event.reward_type.toUpperCase()}`;
-
+        
+        let rewardDisplay = `${event.reward_amount} ${event.reward_type.toUpperCase()}`;
+        if (event.reward_type.toUpperCase() === 'BUFF') {
+            rewardDisplay = `+${event.reward_amount * 100}% Production Buff (24h)`;
+        }
+        
+        // Check if event is already claimed for this year
+        const alreadyClaimed = playerClaims.some(claim => claim.event_id === event.id && claim.claimed_year === new Date().getFullYear());
+        
         return `
-            <div class="event-card ${claimable ? 'claimable' : 'default'}">
+            <div class="event-card ${claimable ? 'claimable' : (alreadyClaimed ? 'claimed' : 'default')}" style="opacity: ${alreadyClaimed ? 0.6 : 1};">
                 <div class="event-date">${eventDate}</div>
                 <div class="event-details">
                     <h4>${event.title} ${event.is_major ? '⭐' : ''}</h4>
@@ -282,7 +298,7 @@ function renderCalendarContent() {
                 <div class="event-actions">
                     <span class="reward-info">${rewardDisplay}</span>
                     <button class="action-button small ${claimable ? '' : 'disabled'}" ${claimable ? '' : 'disabled'} onclick="handleClaimEvent(${JSON.stringify(event).replace(/"/g, "'")})">
-                        ${claimable ? 'CLAIM' : 'WAIT'}
+                        ${alreadyClaimed ? 'CLAIMED' : (claimable ? 'CLAIM' : 'WAIT')}
                     </button>
                 </div>
             </div>
