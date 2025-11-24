@@ -31,7 +31,7 @@ import { renderChat } from './screens/chat.js';
 import { renderHome } from './screens/home.js';
 import { renderMsGame } from './screens/ms_game.js'; 
 // ADD THIS LINE: Import the new render function (if you decide to use it)
-import { renderSwapScreen } from './screens/swap_screen.js'; 
+import { renderSwapScreen, handleCancelOffer } from './screens/swap_screen.js'; // <-- ADD handleCancelOffer HERE
 
 
 // --- Re-exporting render functions for standardized access ---
@@ -318,6 +318,7 @@ export function setupEventListeners() {
         });
     });
 }
+
 
 
 
