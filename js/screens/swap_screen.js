@@ -120,44 +120,97 @@ export async function handleCancelOffer(requestId) { // <--- ADD 'export' HERE
 }
 
 
+// --- FINALIZED ACCEPT TRADE LOGIC ---
+
 /**
- * Handles the logic for accepting another player's swap request.
- * NOTE: This is the most complex function and is currently simplified.
- * @param {string} requestId - The ID of the swap request to accept.
+ * Step 1: Opens a modal for the accepting player to choose the card they will give up.
+ * @param {string} requestId - The ID of the swap request to be accepted.
  */
 async function handleAcceptSwap(requestId) {
-    // NOTE: This will require a modal to select the card the ACCEPTING player offers in return.
-    showToast("Opening card selector to choose your counter-offer...", 'info');
-    
-    // --- Step 1: Open Modal for the Accepting Player to Choose their Counter-Card ---
-    // This is the most complex step and requires a new specialized modal.
-    // We will skip the full modal for now and use a MOCKUP to select a random card.
-    
-    // MOCKUP: Fetch ALL cards of the accepting player and choose the lowest level one as the counter-offer
-    const { data: myCards } = await api.fetchPlayerCards(state.currentUser.id);
-    if (!myCards || myCards.length < 1) return showToast("You need at least one card to offer in return!", 'error');
+    // Fetch the request details to know *which card* the accepting player MUST offer
+    const { data: request, error: fetchError } = await api.supabaseClient
+        .from('swap_requests')
+        .select('item_id_request, request_card_details:item_id_request(name, image_url)')
+        .eq('id', requestId)
+        .single();
+        
+    if (fetchError || !request) return showToast("Request not found or invalid.", 'error');
 
-    // MOCK: Choose the first available card instance as the counter-offer
-    const counterOfferInstance = myCards[0]; 
+    const requiredCardId = request.item_id_request;
+    const requiredCardName = request.request_card_details.name;
+    const requiredCardImage = request.request_card_details.image_url;
     
-    showToast(`Offering ${counterOfferInstance.cards.name} in return. Finalizing trade...`, 'info');
+    // 1. Fetch the accepting player's cards that match the request
+    const { data: playerAvailableCards, error: cardsError } = await api.fetchPlayerCards(state.currentUser.id);
+    if (cardsError) return showToast("Error fetching your cards.", 'error');
+    
+    // 2. Filter: Only show cards that match the requested item_id (the card they must give)
+    const offerableCards = playerAvailableCards.filter(pc => 
+        pc.card_id === requiredCardId && !pc.is_locked
+    );
+    
+    if (offerableCards.length === 0) {
+        return showToast(`You must offer a ${requiredCardName} to accept this trade. You do not have one.`, 'error');
+    }
 
-    // --- Step 2: Execute the full atomic transaction ---
-    const { error } = await api.acceptSwapRequest(
+    // 3. Build the modal to select the card instance to give up
+    let cardsHTML = offerableCards.map(pc => {
+        const card = pc.cards;
+        return `
+            <div class="card-stack" data-instance-id="${pc.instance_id}" data-card-name="${card.name}" onclick="executeAcceptance('${requestId}', '${pc.instance_id}')">
+                <img src="${card.image_url || 'images/default_card.png'}" class="card-image">
+                <h4>${card.name}</h4>
+                <div class="card-details"><span class="card-level">LVL ${pc.level}</span></div>
+            </div>
+        `;
+    }).join('');
+
+    // 4. Create/Open the selector modal
+    let modal = document.getElementById('accept-selector-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'accept-selector-modal';
+        modal.className = 'modal-overlay hidden';
+        document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="window.closeModal('accept-selector-modal')">&times;</button>
+            <h2>Counter-Offer: Select Your ${requiredCardName}</h2>
+            <p style="margin-bottom: 20px;">You are accepting the trade. Select the specific ${requiredCardName} instance you wish to give up.</p>
+            <div class="card-grid">${cardsHTML}</div>
+        </div>
+    `;
+    window.openModal('accept-selector-modal');
+}
+
+/**
+ * Step 2: Executes the full atomic transaction after the card instance is selected.
+ * @param {string} requestId - The ID of the swap request.
+ * @param {string} counterOfferInstanceId - The instance ID of the card the accepting player offers in return.
+ */
+async function executeAcceptance(requestId, counterOfferInstanceId) {
+    window.closeModal('accept-selector-modal');
+    showToast("Executing trade...", 'info');
+    
+    const { error, newCardName } = await api.acceptSwapRequest(
         requestId,
         state.currentUser.id,
-        counterOfferInstance.instance_id // The card instance the accepting player will lose
+        counterOfferInstanceId 
     );
     
     if (!error) {
-        showToast(`Swap completed successfully! You received: ${request.offer_card.name}!`, 'success');
+        showToast(`Trade Complete! You received: ${newCardName}.`, 'success');
         await refreshPlayerState();
         renderBrowseRequests();
     } else {
-        showToast(`Swap failed due to a database error.`, 'error');
+        showToast(`Trade failed: ${error.message}`, 'error');
+        console.error("Swap Execution Error:", error);
     }
 }
-
+// Attach the necessary global function
+window.executeAcceptance = executeAcceptance;
 
 // --------------------------------------------------------
 // --- RENDER LOGIC (UI Presentation) ---
