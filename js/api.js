@@ -46,17 +46,38 @@ export async function updatePlayerProfile(playerId, updateObject) {
  * Adds a card to the player's collection. Simplified to bypass complex joins on 'cards' power_score.
  * It inserts a card at Level 1 with a default power score.
  */
+/**
+ * Adds a card to the player's collection. NOW includes FINAL Serial ID logic 
+ * by calling the secure increment_serial_id RPC function.
+ * @param {string} playerId - The ID of the player receiving the card.
+ * @param {number} cardId - The master ID of the card being added.
+ * @returns {Promise<object>} Response including the added card's instance ID.
+ */
 export async function addCardToPlayerCollection(playerId, cardId) {
-    // NOTE: We no longer fetch power_score from master cards to prevent join errors.
-    const DEFAULT_INITIAL_POWER_SCORE = 10; // A safe default value
+    const DEFAULT_INITIAL_POWER_SCORE = 10;
     
+    // 1. Atomically get and update the Serial ID using the RPC function
+    const { data: updatedMasterCard, error: updateError } = await supabaseClient
+        .rpc('increment_serial_id', { p_card_id: cardId });
+        
+    if (updateError || !updatedMasterCard || updatedMasterCard.length === 0) {
+        console.error("Failed to generate Serial ID for card:", updateError);
+        // Fallback: If RPC fails, return an error (Crucial for atomic safety)
+        return { error: { message: "Failed to issue unique card ID. Transaction aborted." } };
+    }
+    
+    const newSerialId = updatedMasterCard[0].new_serial_id;
+
+    // 2. Insert the new card instance with the generated Serial ID
     return await supabaseClient.from('player_cards').insert({ 
         player_id: playerId, 
         card_id: cardId,
-        level: 1, // Ensure card starts at level 1
-        power_score: DEFAULT_INITIAL_POWER_SCORE // Use a safe default
-    });
+        level: 1,
+        power_score: DEFAULT_INITIAL_POWER_SCORE,
+        serial_id: newSerialId // Use the new unique ID
+    }).select(); // Select the inserted row to get the instance_id
 }
+
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
     return await supabaseClient
         .from('card_levels')
@@ -465,6 +486,7 @@ export async function acceptSwapRequest(requestId, playerReceivingId) {
     
     return { error: null, newCardId: request.item_id_offer };
 }
+
 
 
 
