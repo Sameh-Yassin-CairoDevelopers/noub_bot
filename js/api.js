@@ -57,16 +57,17 @@ export async function addCardToPlayerCollection(playerId, cardId) {
     const DEFAULT_INITIAL_POWER_SCORE = 10;
     
     // 1. Atomically get and update the Serial ID using the RPC function
-    const { data: updatedMasterCard, error: updateError } = await supabaseClient
+    const { data: serialData, error: updateError } = await supabaseClient
         .rpc('increment_serial_id', { p_card_id: cardId });
         
-    if (updateError || !updatedMasterCard || updatedMasterCard.length === 0) {
-        console.error("Failed to generate Serial ID for card:", updateError);
-        // Fallback: If RPC fails, return an error (Crucial for atomic safety)
-        return { error: { message: "Failed to issue unique card ID. Transaction aborted." } };
+    // CRITICAL FIX: Check for error OR missing data
+    if (updateError || !serialData || serialData.length === 0) {
+        console.error("Failed to generate Serial ID for card:", updateError || "No serial data returned.");
+        // We MUST return an error here to abort card creation
+        return { error: { message: "Failed to generate unique card ID. Transaction aborted." } }; 
     }
     
-    const newSerialId = updatedMasterCard[0].new_serial_id;
+    const newSerialId = serialData[0].new_serial_id; // Access the returned column
 
     // 2. Insert the new card instance with the generated Serial ID
     return await supabaseClient.from('player_cards').insert({ 
@@ -74,8 +75,8 @@ export async function addCardToPlayerCollection(playerId, cardId) {
         card_id: cardId,
         level: 1,
         power_score: DEFAULT_INITIAL_POWER_SCORE,
-        serial_id: newSerialId // Use the new unique ID
-    }).select(); // Select the inserted row to get the instance_id
+        serial_id: newSerialId
+    }).select(); 
 }
 
 export async function fetchCardUpgradeRequirements(cardId, nextLevel) {
@@ -486,6 +487,7 @@ export async function acceptSwapRequest(requestId, playerReceivingId) {
     
     return { error: null, newCardId: request.item_id_offer };
 }
+
 
 
 
