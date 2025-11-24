@@ -414,3 +414,13 @@ export async function renderSwapScreen() {
     // Initial load: Render the default 'browse' tab
     handleSwapTabSwitch('browse');
 }
+// --------------------------------------------------------
+// --- FINAL FIX: EXPOSE FUNCTIONS TO GLOBAL SCOPE (WINDOW) ---
+// --- This solves the Uncaught ReferenceError for HTML onclick ---
+// --------------------------------------------------------
+
+window.handleCancelOffer = handleCancelOffer;
+window.handleAcceptSwap = handleAcceptSwap;
+window.openCardSelectorModal = openCardSelectorModal; // Expose supporting function
+
+// NOTE: No further action is needed inside ui.js or main.js for this specific fix.
