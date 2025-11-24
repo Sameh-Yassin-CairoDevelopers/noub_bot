@@ -994,7 +994,92 @@ input:focus, textarea:focus, select:focus {
     margin: 0;
 }
 
+/* =================================================================================
+   --- NEW: MS Game Screen Tabs (Royal Vault / Calendar) ---
+   ================================================================================= */
 
+/* Style for the main tabs container (ensures separation) */
+#ms-tabs-container {
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 2px solid var(--primary-accent);
+    margin-bottom: 20px;
+    background-color: rgba(0, 0, 0, 0.2); /* Slight background for the tab bar */
+    border-radius: 8px;
+    padding: 5px;
+}
+
+.ms-tab-btn {
+    /* Base Button Style */
+    background: none;
+    border: none;
+    padding: 10px 15px;
+    font-size: 0.95em;
+    font-weight: bold;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border-radius: 6px;
+    flex-grow: 1;
+    margin: 0 5px;
+}
+
+/* Active Tab Style */
+.ms-tab-btn.active {
+    color: var(--background-dark);
+    background: var(--primary-accent); /* Solid Gold Background for Active Tab */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 0 0 1px #5a4b2a;
+    transform: translateY(-1px);
+}
+
+/* Content Area Style (for the containers inside the tabs) */
+.ms-content-tab {
+    padding: 0; 
+    margin-top: 0;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Event Card Style (for Calendar Tab) */
+.event-card {
+    background: rgba(30, 30, 30, 0.9);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--text-secondary);
+}
+
+.event-card.claimable {
+    border-left-color: var(--success-color); /* Green border for claimable events */
+    box-shadow: 0 0 10px rgba(52, 199, 89, 0.4);
+    cursor: pointer;
+}
+
+.event-card .event-date {
+    font-weight: bold;
+    color: var(--accent-blue);
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.event-card .event-details {
+    flex-grow: 1;
+    margin-right: 15px;
+}
+
+.event-card .event-details h4 {
+    margin: 0;
+    font-size: 1em;
+    color: var(--text-primary);
+}
+
+.event-card .event-actions .reward-info {
+    font-size: 0.8em;
+    color: var(--primary-accent);
+    font-weight: bold;
+}
 /* =================================================================================
    --- 9. Specific Screens ---
    (Profile)
