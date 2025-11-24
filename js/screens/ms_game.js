@@ -1,8 +1,7 @@
 /*
  * Filename: js/screens/ms_game.js
- * Version: NOUB v2.1.3 (Idle Drop Generator Dedicated Screen)
- * Description: Implements the full functionality and rendering for the Royal Vault 
- * (Idle Drop Generator).
+ * Version: NOUB v2.3.0 (IDLE DROP + ROYAL CALENDAR TABS)
+ * Description: Manages the combined screen for the Idle Drop Generator and the Royal Calendar events.
 */
 
 import { state } from '../state.js';
@@ -10,11 +9,12 @@ import * as api from '../api.js';
 import { showToast } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
+// --- CONSTANTS ---
 const ONE_SECOND = 1000;
 const msGameContainer = document.getElementById('ms-game-screen');
 let idleGeneratorInterval = null;
 
-// --- IDLE GENERATOR CONFIGURATION (Duplicated for MS Game to be self-contained) ---
+// IDLE GENERATOR CONFIGURATION
 const IDLE_GENERATOR_CONFIG = {
     BASE_RATE_PER_MINUTE: 0.25, 
     BASE_CAPACITY_HOURS: 8,     
@@ -25,18 +25,13 @@ const IDLE_GENERATOR_CONFIG = {
 };
 
 // --------------------------------------------------------
-// --- CORE LOGIC FUNCTIONS ---
+// --- UTILITY FUNCTIONS ---
 // --------------------------------------------------------
 
-/**
- * Formats milliseconds into H:MM:SS format.
- * @param {number} ms - Time in milliseconds.
- * @returns {string} Formatted time string.
- */
 function formatTime(ms) {
     if (ms < 0) return '00:00';
     const totalSeconds = Math.floor(ms / ONE_SECOND);
-    const hours = Math.floor((totalSeconds / 3600));
+    const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
     const pad = (num) => String(num).padStart(2, '0');
@@ -44,16 +39,11 @@ function formatTime(ms) {
     return `${pad(minutes)}:${pad(seconds)}`;
 }
 
-/**
- * Calculates the current production rate, capacity, and upgrade cost.
- * @param {number} level - The current level of the Idle Generator.
- * @returns {object} The configuration object for the current level.
- */
 function calculateIdleDrop(level) {
     const config = IDLE_GENERATOR_CONFIG;
     const capacityMinutes = (config.BASE_CAPACITY_HOURS * 60) + ((level - 1) * config.CAPACITY_INCREASE_PER_LEVEL * 60);
     const ratePerMinute = config.BASE_RATE_PER_MINUTE + ((level - 1) * config.RATE_INCREASE_PER_LEVEL);
-    const ratePerMs = ratePerMinute / (60 * 1000); // Rate per millisecond
+    const ratePerMs = ratePerMinute / (60 * 1000); 
     const maxNoub = Math.floor(ratePerMinute * capacityMinutes);
 
     return {
@@ -65,94 +55,122 @@ function calculateIdleDrop(level) {
     };
 }
 
-/**
- * Handles the logic for claiming accumulated NOUB from the Idle Generator.
- */
+// --------------------------------------------------------
+// --- IDLE DROP LOGIC (Retained) ---
+// --------------------------------------------------------
+
 async function handleClaimIdleDrop() {
-    if (!state.currentUser) return;
-    const playerId = state.currentUser.id;
-    
-    // Fetch latest profile state
-    const { data: profile } = await api.fetchIdleDropState(playerId);
+    // ... (Logic for claiming NOUB and granting XP) ...
+    const { data: profile } = await api.fetchIdleDropState(state.currentUser.id);
     if (!profile) return showToast("Error fetching generator state.", 'error');
 
     const generatorLevel = profile.idle_generator_level || 1;
     const generatorState = calculateIdleDrop(generatorLevel);
     const lastClaimTime = new Date(profile.last_claim_time).getTime();
     const elapsedTime = Date.now() - lastClaimTime;
-    
     const timeToCount = Math.min(elapsedTime, generatorState.capacityMs);
     const noubGenerated = Math.floor(timeToCount * generatorState.ratePerMs);
 
     if (noubGenerated < 1) return showToast("Nothing to claim yet.", 'info');
 
-    showToast(`Claiming ${noubGenerated} NOUB...`, 'success');
-
     const updateObject = {
         noub_score: profile.noub_score + noubGenerated,
-        last_claim_time: new Date().toISOString() // Reset timer
+        last_claim_time: new Date().toISOString()
     };
-
-    const { error } = await api.updatePlayerProfile(playerId, updateObject);
-
-    if (error) {
-        showToast("Claim failed!", 'error');
-        return;
-    }
-
-    const { leveledUp, newLevel } = await api.addXp(playerId, 1);
-    if (leveledUp) showToast(`LEVEL UP! You have reached Level ${newLevel}!`, 'success');
-    
+    await api.updatePlayerProfile(state.currentUser.id, updateObject);
+    await api.addXp(state.currentUser.id, 1);
     await refreshPlayerState();
-    renderMsGame(); // Re-render the dedicated screen
+    showToast(`Claimed ${noubGenerated} NOUB!`, 'success');
+    renderMsGame();
 }
 
-/**
- * Handles the upgrade transaction for the Idle Generator.
- */
 async function handleUpgradeIdleDrop(currentLevel, upgradeCost) {
+    // ... (Logic for upgrading and granting XP) ...
     if (state.playerProfile.noub_score < upgradeCost) return showToast("Not enough NOUB to upgrade!", 'error');
     
-    const playerId = state.currentUser.id;
     const newLevel = currentLevel + 1;
-    
-    showToast(`Upgrading Idle Generator to Level ${newLevel}...`, 'info');
-
-    const { error: profileError } = await api.updatePlayerProfile(playerId, {
+    const { error: profileError } = await api.updatePlayerProfile(state.currentUser.id, {
         noub_score: state.playerProfile.noub_score - upgradeCost,
         idle_generator_level: newLevel
     });
-
     if (profileError) return showToast("Upgrade failed!", 'error');
 
-    const { leveledUp, newLevel: playerNewLevel } = await api.addXp(playerId, 50);
-    if (leveledUp) showToast(`LEVEL UP! You have reached Level ${playerNewLevel}!`, 'success');
-
-    showToast(`Idle Generator upgraded to Level ${newLevel}!`, 'success');
+    await api.addXp(state.currentUser.id, 50);
     await refreshPlayerState();
+    showToast(`Idle Generator upgraded to Level ${newLevel}!`, 'success');
     renderMsGame();
 }
 
 
 // --------------------------------------------------------
-// --- RENDER FUNCTION (The export) ---
+// --- ROYAL CALENDAR LOGIC (NEW) ---
 // --------------------------------------------------------
 
-export async function renderMsGame() {
-    if (!state.currentUser || !msGameContainer) return;
+/**
+ * Utility to check if a recurring event is claimable today.
+ */
+function isClaimable(event, playerClaims) {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const isToday = event.event_month === (today.getMonth() + 1) && event.event_day === today.getDate();
+    const alreadyClaimed = playerClaims.some(claim => claim.event_id === event.id && claim.claimed_year === currentYear);
+    return isToday && !alreadyClaimed;
+}
 
-    await refreshPlayerState(); 
+/**
+ * Handles the claim action for a specific event.
+ */
+async function handleClaimEvent(event) {
+    if (!state.currentUser) return;
+    const playerId = state.currentUser.id;
+    const currentYear = new Date().getFullYear();
+    let rewardType = event.reward_type.toUpperCase();
+    let rewardAmount = event.reward_amount;
+
+    const profileUpdate = {};
+    if (rewardType === 'NOUB') profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + rewardAmount;
+    // NOTE: For other rewards (ANKH, CARD, BUFF), complex logic is needed here!
     
-    // 1. Fetch State
-    const { data: profile } = await api.fetchIdleDropState(state.currentUser.id);
-    if (!profile) return;
+    const { error: updateError } = await api.updatePlayerProfile(playerId, profileUpdate);
+    const { error: claimError } = await api.supabaseClient.from('player_event_claims').insert({
+        player_id: playerId,
+        event_id: event.id,
+        claimed_year: currentYear
+    });
+
+    if (updateError || claimError) {
+        showToast("Claim failed due to database error.", 'error');
+        return;
+    }
+
+    showToast(`Claimed ${rewardAmount} ${rewardType}! Happy historical day!`, 'success');
+    await refreshPlayerState();
+    renderCalendarContent(); 
+}
+
+
+// --------------------------------------------------------
+// --- RENDER LOGIC (Combined Tabs) ---
+// --------------------------------------------------------
+
+let activeTab = 'drop'; // Default active tab
+
+/**
+ * Renders the content of the 'Drop' tab.
+ */
+function renderDropContent() {
+    const content = document.getElementById('ms-content-drop');
+    if (!content) return;
     
+    const profile = state.playerProfile;
     const generatorLevel = profile.idle_generator_level || 1;
-    const generatorState = calculateIdleDrop(generatorLevel);
     const lastClaimTimeMs = new Date(profile.last_claim_time).getTime();
-    const elapsedTime = Date.now() - lastClaimTimeMs;
-    
+    const now = Date.now();
+
+    const generatorState = calculateIdleDrop(generatorLevel);
+    const elapsedTime = now - lastClaimTimeMs;
     const timeToCount = Math.min(elapsedTime, generatorState.capacityMs);
+
     const noubGenerated = Math.floor(timeToCount * generatorState.ratePerMs);
     const remainingTimeMs = generatorState.capacityMs - timeToCount;
     const capacityPercent = (timeToCount / generatorState.capacityMs) * 100;
@@ -160,12 +178,10 @@ export async function renderMsGame() {
     
     const timeDisplay = isFull ? 'FULL' : formatTime(remainingTimeMs);
     const buttonText = isFull ? `CLAIM ${noubGenerated} 🪙` : `CLAIM ${noubGenerated} 🪙 (Still Producing)`;
-
-    // 2. Set UI Content
-    msGameContainer.innerHTML = `
-        <h2>Royal Vault (Idle Drop)</h2>
-        <div class="idle-generator-card game-container">
-            <div class="generator-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #3a3a3c; padding-bottom: 15px; margin-bottom: 15px;">
+    
+    content.innerHTML = `
+        <div class="idle-generator-card game-container" style="box-shadow: none;">
+            <div class="generator-header" style="border-bottom: 1px solid #3a3a3c; padding-bottom: 15px; margin-bottom: 15px;">
                 <h3 style="margin:0; color: var(--primary-accent);">Vault Status - Lvl ${generatorLevel}</h3>
                 <img src="images/idle_vault.png" alt="Vault Icon" style="width: 50px; height: 50px; filter: drop-shadow(0 0 5px var(--primary-accent));">
             </div>
@@ -200,22 +216,19 @@ export async function renderMsGame() {
         </div>
     `;
 
-    // 3. Attach Event Listeners
     document.getElementById('claim-idle-drop-btn').onclick = handleClaimIdleDrop;
     document.getElementById('upgrade-idle-drop-btn').onclick = () => handleUpgradeIdleDrop(generatorLevel, generatorState.upgradeCost);
 
-    // 4. Start Live Timer (Crucial for smooth UI)
+    // Stop and start interval
     if (idleGeneratorInterval) clearInterval(idleGeneratorInterval);
     if (!isFull) {
-        // We use the lastClaimTimeMs from the fetched profile for the timer
         const lastClaimTimeMs = new Date(profile.last_claim_time).getTime(); 
-
         idleGeneratorInterval = setInterval(() => {
             const timeSinceLastClaim = Date.now() - lastClaimTimeMs;
             const timeRemaining = generatorState.capacityMs - timeSinceLastClaim;
 
             if (timeRemaining <= 0) {
-                renderMsGame(); // Recalculate and update to FULL state
+                renderDropContent(); // Recalculate and update to FULL state
                 return;
             }
             
@@ -223,8 +236,7 @@ export async function renderMsGame() {
             const percent = (timeSinceLastClaim / generatorState.capacityMs) * 100;
             const timeFull = formatTime(timeRemaining);
             
-            // Update DOM directly for smooth timer
-            const timerEl = msGameContainer.querySelector('.generator-timer p');
+            const timerEl = content.querySelector('.generator-timer p');
             const progressEl = document.getElementById('idle-progress-inner');
             const noubEl = document.getElementById('idle-accumulated-noub');
             const claimBtn = document.getElementById('claim-idle-drop-btn');
@@ -237,4 +249,101 @@ export async function renderMsGame() {
 
         }, ONE_SECOND);
     }
+}
+
+/**
+ * Renders the content of the 'Events' (Royal Calendar) tab.
+ */
+async function renderCalendarContent() {
+    const content = document.getElementById('ms-content-events');
+    if (!content) return;
+    
+    content.innerHTML = '<p style="text-align:center;">Loading Royal Calendar events...</p>';
+
+    const [{ data: events, error: eError }, { data: claims, error: cError }] = await Promise.all([
+        api.supabaseClient.from('game_events').select('*').order('event_month', { ascending: true }).order('event_day', { ascending: true }),
+        api.supabaseClient.from('player_event_claims').select('*').eq('player_id', state.currentUser.id)
+    ]);
+
+    if (eError || cError || !events) {
+        return content.innerHTML = '<p class="error-message">Error loading calendar data.</p>';
+    }
+
+    const playerClaims = claims || [];
+    const eventsHtml = events.map(event => {
+        const claimable = isClaimable(event, playerClaims);
+        const eventDate = `${event.event_day.toString().padStart(2, '0')}-${event.event_month.toString().padStart(2, '0')}`;
+        const rewardDisplay = `${event.reward_value} ${event.reward_type.toUpperCase()}`;
+
+        return `
+            <div class="event-card ${claimable ? 'claimable' : 'default'}">
+                <div class="event-date">${eventDate}</div>
+                <div class="event-details">
+                    <h4>${event.title} ${event.is_major ? '⭐' : ''}</h4>
+                    <p class="lore">${event.description_lore || 'No detailed lore available.'}</p>
+                </div>
+                <div class="event-actions">
+                    <span class="reward-info">${rewardDisplay}</span>
+                    <button class="action-button small ${claimable ? '' : 'disabled'}" ${claimable ? '' : 'disabled'} onclick="handleClaimEvent(${JSON.stringify(event).replace(/"/g, "'")})">
+                        ${claimable ? 'CLAIM' : 'WAIT'}
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    content.innerHTML = `<div id="events-timeline" style="display: flex; flex-direction: column; gap: 15px;">${eventsHtml}</div>`;
+}
+
+/**
+ * Handles the tab switch logic for the combined screen.
+ * @param {string} tabName - 'drop' or 'events'.
+ */
+function handleMsGameTabSwitch(tabName) {
+    // 1. Update active tab UI
+    document.querySelectorAll('.ms-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.ms-tab-btn[data-ms-tab="${tabName}"]`)?.classList.add('active');
+
+    // 2. Hide all content and show the selected one
+    document.querySelectorAll('.ms-content-tab').forEach(content => content.classList.add('hidden'));
+    document.getElementById(`ms-content-${tabName}`).classList.remove('hidden');
+    activeTab = tabName;
+
+    // 3. Render content dynamically
+    if (tabName === 'drop') {
+        renderDropContent();
+    } else if (tabName === 'events') {
+        renderCalendarContent();
+    }
+}
+
+
+// --------------------------------------------------------
+// --- RENDER FUNCTION (Exported) ---
+// --------------------------------------------------------
+
+export async function renderMsGame() {
+    if (!state.currentUser || !msGameContainer) return;
+
+    // 1. Ensure UI is built once
+    if (!document.getElementById('ms-tabs-container')) {
+        msGameContainer.innerHTML = `
+            <h2>Royal Vault / Calendar</h2>
+            <div id="ms-tabs-container" style="display:flex; justify-content:space-around; border-bottom: 2px solid #3a3a3c; margin-bottom: 20px;">
+                <button class="ms-tab-btn active" data-ms-tab="drop">Idle Drop</button>
+                <button class="ms-tab-btn" data-ms-tab="events">Calendar</button>
+            </div>
+            
+            <div id="ms-content-drop" class="ms-content-tab"></div>
+            <div id="ms-content-events" class="ms-content-tab hidden"></div>
+        `;
+        
+        // Attach event listeners to the tabs
+        document.querySelectorAll('.ms-tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => handleMsGameTabSwitch(e.target.dataset.ms-tab));
+        });
+    }
+
+    // Initial load: Render the default 'drop' tab
+    handleMsGameTabSwitch(activeTab);
 }
