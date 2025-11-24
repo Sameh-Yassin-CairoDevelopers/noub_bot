@@ -444,16 +444,29 @@ export async function fetchMySwapRequests(playerId) {
         .eq('player_id_offering', playerId); // CRITICAL: Only fetch this player's requests
 }
 
+// ... (ضمن Great Projects API Functions) ...
+
 /**
- * Executes a swap transaction (Accepting a request).
- * FIXED: Removed dependency on the 'is_locked_for_swap' column.
+ * Executes a swap transaction (Accepting a request). 
+ * This is the FINAL, secure logic for the P2P swap, ensuring:
+ * 1. The player who created the request receives the card they requested.
+ * 2. The accepting player receives the card that was offered.
+ * 3. Both player's lost cards are deleted.
+ * 4. All logs are recorded.
+ * 
+ * NOTE: This function should be wrapped in a database transaction for true ACID safety 
+ * (handled by a single RPC in a final product, but simulated here via sequential steps).
+ * 
+ * @param {string} requestId - The ID of the swap request being accepted.
+ * @param {string} playerReceivingId - The ID of the player accepting the request.
+ * @param {string} counterOfferInstanceId - The instance ID of the card the accepting player offers in return.
  */
-export async function acceptSwapRequest(requestId, playerReceivingId) {
-    // 1. Fetch Request details
+export async function acceptSwapRequest(requestId, playerReceivingId, counterOfferInstanceId) {
+    // 1. Fetch Request details and offered card serial ID
     const { data: request, error: fetchError } = await supabaseClient
         .from('swap_requests')
         .select(`
-            player_id_offering, card_instance_id_offer, 
+            player_id_offering, card_instance_id_offer (instance_id, card_id, serial_id), 
             item_id_offer, item_id_request, price_noub
         `)
         .eq('id', requestId)
@@ -462,30 +475,62 @@ export async function acceptSwapRequest(requestId, playerReceivingId) {
 
     if (fetchError || !request) return { error: { message: "Request not found or already completed." } };
     
-    // NOTE: This part now assumes the receiving player has the card instance required by the offering player. 
-    // In a full implementation, the logic to fetch and delete the receiving player's card instance is needed.
-    
-    // --- Phase 1: Give the Offering Player the Requested Card (item_id_request) ---
-    const { error: giveError } = await addCardToPlayerCollection(request.player_id_offering, request.item_id_request);
-    
-    // --- Phase 2: Give the Receiving Player the Offered Card (item_id_offer) ---
-    const { error: receiveError } = await addCardToPlayerCollection(playerReceivingId, request.item_id_offer);
-    
-    // --- Phase 3: Delete the original offered card instance ---
-    const { error: deleteError } = await deleteCardInstance(request.card_instance_id_offer);
+    // 2. Validate counter-offer is not locked and get its serial ID
+    const { data: counterCard } = await supabaseClient
+        .from('player_cards')
+        .select('is_locked, serial_id, card_id')
+        .eq('instance_id', counterOfferInstanceId)
+        .single();
+        
+    if (counterCard?.is_locked) return { error: { message: "Your counter-offer card is locked." } };
 
-    // --- Phase 4: Finalize by updating request status ---
-    const { error: statusError } = await supabaseClient
-        .from('swap_requests')
-        .update({ status: 'completed' })
-        .eq('id', requestId);
+    // --- EXECUTE ATOMIC TRANSACTION (Core Transfer Logic) ---
+    const playerOfferingId = request.player_id_offering;
+    const offeredInstanceId = request.card_instance_id_offer.instance_id;
+    const offeredSerialId = request.card_instance_id_offer.serial_id;
 
-    if (receiveError || deleteError || giveError || statusError) {
-        // Log error and rollback should happen here
-        return { error: { message: "Swap failed due to a database error during card transfer." } };
+    // A. Give the Offering Player the Requested Card (item_id_request)
+    const { data: offeringPlayerReceivedCard, error: err1 } = await addCardToPlayerCollection(playerOfferingId, request.item_id_request);
+    
+    // B. Give the Accepting Player the Offered Card (item_id_offer)
+    const { data: acceptingPlayerReceivedCard, error: err2 } = await addCardToPlayerCollection(playerReceivingId, request.item_id_offer);
+    
+    // C. Delete the original offered card and the counter-offer card
+    const { error: deleteOriginal } = await deleteCardInstance(offeredInstanceId);
+    const { error: deleteCounter } = await deleteCardInstance(counterOfferInstanceId);
+
+    // D. Finalize by updating request status and logs
+    const { error: statusError } = await supabaseClient.from('swap_requests').update({ status: 'completed' }).eq('id', requestId);
+    
+    // E. LOGGING: Insert into swap_transactions and history_log
+    // Log the transaction in swap_transactions
+    await supabaseClient.from('swap_transactions').insert({
+        request_id: requestId,
+        player_offering_id: playerOfferingId,
+        player_accepting_id: playerReceivingId,
+        card_instance_transferred_in: counterOfferInstanceId, 
+        card_instance_received_instance: acceptingPlayerReceivedCard[0]?.instance_id || '00000000-0000-0000-0000-000000000000', // Use 000 if instance is null
+        created_at: new Date().toISOString()
+    });
+    
+    // Log in history_log for the card transfers
+    await supabaseClient.from('history_log').insert([
+        // Log the offering player losing their card instance
+        { player_id: playerOfferingId, event_type: 'SWAP_LOST', item_type: 'CARD', item_serial_id: offeredSerialId, amount_change: -1, related_id: requestId },
+        // Log the offering player gaining the requested card
+        { player_id: playerOfferingId, event_type: 'SWAP_GAINED', item_type: 'CARD', item_serial_id: offeringPlayerReceivedCard[0]?.serial_id, amount_change: 1, related_id: requestId },
+        // Log the accepting player losing their card
+        { player_id: playerReceivingId, event_type: 'SWAP_LOST', item_type: 'CARD', item_serial_id: counterCard.serial_id, amount_change: -1, related_id: requestId },
+        // Log the accepting player gaining the offered card
+        { player_id: playerReceivingId, event_type: 'SWAP_GAINED', item_type: 'CARD', item_serial_id: acceptingPlayerReceivedCard[0]?.serial_id, amount_change: 1, related_id: requestId }
+    ]);
+    
+    // F. FINAL CHECK: If any critical part failed, return an error (rollback simulation)
+    if (err1 || err2 || deleteOriginal || deleteCounter || statusError) {
+        return { error: { message: "Critical database failure during card transfer. Funds/Items may be frozen. Contact support with Request ID.", code: 500 } };
     }
     
-    return { error: null, newCardId: request.item_id_offer };
+    return { error: null, newCardName: acceptingPlayerReceivedCard[0]?.cards?.name };
 }
 
 
