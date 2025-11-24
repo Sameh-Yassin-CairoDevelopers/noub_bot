@@ -63,11 +63,11 @@ export async function addCardToPlayerCollection(playerId, cardId) {
     // CRITICAL FIX: Check for error OR missing data
     if (updateError || !serialData || serialData.length === 0) {
         console.error("Failed to generate Serial ID for card:", updateError || "No serial data returned.");
-        // We MUST return an error here to abort card creation
-        return { error: { message: "Failed to generate unique card ID. Transaction aborted." } }; 
+        // This will now successfully return the detailed error message
+        return { error: { message: `Transaction aborted: ${updateError?.message || 'Failed to get unique ID.'}` } }; 
     }
     
-    const newSerialId = serialData[0].new_serial_id; // Access the returned column
+    const newSerialId = serialData[0].new_serial_id;
 
     // 2. Insert the new card instance with the generated Serial ID
     return await supabaseClient.from('player_cards').insert({ 
@@ -75,7 +75,7 @@ export async function addCardToPlayerCollection(playerId, cardId) {
         card_id: cardId,
         level: 1,
         power_score: DEFAULT_INITIAL_POWER_SCORE,
-        serial_id: newSerialId
+        serial_id: newSerialId // Use the new unique ID
     }).select(); 
 }
 
@@ -487,6 +487,7 @@ export async function acceptSwapRequest(requestId, playerReceivingId) {
     
     return { error: null, newCardId: request.item_id_offer };
 }
+
 
 
 
