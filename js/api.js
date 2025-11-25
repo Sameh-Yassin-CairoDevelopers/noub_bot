@@ -467,7 +467,7 @@ export async function acceptSwapRequest(requestId, playerReceivingId, counterOff
         .from('swap_requests')
         .select(`
             player_id_offering, 
-            card_instance_id_offer, 
+            card_instance_id_offer, // Get instance ID of the card offered
             item_id_offer, 
             item_id_request, 
             price_noub
@@ -478,22 +478,25 @@ export async function acceptSwapRequest(requestId, playerReceivingId, counterOff
 
     if (fetchError || !request) return { error: { message: "Request not found or already completed." } };
 
-    // 1b. Fetch Serial ID of the card being offered (NOW DONE SEPARATELY)
-    const { data: offeredCardDetails } = await supabaseClient.from('player_cards')
+    // 1b. Fetch Serial ID of the card being offered (NOW SECURELY DONE SEPARATELY)
+    const { data: offeredCardDetails, error: offeredError } = await supabaseClient.from('player_cards')
         .select('serial_id, card_id')
         .eq('instance_id', request.card_instance_id_offer)
+        .eq('player_id', request.player_id_offering) // CRITICAL: Only the owner can read its details
         .single();
-    if (!offeredCardDetails) return { error: { message: "Offered card instance details not found." } };
+    if (offeredError || !offeredCardDetails) return { error: { message: "Offered card details not found for verification." } };
 
 
-    // 2. Validate counter-offer is not locked and get its serial ID
-    const { data: counterCard } = await supabaseClient
+    // 2. Validate counter-offer is not locked and get its serial ID (Using the same secure method)
+    const { data: counterCard, error: counterError } = await supabaseClient
         .from('player_cards')
         .select('is_locked, serial_id, card_id')
         .eq('instance_id', counterOfferInstanceId)
+        .eq('player_id', playerReceivingId) // CRITICAL: Only the accepting player can validate his card
         .single();
-        
-    if (counterCard?.is_locked) return { error: { message: "Your counter-offer card is locked." } };
+    if (counterError || !counterCard) return { error: { message: "Your counter-offer card is not owned by you or is invalid." } };
+
+
 
     // --- EXECUTE ATOMIC TRANSACTION (Core Transfer Logic) ---
     const playerOfferingId = request.player_id_offering;
@@ -542,6 +545,7 @@ export async function acceptSwapRequest(requestId, playerReceivingId, counterOff
     
     return { error: null, newCardName: acceptingPlayerReceivedCard[0]?.cards?.name };
 }
+
 
 
 
