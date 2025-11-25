@@ -474,6 +474,8 @@ export async function renderSwapScreen() {
 
 window.handleCancelOffer = handleCancelOffer;
 window.handleAcceptSwap = handleAcceptSwap;
-window.openCardSelectorModal = openCardSelectorModal; // Expose supporting function
+window.executeAcceptance = executeAcceptance;
+window.openCardSelectorModal = openCardSelectorModal; 
+
 
 // NOTE: No further action is needed inside ui.js or main.js for this specific fix.
