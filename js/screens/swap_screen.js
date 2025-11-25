@@ -1,6 +1,6 @@
 /*
  * Filename: js/screens/swap_screen.js
- * Version: NOUB v2.3.0 (Dynamic P2P Market & Secure Transactions)
+ * Version: NOUB v2.3.1 (Dynamic P2P Market - English UI)
  * Author: Sameh Yassin & Co-Pilot
  * 
  * Description: 
@@ -49,13 +49,13 @@ export async function renderSwapScreen() {
     if (!document.getElementById('swap-tabs-container')) {
         swapContainer = document.getElementById('swap-screen');
         swapContainer.innerHTML = `
-            <h2 class="screen-title">سوق التبادل (P2P Market)</h2>
+            <h2 class="screen-title">P2P Market</h2>
             
             <!-- Tab Navigation -->
             <div id="swap-tabs-container" class="tabs-header">
-                <button class="swap-tab-btn active" data-swap-tab="browse">تصفح العروض</button>
-                <button class="swap-tab-btn" data-swap-tab="my_requests">عروضي النشطة</button>
-                <button class="swap-tab-btn" data-swap-tab="create">إنشاء عرض</button>
+                <button class="swap-tab-btn active" data-swap-tab="browse">Browse Offers</button>
+                <button class="swap-tab-btn" data-swap-tab="my_requests">My Requests</button>
+                <button class="swap-tab-btn" data-swap-tab="create">Create Offer</button>
             </div>
             
             <!-- Dynamic Content Areas -->
@@ -115,8 +115,8 @@ function renderCreateRequestUI() {
     // Initialize data state if null
     if (!window.SwapOfferData) window.SwapOfferData = {};
     
-    const offerText = window.SwapOfferData.offerCardName || "لم يتم الاختيار";
-    const requestText = window.SwapOfferData.requestCardName || "لم يتم الاختيار";
+    const offerText = window.SwapOfferData.offerCardName || "Select Card";
+    const requestText = window.SwapOfferData.requestCardName || "Select Card";
     
     // Validations for the "Finalize" button
     const canFinalize = window.SwapOfferData.offerInstanceId && window.SwapOfferData.requestCardId;
@@ -125,7 +125,7 @@ function renderCreateRequestUI() {
     content.innerHTML = `
         <div class="create-swap-ui game-container" style="text-align:center; padding: 20px;">
             <h3 style="color:var(--primary-accent); margin-bottom: 20px; border-bottom: 1px dashed #555; padding-bottom:10px;">
-                إنشاء صفقة جديدة
+                Create New Trade
             </h3>
             
             <!-- Visual Trade Summary -->
@@ -133,10 +133,10 @@ function renderCreateRequestUI() {
                 
                 <!-- Left Side: Offer -->
                 <div style="flex: 1; text-align:center;">
-                    <p style="color: #888; font-size: 0.8em; margin-bottom:5px;">أنت تقدم (Offer)</p>
+                    <p style="color: #888; font-size: 0.8em; margin-bottom:5px;">You Give</p>
                     <div class="card-slot" onclick="window.openCardSelectorModal('offer')" style="cursor:pointer; border: 1px dashed var(--success-color); padding: 10px; border-radius: 8px;">
                         <span style="color: var(--success-color); font-weight: bold; font-size: 1.1em;">${offerText}</span>
-                        <div style="font-size:0.7em; color:#aaa; margin-top:5px;">(اضغط للتغيير)</div>
+                        <div style="font-size:0.7em; color:#aaa; margin-top:5px;">(Tap to change)</div>
                     </div>
                 </div>
 
@@ -145,22 +145,33 @@ function renderCreateRequestUI() {
 
                 <!-- Right Side: Request -->
                 <div style="flex: 1; text-align:center;">
-                    <p style="color: #888; font-size: 0.8em; margin-bottom:5px;">أنت تطلب (Request)</p>
+                    <p style="color: #888; font-size: 0.8em; margin-bottom:5px;">You Get</p>
                     <div class="card-slot" onclick="window.openCardSelectorModal('request')" style="cursor:pointer; border: 1px dashed var(--accent-blue); padding: 10px; border-radius: 8px;">
                         <span style="color: var(--accent-blue); font-weight: bold; font-size: 1.1em;">${requestText}</span>
-                        <div style="font-size:0.7em; color:#aaa; margin-top:5px;">(اضغط للتغيير)</div>
+                        <div style="font-size:0.7em; color:#aaa; margin-top:5px;">(Tap to change)</div>
                     </div>
                 </div>
             </div>
             
             <!-- Action Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <button class="action-button small" onclick="window.openCardSelectorModal('offer')">
+                    1. Select from My Cards
+                </button>
+                <button class="action-button small" onclick="window.openCardSelectorModal('request')">
+                    2. Select from Catalog
+                </button>
+            </div>
+
+            <hr style="border-color: #333; margin-bottom: 20px;">
+
             <button id="finalize-swap-btn" class="action-button" onclick="window.finalizeSwapRequest()" ${finalizeBtnStyle}>
-                📢 نشر العرض في السوق
+                Post Trade Offer
             </button>
             
             <p style="margin-top: 20px; font-size: 0.8em; color:var(--text-secondary); line-height: 1.6;">
-                <span style="color:var(--danger-color);">تنبيه:</span> الكارت الذي تعرضه سيتم حجزه (قفله) فوراً.
-                <br>لن يمكنك استخدامه أو حرقه حتى تكتمل الصفقة أو تقوم بإلغائها يدوياً.
+                <span style="color:var(--danger-color);">Warning:</span> The card you offer will be <strong>locked</strong> immediately.
+                <br>It cannot be used or burned until the trade is completed or cancelled.
             </p>
         </div>
     `;
@@ -178,15 +189,15 @@ async function openCardSelectorModal(mode) {
     let cardsToShow = [];
     let title = "";
 
-    showToast("جاري تحميل البيانات...", "info");
+    showToast("Loading data...", "info");
 
     try {
         if (mode === 'offer') {
-            title = "اختر كارت من حقيبتك لتقديمه";
+            title = "Select a Card to Offer";
             // API Call: Get User's Owned Cards
             const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
-            if (error || !playerCards) return showToast("لا توجد بيانات.", 'error');
-            if (playerCards.length === 0) return showToast("حقيبتك فارغة!", 'error');
+            if (error || !playerCards) return showToast("No data found.", 'error');
+            if (playerCards.length === 0) return showToast("Inventory is empty!", 'error');
             
             // Map to view model (Include Instance ID)
             cardsToShow = playerCards.map(pc => ({
@@ -200,10 +211,10 @@ async function openCardSelectorModal(mode) {
             }));
 
         } else if (mode === 'request') {
-            title = "ما هو الكارت الذي تبحث عنه؟";
+            title = "Select a Card to Request";
             // API Call: Get Master Catalog
             const { data: masterCards, error } = await api.fetchAllMasterCards();
-            if (error || !masterCards) return showToast("فشل تحميل الكتالوج", 'error');
+            if (error || !masterCards) return showToast("Failed to load catalog.", 'error');
 
             // Map to view model (No Instance ID needed)
             cardsToShow = masterCards.map(mc => ({
@@ -221,7 +232,7 @@ async function openCardSelectorModal(mode) {
         let cardsHTML = cardsToShow.map(c => {
             // Disable locked cards in 'offer' mode
             const lockedStyle = c.isLocked ? 'opacity: 0.5; cursor: not-allowed; filter: grayscale(100%);' : 'cursor: pointer;';
-            const lockedBadge = c.isLocked ? '<div style="background:red; color:white; font-size:0.7em; padding:2px; border-radius:4px; position:absolute; top:5px; right:5px;">محجوز</div>' : '';
+            const lockedBadge = c.isLocked ? '<div style="background:red; color:white; font-size:0.7em; padding:2px; border-radius:4px; position:absolute; top:5px; right:5px;">LOCKED</div>' : '';
             const levelBadge = c.level ? `<div class="card-details"><span class="card-level">LVL ${c.level}</span></div>` : '';
             
             // Determine Rarity Border Color (Optional visual polish)
@@ -262,7 +273,7 @@ async function openCardSelectorModal(mode) {
 
     } catch (e) {
         console.error(e);
-        showToast("حدث خطأ غير متوقع", 'error');
+        showToast("Unexpected error.", 'error');
     }
 }
 
@@ -293,13 +304,13 @@ window.selectCardForSwap = function(mode, masterId, uniqueId, name) {
 async function finalizeSwapRequest() {
     // 1. Validation
     if (!window.SwapOfferData || !window.SwapOfferData.offerInstanceId) {
-        return showToast("يجب اختيار كارت لتقديمه (العرض) أولاً.", 'error');
+        return showToast("Please select a card to offer first.", 'error');
     }
     if (!window.SwapOfferData.requestCardId) {
-        return showToast("يجب اختيار الكارت الذي تريده (الطلب).", 'error');
+        return showToast("Please select a card to request.", 'error');
     }
     
-    showToast("جاري معالجة الطلب...", 'info');
+    showToast("Posting offer...", 'info');
     
     // 2. API Call
     const { error } = await api.createSwapRequest(
@@ -311,12 +322,12 @@ async function finalizeSwapRequest() {
     
     // 3. Handle Result
     if (!error) {
-        showToast("تم نشر العرض بنجاح! الكارت الخاص بك محجوز الآن.", 'success');
+        showToast("Trade Offer Created! Your card is locked.", 'success');
         window.SwapOfferData = null; // Clear state
         await refreshPlayerState();
         handleSwapTabSwitch('my_requests'); // Redirect to My Requests
     } else {
-        showToast(`فشل الإنشاء: ${error.message}`, 'error');
+        showToast(`Failed to create offer: ${error.message}`, 'error');
     }
 }
 
@@ -329,19 +340,19 @@ async function finalizeSwapRequest() {
  */
 async function renderBrowseRequests() {
     const content = document.getElementById('swap-content-browse');
-    content.innerHTML = '<p style="text-align:center;">جاري تحميل السوق...</p>';
+    content.innerHTML = '<p style="text-align:center;">Loading market...</p>';
     
     const { data: requests, error } = await api.fetchActiveSwapRequests(state.currentUser.id);
 
-    if (error) return content.innerHTML = '<p class="error-error">خطأ في تحميل البيانات.</p>';
-    if (!requests || requests.length === 0) return content.innerHTML = '<p style="text-align:center; margin-top:20px; color:#aaa;">لا توجد عروض نشطة حالياً. كن أول من ينشر عرضاً!</p>';
+    if (error) return content.innerHTML = '<p class="error-error">Error loading data.</p>';
+    if (!requests || requests.length === 0) return content.innerHTML = '<p style="text-align:center; margin-top:20px; color:#aaa;">No active offers found. Be the first!</p>';
 
     content.innerHTML = requests.map(req => {
         const username = req.player_id_offering.substring(0, 8); // Masked ID
         return `
             <div class="swap-request-card">
                 <div class="card-header" style="display:flex; justify-content:space-between; font-size:0.8em; color:#888; margin-bottom:10px;">
-                    <span>البائع: <span style="color:#fff;">User-${username}</span></span>
+                    <span>Seller: <span style="color:#fff;">User-${username}</span></span>
                     <span>${new Date(req.created_at).toLocaleDateString()}</span>
                 </div>
                 
@@ -350,7 +361,7 @@ async function renderBrowseRequests() {
                     <div class="trade-card-item">
                         <div style="position:relative;">
                             <img src="${req.offer_card.image_url || 'images/default_card.png'}" alt="Offer">
-                            <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:0.7em; padding:2px;">يقدم</div>
+                            <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:0.7em; padding:2px;">OFFER</div>
                         </div>
                         <h4>${req.offer_card.name}</h4>
                     </div>
@@ -361,7 +372,7 @@ async function renderBrowseRequests() {
                     <div class="trade-card-item">
                         <div style="position:relative;">
                             <img src="${req.request_card.image_url || 'images/default_card.png'}" alt="Request" style="filter: sepia(0.5);">
-                            <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:0.7em; padding:2px;">يطلب</div>
+                            <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:0.7em; padding:2px;">REQUEST</div>
                         </div>
                         <h4>${req.request_card.name}</h4>
                     </div>
@@ -369,7 +380,7 @@ async function renderBrowseRequests() {
 
                 <div class="actions" style="text-align:center; margin-top:15px;">
                     <button class="action-button small" onclick="window.handleAcceptSwap('${req.id}')">
-                        قبول الصفقة
+                        Accept Trade
                     </button>
                 </div>
             </div>
@@ -390,7 +401,7 @@ async function handleAcceptSwap(requestId) {
         .eq('id', requestId)
         .single();
         
-    if (fetchError || !request) return showToast("هذا العرض لم يعد متاحاً.", 'error');
+    if (fetchError || !request) return showToast("Offer no longer available.", 'error');
 
     const requiredCardId = request.item_id_request;
     const requiredCardName = request.request_card_details.name;
@@ -402,7 +413,7 @@ async function handleAcceptSwap(requestId) {
     const matchingCards = myCards.filter(pc => pc.card_id === requiredCardId && !pc.is_locked);
     
     if (matchingCards.length === 0) {
-        return showToast(`عذراً، أنت لا تملك كارت "${requiredCardName}" المطلوب لإتمام الصفقة.`, 'error');
+        return showToast(`You do not own a "${requiredCardName}" to trade.`, 'error');
     }
 
     // Show selection modal
@@ -425,8 +436,8 @@ async function handleAcceptSwap(requestId) {
     modal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="window.closeModal('accept-selector-modal')">&times;</button>
-            <h3>إتمام الصفقة</h3>
-            <p>أنت تملك ${matchingCards.length} نسخة من "${requiredCardName}".<br>اختر النسخة التي تريد دفعها:</p>
+            <h3>Complete Trade</h3>
+            <p>You own ${matchingCards.length} copies of "${requiredCardName}".<br>Select which one to trade:</p>
             <div class="card-grid">${cardsHTML}</div>
         </div>
     `;
@@ -438,7 +449,7 @@ async function handleAcceptSwap(requestId) {
  */
 async function executeAcceptance(requestId, counterOfferInstanceId) {
     window.closeModal('accept-selector-modal');
-    showToast("جاري تنفيذ التبادل...", 'info');
+    showToast("Processing trade...", 'info');
     
     // Calls the secure RPC function we updated
     const { error, newCardName } = await api.acceptSwapRequest(
@@ -448,11 +459,11 @@ async function executeAcceptance(requestId, counterOfferInstanceId) {
     );
     
     if (!error) {
-        showToast(`تمت الصفقة بنجاح! حصلت على: ${newCardName}`, 'success');
+        showToast(`Trade successful! You received: ${newCardName}`, 'success');
         await refreshPlayerState();
         renderBrowseRequests(); // Refresh list
     } else {
-        showToast(`فشل التبادل: ${error.message}`, 'error');
+        showToast(`Trade failed: ${error.message}`, 'error');
     }
 }
 
@@ -462,38 +473,38 @@ async function executeAcceptance(requestId, counterOfferInstanceId) {
 
 async function renderMyRequests() {
     const content = document.getElementById('swap-content-my_requests');
-    content.innerHTML = '<p style="text-align:center;">جاري التحميل...</p>';
+    content.innerHTML = '<p style="text-align:center;">Loading...</p>';
     
     const { data: requests, error } = await api.fetchMySwapRequests(state.currentUser.id);
 
-    if (error) return content.innerHTML = '<p class="error-error">خطأ في التحميل.</p>';
-    if (requests.length === 0) return content.innerHTML = '<p style="text-align:center; margin-top:20px;">ليس لديك عروض نشطة حالياً.</p>';
+    if (error) return content.innerHTML = '<p class="error-error">Error loading requests.</p>';
+    if (requests.length === 0) return content.innerHTML = '<p style="text-align:center; margin-top:20px;">You have no active trade offers.</p>';
 
     content.innerHTML = requests.map(req => {
         return `
             <div class="swap-request-card my-request" style="border-left: 4px solid var(--primary-accent);">
                 <div class="card-header">
-                    <span style="color:var(--primary-accent);">عرضي النشط</span>
+                    <span style="color:var(--primary-accent);">My Offer</span>
                     <span>${new Date(req.created_at).toLocaleDateString()}</span>
                 </div>
                 
                 <div class="trade-display-wrapper">
                     <div class="trade-card-item">
                         <img src="${req.offer_card.image_url || 'images/default_card.png'}" style="border: 2px solid var(--success-color);">
-                        <p>أقدم</p>
+                        <p>Giving</p>
                         <h4>${req.offer_card.name}</h4>
                     </div>
                     <div class="trade-icon">➡️</div>
                     <div class="trade-card-item">
                         <img src="${req.request_card.image_url || 'images/default_card.png'}" style="border: 2px dashed var(--accent-blue);">
-                        <p>أطلب</p>
+                        <p>Asking For</p>
                         <h4>${req.request_card.name}</h4>
                     </div>
                 </div>
 
                 <div class="actions" style="justify-content:center;">
                     <button class="action-button small danger" onclick="window.handleCancelOffer('${req.id}')">
-                        إلغاء واسترداد الكارت
+                        Cancel & Refund Card
                     </button>
                 </div>
             </div>
@@ -503,11 +514,12 @@ async function renderMyRequests() {
 
 /**
  * Cancels the offer and unlocks the card.
+ * Export added to prevent import errors in other modules.
  */
 export async function handleCancelOffer(requestId) {
-    if(!confirm("هل أنت متأكد من إلغاء العرض واسترداد الكارت؟")) return;
+    if(!confirm("Are you sure you want to cancel this offer and unlock your card?")) return;
     
-    showToast("جاري الإلغاء...", 'info');
+    showToast("Cancelling...", 'info');
     
     // Fetch missing details first (need instance ID to unlock)
     const { data: request } = await api.supabaseClient
@@ -524,11 +536,11 @@ export async function handleCancelOffer(requestId) {
         );
         
         if (!error) {
-            showToast("تم الإلغاء واسترداد الكارت بنجاح.", 'success');
+            showToast("Offer cancelled. Card unlocked.", 'success');
             await refreshPlayerState();
             renderMyRequests();
         } else {
-            showToast("فشل الإلغاء.", 'error');
+            showToast("Cancellation failed.", 'error');
         }
     }
 }
