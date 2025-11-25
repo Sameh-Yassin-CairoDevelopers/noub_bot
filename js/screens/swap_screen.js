@@ -504,7 +504,7 @@ async function renderMyRequests() {
 /**
  * Cancels the offer and unlocks the card.
  */
-async function handleCancelOffer(requestId) {
+export async function handleCancelOffer(requestId) {
     if(!confirm("هل أنت متأكد من إلغاء العرض واسترداد الكارت؟")) return;
     
     showToast("جاري الإلغاء...", 'info');
