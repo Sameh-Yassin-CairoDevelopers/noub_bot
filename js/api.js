@@ -462,12 +462,15 @@ export async function fetchMySwapRequests(playerId) {
  * @param {string} counterOfferInstanceId - The instance ID of the card the accepting player offers in return.
  */
 export async function acceptSwapRequest(requestId, playerReceivingId, counterOfferInstanceId) {
-    // 1. Fetch Request details (SIMPLIFIED QUERY TO AVOID JOIN ERRORS)
+    // 1. Fetch Request details (FINAL CLEANED QUERY)
     const { data: request, error: fetchError } = await supabaseClient
         .from('swap_requests')
         .select(`
-            player_id_offering, card_instance_id_offer, // Get instance ID directly
-            item_id_offer, item_id_request, price_noub
+            player_id_offering, 
+            card_instance_id_offer, 
+            item_id_offer, 
+            item_id_request, 
+            price_noub
         `)
         .eq('id', requestId)
         .eq('status', 'active')
@@ -539,6 +542,7 @@ export async function acceptSwapRequest(requestId, playerReceivingId, counterOff
     
     return { error: null, newCardName: acceptingPlayerReceivedCard[0]?.cards?.name };
 }
+
 
 
 
