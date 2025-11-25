@@ -462,11 +462,11 @@ export async function fetchMySwapRequests(playerId) {
  * @param {string} counterOfferInstanceId - The instance ID of the card the accepting player offers in return.
  */
 export async function acceptSwapRequest(requestId, playerReceivingId, counterOfferInstanceId) {
-    // 1. Fetch Request details and offered card serial ID
+    // 1. Fetch Request details (SIMPLIFIED QUERY TO AVOID JOIN ERRORS)
     const { data: request, error: fetchError } = await supabaseClient
         .from('swap_requests')
         .select(`
-            player_id_offering, card_instance_id_offer (instance_id, card_id, serial_id), 
+            player_id_offering, card_instance_id_offer, // Get instance ID directly
             item_id_offer, item_id_request, price_noub
         `)
         .eq('id', requestId)
@@ -474,7 +474,15 @@ export async function acceptSwapRequest(requestId, playerReceivingId, counterOff
         .single();
 
     if (fetchError || !request) return { error: { message: "Request not found or already completed." } };
-    
+
+    // 1b. Fetch Serial ID of the card being offered (NOW DONE SEPARATELY)
+    const { data: offeredCardDetails } = await supabaseClient.from('player_cards')
+        .select('serial_id, card_id')
+        .eq('instance_id', request.card_instance_id_offer)
+        .single();
+    if (!offeredCardDetails) return { error: { message: "Offered card instance details not found." } };
+
+
     // 2. Validate counter-offer is not locked and get its serial ID
     const { data: counterCard } = await supabaseClient
         .from('player_cards')
@@ -486,9 +494,8 @@ export async function acceptSwapRequest(requestId, playerReceivingId, counterOff
 
     // --- EXECUTE ATOMIC TRANSACTION (Core Transfer Logic) ---
     const playerOfferingId = request.player_id_offering;
-    const offeredInstanceId = request.card_instance_id_offer.instance_id;
-    const offeredSerialId = request.card_instance_id_offer.serial_id;
-
+    const offeredInstanceId = request.card_instance_id_offer; // Use the simple ID
+    const offeredSerialId = offeredCardDetails.serial_id; // Use the simple Serial ID
     // A. Give the Offering Player the Requested Card (item_id_request)
     const { data: offeringPlayerReceivedCard, error: err1 } = await addCardToPlayerCollection(playerOfferingId, request.item_id_request);
     
@@ -532,6 +539,7 @@ export async function acceptSwapRequest(requestId, playerReceivingId, counterOff
     
     return { error: null, newCardName: acceptingPlayerReceivedCard[0]?.cards?.name };
 }
+
 
 
 
