@@ -444,106 +444,30 @@ export async function fetchMySwapRequests(playerId) {
         .eq('player_id_offering', playerId); // CRITICAL: Only fetch this player's requests
 }
 
-// ... (ضمن Great Projects API Functions) ...
+
 
 /**
- * Executes a swap transaction (Accepting a request). 
- * This is the FINAL, secure logic for the P2P swap, ensuring:
- * 1. The player who created the request receives the card they requested.
- * 2. The accepting player receives the card that was offered.
- * 3. Both player's lost cards are deleted.
- * 4. All logs are recorded.
- * 
- * NOTE: This function should be wrapped in a database transaction for true ACID safety 
- * (handled by a single RPC in a final product, but simulated here via sequential steps).
- * 
- * @param {string} requestId - The ID of the swap request being accepted.
- * @param {string} playerReceivingId - The ID of the player accepting the request.
- * @param {string} counterOfferInstanceId - The instance ID of the card the accepting player offers in return.
+ * Executes a swap transaction SECURELY via Database RPC.
  */
 export async function acceptSwapRequest(requestId, playerReceivingId, counterOfferInstanceId) {
-    // 1. Fetch Request details (FINAL CLEANED QUERY - NO COMMENTS INSIDE)
-    const { data: request, error: fetchError } = await supabaseClient
-        .from('swap_requests')
-        .select(`
-            player_id_offering, 
-            card_instance_id_offer, 
-            item_id_offer, 
-            item_id_request, 
-            price_noub
-        `)
-        .eq('id', requestId)
-        .eq('status', 'active')
-        .single();
-
-    if (fetchError || !request) return { error: { message: "Request not found or already completed." } };
-
-    // 1b. Fetch Serial ID of the card being offered (NOW SECURELY DONE SEPARATELY)
-    const { data: offeredCardDetails, error: offeredError } = await supabaseClient.from('player_cards')
-        .select('serial_id, card_id')
-        .eq('instance_id', request.card_instance_id_offer)
-        .eq('player_id', request.player_id_offering) // CRITICAL: Only the owner can read its details
-        .single();
-    if (offeredError || !offeredCardDetails) return { error: { message: "Offered card details not found for verification." } };
-
-
-    // 2. Validate counter-offer is not locked and get its serial ID (Using the same secure method)
-    const { data: counterCard, error: counterError } = await supabaseClient
-        .from('player_cards')
-        .select('is_locked, serial_id, card_id')
-        .eq('instance_id', counterOfferInstanceId)
-        .eq('player_id', playerReceivingId) // CRITICAL: Only the accepting player can validate his card
-        .single();
-    if (counterError || !counterCard) return { error: { message: "Your counter-offer card is not owned by you or is invalid." } };
-
-
-
-    // --- EXECUTE ATOMIC TRANSACTION (Core Transfer Logic) ---
-    const playerOfferingId = request.player_id_offering;
-    const offeredInstanceId = request.card_instance_id_offer; // Use the simple ID
-    const offeredSerialId = offeredCardDetails.serial_id; // Use the simple Serial ID
-    // A. Give the Offering Player the Requested Card (item_id_request)
-    const { data: offeringPlayerReceivedCard, error: err1 } = await addCardToPlayerCollection(playerOfferingId, request.item_id_request);
-    
-    // B. Give the Accepting Player the Offered Card (item_id_offer)
-    const { data: acceptingPlayerReceivedCard, error: err2 } = await addCardToPlayerCollection(playerReceivingId, request.item_id_offer);
-    
-    // C. Delete the original offered card and the counter-offer card
-    const { error: deleteOriginal } = await deleteCardInstance(offeredInstanceId);
-    const { error: deleteCounter } = await deleteCardInstance(counterOfferInstanceId);
-
-    // D. Finalize by updating request status and logs
-    const { error: statusError } = await supabaseClient.from('swap_requests').update({ status: 'completed' }).eq('id', requestId);
-    
-    // E. LOGGING: Insert into swap_transactions and history_log
-    // Log the transaction in swap_transactions
-    await supabaseClient.from('swap_transactions').insert({
-        request_id: requestId,
-        player_offering_id: playerOfferingId,
-        player_accepting_id: playerReceivingId,
-        card_instance_transferred_in: counterOfferInstanceId, 
-        card_instance_received_instance: acceptingPlayerReceivedCard[0]?.instance_id || '00000000-0000-0000-0000-000000000000', // Use 000 if instance is null
-        created_at: new Date().toISOString()
+    // استدعاء الدالة الآمنة من قاعدة البيانات مباشرة
+    const { data, error } = await supabaseClient.rpc('execute_swap_transaction', {
+        p_request_id: requestId,
+        p_player_accepting_id: playerReceivingId,
+        p_counter_offer_instance_id: counterOfferInstanceId
     });
-    
-    // Log in history_log for the card transfers
-    await supabaseClient.from('history_log').insert([
-        // Log the offering player losing their card instance
-        { player_id: playerOfferingId, event_type: 'SWAP_LOST', item_type: 'CARD', item_serial_id: offeredSerialId, amount_change: -1, related_id: requestId },
-        // Log the offering player gaining the requested card
-        { player_id: playerOfferingId, event_type: 'SWAP_GAINED', item_type: 'CARD', item_serial_id: offeringPlayerReceivedCard[0]?.serial_id, amount_change: 1, related_id: requestId },
-        // Log the accepting player losing their card
-        { player_id: playerReceivingId, event_type: 'SWAP_LOST', item_type: 'CARD', item_serial_id: counterCard.serial_id, amount_change: -1, related_id: requestId },
-        // Log the accepting player gaining the offered card
-        { player_id: playerReceivingId, event_type: 'SWAP_GAINED', item_type: 'CARD', item_serial_id: acceptingPlayerReceivedCard[0]?.serial_id, amount_change: 1, related_id: requestId }
-    ]);
-    
-    // F. FINAL CHECK: If any critical part failed, return an error (rollback simulation)
-    if (err1 || err2 || deleteOriginal || deleteCounter || statusError) {
-        return { error: { message: "Critical database failure during card transfer. Funds/Items may be frozen. Contact support with Request ID.", code: 500 } };
+
+    if (error) {
+        console.error("RPC Error:", error);
+        return { error: { message: "Database connection error." } };
     }
-    
-    return { error: null, newCardName: acceptingPlayerReceivedCard[0]?.cards?.name };
+
+    // الدالة تعيد JSON يحتوي على النجاح أو الفشل
+    if (!data.success) {
+        return { error: { message: data.message } };
+    }
+
+    return { error: null, newCardName: data.new_card_name };
 }
 
 
