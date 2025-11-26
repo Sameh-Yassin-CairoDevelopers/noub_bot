@@ -262,34 +262,50 @@ async function openCardInteractionModal(playerCard, assignedCardInstanceIds) {
 }
 
 /**
- * Main render function for the "My Cards" screen.
- * FIXED: Applies the 'assigned-expert' class to the card if ANY instance is assigned.
+ * Main Rendering Function for the Collection Screen.
+ * ---------------------------------------------------
+ * Architecture Analysis:
+ * 1. Data Fetching: Retrieves both Player Cards and Player Factories in parallel (Concurrency) to minimize load time.
+ * 2. State Determination: Maps active factories to determine which cards are currently 'Assigned' (State derivation).
+ * 3. Aggregation: Groups individual card instances by their Master ID to display stacks rather than a flat list.
+ * 4. Visualization: Differentiates between Standard Cards and the unique 'Soul Card' (ID 9999) with distinct UI logic.
+ * 
+ * @async
+ * @returns {Promise<void>}
  */
 export async function renderCollection() {
+    // 1. Authentication Check
     if (!state.currentUser) return;
-    collectionContainer.innerHTML = 'Loading your collection...';
+    
+    collectionContainer.innerHTML = '<div class="loading-spinner">Loading your collection...</div>';
 
+    // 2. Parallel Data Fetching (Optimization)
+    // We need factories to know which cards are 'busy' (assigned).
     const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
         api.fetchPlayerCards(state.currentUser.id),
         api.fetchPlayerFactories(state.currentUser.id)
     ]);
 
+    // 3. Error Handling
     if (cardsError || factoriesError) {
-        return collectionContainer.innerHTML = '<p class="error-message">Error fetching collection data.</p>';
+        console.error("Collection Data Error:", cardsError || factoriesError);
+        return collectionContainer.innerHTML = '<p class="error-message">System Error: Unable to synchronize collection data.</p>';
     }
+    
+    // 4. Empty State Handling
     if (!playerCards || playerCards.length === 0) {
-        return collectionContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">You have no cards yet. Visit the Shop!</p>';
+        return collectionContainer.innerHTML = '<div class="empty-state"><p>Your collection is empty.</p><p>Visit the Market or complete Contracts to earn cards.</p></div>';
     }
 
-    // --- Create a set of assigned expert IDs for quick lookup ---
+    // 5. Logic: Create a HashSet of Assigned Instances for O(1) lookup complexity.
     const assignedCardInstanceIds = new Set(
         playerFactories
             .map(f => f.assigned_card_instance_id)
             .filter(id => id !== null)
     );
-    // --- END NEW ---
 
-    collectionContainer.innerHTML = '';
+    // 6. Logic: Grouping Instances by Master ID
+    // Transforming flat array [Instance1, Instance2] -> Map { CardID: [Instance1, Instance2] }
     const cardMap = new Map();
     playerCards.forEach(pc => {
         if (!cardMap.has(pc.card_id)) {
@@ -300,40 +316,82 @@ export async function renderCollection() {
         }
         cardMap.get(pc.card_id).instances.push(pc);
     });
+
+    // 7. Sorting: Organize by ID for consistent display order
     const sortedCards = Array.from(cardMap.values()).sort((a, b) => a.master.id - b.master.id);
+    
+    // 8. DOM Rendering Loop
+    collectionContainer.innerHTML = ''; // Clear loading state
     
     sortedCards.forEach(cardData => {
         const masterCard = cardData.master;
         const instances = cardData.instances;
-        // The instance we show in the collection grid (usually the highest level one)
+        
+        // Selection Heuristic: Display the highest level instance as the representative
         const displayInstance = instances.reduce((max, current) => (current.level > max.level ? current : max), instances[0]);
         
-        const cardElement = document.createElement('div');
-        cardElement.className = `card-stack`;
-        cardElement.setAttribute('data-rarity', masterCard.rarity_level || 0);
-        
-        // --- FIXED LOGIC: Check if ANY instance of this CARD TYPE is assigned ---
+        // Status Check: Is ANY instance of this card type currently assigned?
         const isAnyInstanceAssigned = instances.some(inst => assignedCardInstanceIds.has(inst.instance_id));
         
-        if (isAnyInstanceAssigned) {
-             // Apply the CSS class to the visual representation
-             cardElement.classList.add('assigned-expert'); 
-        }
-        // --- END FIXED LOGIC ---
+        // Create Container
+        const cardElement = document.createElement('div');
+        
+        // --- BRANCHING LOGIC: SOUL CARD VS STANDARD CARD ---
+        
+        if (masterCard.id === 9999) {
+            // === Case A: Soul Card (The Embodiment) ===
+            cardElement.className = `card-stack soul-card`; // Applies special CSS animation
+            
+            // Retrieve DNA code from profile (Fallback to 'UNKNOWN' if not yet minted/synced)
+            const dnaDisplay = state.playerProfile.dna_eve_code || 'GENESIS';
+            
+            cardElement.innerHTML = `
+                <div class="soul-glow"></div>
+                <img src="${masterCard.image_url}" alt="Soul Mirror" class="card-image">
+                
+                <h4 style="color: var(--primary-accent); text-shadow: 0 0 8px rgba(212, 175, 55, 0.8); margin-top:5px;">
+                    ${masterCard.name}
+                </h4>
+                
+                <div class="card-details" style="flex-direction: column; gap: 2px;">
+                    <span class="card-level" style="color: #00ffff; font-weight:bold; font-size: 0.8em;">
+                        Power: ${displayInstance.power_score}
+                    </span>
+                </div>
+                
+                <!-- DNA Visualization -->
+                <div style="font-size: 0.55em; color: #666; margin-top: 4px; letter-spacing: 1px; font-family: monospace;">
+                    DNA: ${dnaDisplay}
+                </div>
+            `;
+            
+        } else {
+            // === Case B: Standard Card ===
+            cardElement.className = `card-stack`;
+            cardElement.setAttribute('data-rarity', masterCard.rarity_level || 0);
 
-        cardElement.innerHTML = `
-            <img src="${masterCard.image_url || 'images/default_card.png'}" alt="${masterCard.name}" class="card-image">
-            <h4>${masterCard.name}</h4>
-            <div class="card-details">
-                <span class="card-level">LVL ${displayInstance.level}</span>
-                <span class="card-count">x${instances.length}</span>
-            </div>
-        `;
+            // Apply 'assigned' visual state if applicable
+            if (isAnyInstanceAssigned) {
+                 cardElement.classList.add('assigned-expert'); 
+            }
+
+            cardElement.innerHTML = `
+                <img src="${masterCard.image_url || 'images/default_card.png'}" alt="${masterCard.name}" class="card-image">
+                <h4>${masterCard.name}</h4>
+                <div class="card-details">
+                    <span class="card-level">LVL ${displayInstance.level}</span>
+                    <span class="card-count">x${instances.length}</span>
+                </div>
+            `;
+        }
+
+        // 9. Interaction Handler
         cardElement.onclick = () => {
             playSound('click');
-            // Pass the set of assigned IDs to the modal function
+            // Pass the full set of assigned IDs to the modal controller for detailed management
             openCardInteractionModal(displayInstance, assignedCardInstanceIds);
         };
+        
         collectionContainer.appendChild(cardElement);
     });
 }
