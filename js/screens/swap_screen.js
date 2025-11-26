@@ -1,568 +1,491 @@
 /*
  * Filename: js/screens/swap_screen.js
- * Version: NOUB v2.3.1 (Dynamic P2P Market - English UI)
+ * Version: NOUB v3.1.0 (Final Complete Edition)
  * Author: Sameh Yassin & Co-Pilot
  * 
  * Description: 
- * This module manages the Player-to-Player (P2P) Swap Market UI and Logic.
- * It handles the complete lifecycle of a trade:
- * 1. Browsing active offers from other players.
- * 2. Managing the user's own active requests (including cancellation).
- * 3. Creating new requests with dynamic selection (Offer Inventory vs Request Catalog).
- * 4. Executing trades using Atomic Database Transactions (via API).
+ * Manages the Player-to-Player (P2P) Swap Market UI.
+ * This module is purely Client-Side Logic acting as a controller for the new Pure JS API.
+ * It handles the full trade lifecycle: Create, Browse, Accept, Cancel.
  */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast } from '../ui.js';
+import { showToast, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
-// --- Global Scope References ---
+// --- Module Scope Variables ---
 let swapContainer;
 let cardSelectorModal;
+let acceptSelectorModal;
 
 /**
- * @type {object} SwapOfferData
- * @description Temporary storage for the "Create Request" flow.
- * Holds the IDs and Names of cards selected by the user before final submission.
+ * Global State for "Create Offer" Flow.
+ * Stores temporary selections before the user clicks "Publish".
  */
 window.SwapOfferData = {
-    offerInstanceId: null, // The specific card UUID the user owns (to be locked)
-    offerCardId: null,     // The Master ID (e.g., 10 for Ramses)
+    offerInstanceId: null, // UUID of the card to give (Owned)
+    offerCardId: null,     // Master ID of the card to give
     offerCardName: null,
-    requestCardId: null,   // The Master ID the user wants to receive
+    requestCardId: null,   // Master ID of the card to receive
     requestCardName: null
 };
 
-// --------------------------------------------------------
-// --- 1. NAVIGATION & INITIALIZATION LOGIC
-// --------------------------------------------------------
+// ========================================================
+// --- 1. NAVIGATION & TABS ---
+// ========================================================
 
-/**
- * Main Entry Point: Renders the Swap Screen layout.
- * Implements a Singleton-like check to prevent re-rendering the container structure.
- */
 export async function renderSwapScreen() {
     if (!state.currentUser) return;
     
-    // Ensure UI framework is built once
+    // Singleton Render: Only build layout if missing
     if (!document.getElementById('swap-tabs-container')) {
         swapContainer = document.getElementById('swap-screen');
         swapContainer.innerHTML = `
-            <h2 class="screen-title">P2P Market</h2>
+            <h2 class="screen-title" style="text-align:center; color:var(--primary-accent); margin-bottom:15px;">Global Exchange</h2>
             
             <!-- Tab Navigation -->
-            <div id="swap-tabs-container" class="tabs-header">
-                <button class="swap-tab-btn active" data-swap-tab="browse">Browse Offers</button>
-                <button class="swap-tab-btn" data-swap-tab="my_requests">My Requests</button>
-                <button class="swap-tab-btn" data-swap-tab="create">Create Offer</button>
+            <div id="swap-tabs-container" class="tabs-header" style="display:flex; justify-content:space-around; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:5px;">
+                <button class="swap-tab-btn active" data-swap-tab="browse" style="flex:1; padding:10px; background:none; border:none; color:#888; cursor:pointer; font-weight:bold;">Market</button>
+                <button class="swap-tab-btn" data-swap-tab="my_requests" style="flex:1; padding:10px; background:none; border:none; color:#888; cursor:pointer; font-weight:bold;">My Offers</button>
+                <button class="swap-tab-btn" data-swap-tab="create" style="flex:1; padding:10px; background:none; border:none; color:#888; cursor:pointer; font-weight:bold;">Post Offer</button>
             </div>
             
-            <!-- Dynamic Content Areas -->
+            <!-- Content Containers -->
             <div id="swap-content-browse" class="swap-content-tab"></div>
             <div id="swap-content-my_requests" class="swap-content-tab hidden"></div>
             <div id="swap-content-create" class="swap-content-tab hidden"></div>
         `;
         
-        // Attach event listeners for tabs
+        // Event Delegation for Tabs
         document.querySelectorAll('.swap-tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => handleSwapTabSwitch(e.target.dataset.swapTab));
         });
     }
 
-    // Initial Load: Start at Browse Tab
+    // Initial Load
     handleSwapTabSwitch('browse');
 }
 
-/**
- * Handles switching between main tabs (Browse, My Requests, Create).
- * Performs lazy loading of data for the selected tab.
- * @param {string} tabName 
- */
 function handleSwapTabSwitch(tabName) {
-    // UI Updates (Active State)
-    document.querySelectorAll('.swap-tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`.swap-tab-btn[data-swap-tab="${tabName}"]`)?.classList.add('active');
+    // 1. Update Active Tab Style
+    document.querySelectorAll('.swap-tab-btn').forEach(btn => {
+        const isActive = btn.dataset.swapTab === tabName;
+        btn.classList.toggle('active', isActive);
+        btn.style.color = isActive ? 'var(--primary-accent)' : '#888';
+        btn.style.borderBottom = isActive ? '2px solid var(--primary-accent)' : 'none';
+    });
 
-    document.querySelectorAll('.swap-content-tab').forEach(content => content.classList.add('hidden'));
-    document.getElementById(`swap-content-${tabName}`).classList.remove('hidden');
+    // 2. Toggle Content Visibility
+    document.querySelectorAll('.swap-content-tab').forEach(div => div.classList.add('hidden'));
+    const targetDiv = document.getElementById(`swap-content-${tabName}`);
+    if (targetDiv) targetDiv.classList.remove('hidden');
 
-    // Logic Dispatcher
-    switch(tabName) {
-        case 'browse':
-            renderBrowseRequests();
-            break;
-        case 'my_requests':
-            renderMyRequests();
-            break;
-        case 'create':
-            renderCreateRequestUI();
-            break;
-    }
+    // 3. Load Data
+    if (tabName === 'browse') renderBrowseRequests();
+    else if (tabName === 'my_requests') renderMyRequests();
+    else if (tabName === 'create') renderCreateRequestUI();
 }
 
-// --------------------------------------------------------
-// --- 2. CREATE REQUEST LOGIC (The Dynamic Flow)
-// --------------------------------------------------------
+// ========================================================
+// --- 2. CREATE REQUEST UI ---
+// ========================================================
 
-/**
- * Renders the UI for creating a new trade.
- * Features a visual comparison between "What I Give" vs "What I Want".
- */
 function renderCreateRequestUI() {
     const content = document.getElementById('swap-content-create');
     
-    // Initialize data state if null
+    // Restore or Reset State
     if (!window.SwapOfferData) window.SwapOfferData = {};
     
-    const offerText = window.SwapOfferData.offerCardName || "Select Card";
-    const requestText = window.SwapOfferData.requestCardName || "Select Card";
+    const offerName = window.SwapOfferData.offerCardName || "Select Card...";
+    const requestName = window.SwapOfferData.requestCardName || "Select Card...";
     
-    // Validations for the "Finalize" button
-    const canFinalize = window.SwapOfferData.offerInstanceId && window.SwapOfferData.requestCardId;
-    const finalizeBtnStyle = canFinalize ? '' : 'disabled style="opacity:0.5; cursor:not-allowed;"';
+    // Validation
+    const isValid = window.SwapOfferData.offerInstanceId && window.SwapOfferData.requestCardId;
+    const btnOpacity = isValid ? '1' : '0.5';
+    const btnCursor = isValid ? 'pointer' : 'not-allowed';
 
     content.innerHTML = `
-        <div class="create-swap-ui game-container" style="text-align:center; padding: 20px;">
-            <h3 style="color:var(--primary-accent); margin-bottom: 20px; border-bottom: 1px dashed #555; padding-bottom:10px;">
-                Create New Trade
-            </h3>
+        <div class="create-ui" style="text-align:center; padding:10px;">
+            <h3 style="color:var(--accent-blue); margin-bottom:20px;">Create New Trade</h3>
             
-            <!-- Visual Trade Summary -->
-            <div class="trade-visual-box" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px;">
+            <!-- Trade Visualizer -->
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#1a1a1a; padding:15px; border-radius:12px; margin-bottom:20px; border:1px solid #444;">
                 
-                <!-- Left Side: Offer -->
-                <div style="flex: 1; text-align:center;">
-                    <p style="color: #888; font-size: 0.8em; margin-bottom:5px;">You Give</p>
-                    <div class="card-slot" onclick="window.openCardSelectorModal('offer')" style="cursor:pointer; border: 1px dashed var(--success-color); padding: 10px; border-radius: 8px;">
-                        <span style="color: var(--success-color); font-weight: bold; font-size: 1.1em;">${offerText}</span>
-                        <div style="font-size:0.7em; color:#aaa; margin-top:5px;">(Tap to change)</div>
+                <!-- OFFER SIDE -->
+                <div style="width:40%; cursor:pointer;" onclick="window.openCardSelectorModal('offer')">
+                    <p style="font-size:0.7em; color:#aaa; margin-bottom:5px; text-transform:uppercase;">You Give</p>
+                    <div style="border:1px dashed var(--success-color); padding:15px 5px; border-radius:8px; color:var(--success-color); font-weight:bold; min-height:50px; display:flex; align-items:center; justify-content:center;">
+                        ${offerName}
                     </div>
                 </div>
-
-                <!-- Icon -->
-                <div style="font-size: 2em; padding: 0 10px;">⇄</div>
-
-                <!-- Right Side: Request -->
-                <div style="flex: 1; text-align:center;">
-                    <p style="color: #888; font-size: 0.8em; margin-bottom:5px;">You Get</p>
-                    <div class="card-slot" onclick="window.openCardSelectorModal('request')" style="cursor:pointer; border: 1px dashed var(--accent-blue); padding: 10px; border-radius: 8px;">
-                        <span style="color: var(--accent-blue); font-weight: bold; font-size: 1.1em;">${requestText}</span>
-                        <div style="font-size:0.7em; color:#aaa; margin-top:5px;">(Tap to change)</div>
+                
+                <div style="font-size:1.5em; color:#666;">⇄</div>
+                
+                <!-- REQUEST SIDE -->
+                <div style="width:40%; cursor:pointer;" onclick="window.openCardSelectorModal('request')">
+                    <p style="font-size:0.7em; color:#aaa; margin-bottom:5px; text-transform:uppercase;">You Want</p>
+                    <div style="border:1px dashed var(--accent-blue); padding:15px 5px; border-radius:8px; color:var(--accent-blue); font-weight:bold; min-height:50px; display:flex; align-items:center; justify-content:center;">
+                        ${requestName}
                     </div>
                 </div>
             </div>
             
-            <!-- Action Buttons -->
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                <button class="action-button small" onclick="window.openCardSelectorModal('offer')">
-                    1. Select from My Cards
-                </button>
-                <button class="action-button small" onclick="window.openCardSelectorModal('request')">
-                    2. Select from Catalog
-                </button>
-            </div>
-
-            <hr style="border-color: #333; margin-bottom: 20px;">
-
-            <button id="finalize-swap-btn" class="action-button" onclick="window.finalizeSwapRequest()" ${finalizeBtnStyle}>
-                Post Trade Offer
-            </button>
-            
-            <p style="margin-top: 20px; font-size: 0.8em; color:var(--text-secondary); line-height: 1.6;">
-                <span style="color:var(--danger-color);">Warning:</span> The card you offer will be <strong>locked</strong> immediately.
-                <br>It cannot be used or burned until the trade is completed or cancelled.
+            <!-- Info & Action -->
+            <p style="font-size:0.75em; color:#666; margin-bottom:20px; line-height:1.4;">
+                <span style="color:var(--danger-color);">Note:</span> The card you offer will be locked.<br>
+                It cannot be used until the trade ends.
             </p>
+
+            <button id="finalize-swap-btn" class="action-button" style="width:100%; opacity:${btnOpacity}; cursor:${btnCursor};" 
+                onclick="window.finalizeSwapRequest()" ${isValid ? '' : 'disabled'}>
+                Publish Offer
+            </button>
         </div>
     `;
 }
 
 /**
- * Opens a modal to select a card.
- * Handles two distinct modes:
- * 1. 'offer': Selects from USER INVENTORY (requires Instance ID for locking).
- * 2. 'request': Selects from GAME CATALOG (requires Master ID only).
- * 
- * @param {string} mode - 'offer' | 'request'
+ * Opens modal to select cards.
+ * Mode 'offer' = From User Inventory.
+ * Mode 'request' = From Master Game Catalog.
  */
 async function openCardSelectorModal(mode) {
-    let cardsToShow = [];
-    let title = "";
-
-    showToast("Loading data...", "info");
+    showToast("Loading...", "info");
+    
+    let listData = [];
+    let modalTitle = "";
 
     try {
         if (mode === 'offer') {
-            title = "Select a Card to Offer";
-            // API Call: Get User's Owned Cards
-            const { data: playerCards, error } = await api.fetchPlayerCards(state.currentUser.id);
-            if (error || !playerCards) return showToast("No data found.", 'error');
-            if (playerCards.length === 0) return showToast("Inventory is empty!", 'error');
+            modalTitle = "Select from your Collection";
+            const { data } = await api.fetchPlayerCards(state.currentUser.id);
             
-            // Map to view model (Include Instance ID)
-            cardsToShow = playerCards.map(pc => ({
-                id: pc.cards.id,
-                uniqueId: pc.instance_id, // Critical for locking
-                name: pc.cards.name,
-                image: pc.cards.image_url,
-                level: pc.level,
-                isLocked: pc.is_locked, // Visual indicator for unavailable cards
-                rarity: pc.cards.rarity_level
-            }));
-
-        } else if (mode === 'request') {
-            title = "Select a Card to Request";
-            // API Call: Get Master Catalog
-            const { data: masterCards, error } = await api.fetchAllMasterCards();
-            if (error || !masterCards) return showToast("Failed to load catalog.", 'error');
-
-            // Map to view model (No Instance ID needed)
-            cardsToShow = masterCards.map(mc => ({
-                id: mc.id,
-                uniqueId: null,
-                name: mc.name,
-                image: mc.image_url || 'images/default_card.png',
-                level: null,
-                isLocked: false,
-                rarity: mc.rarity_level || 0
-            }));
+            // Filter: Show unlocked cards only
+            if (data) {
+                listData = data.filter(pc => !pc.is_locked).map(pc => ({
+                    id: pc.cards.id,
+                    uniqueId: pc.instance_id,
+                    name: pc.cards.name,
+                    img: pc.cards.image_url,
+                    rarity: pc.cards.rarity_level
+                }));
+            }
+        } else {
+            modalTitle = "Select Desired Card";
+            const { data } = await api.fetchAllMasterCards();
+            
+            if (data) {
+                listData = data.map(mc => ({
+                    id: mc.id,
+                    uniqueId: null,
+                    name: mc.name,
+                    img: mc.image_url,
+                    rarity: mc.rarity_level || 0
+                }));
+            }
         }
 
-        // Build HTML Grid
-        let cardsHTML = cardsToShow.map(c => {
-            // Disable locked cards in 'offer' mode
-            const lockedStyle = c.isLocked ? 'opacity: 0.5; cursor: not-allowed; filter: grayscale(100%);' : 'cursor: pointer;';
-            const lockedBadge = c.isLocked ? '<div style="background:red; color:white; font-size:0.7em; padding:2px; border-radius:4px; position:absolute; top:5px; right:5px;">LOCKED</div>' : '';
-            const levelBadge = c.level ? `<div class="card-details"><span class="card-level">LVL ${c.level}</span></div>` : '';
-            
-            // Determine Rarity Border Color (Optional visual polish)
-            const rarityColor = getRarityColor(c.rarity);
-            
-            // Click Action
-            const clickAction = c.isLocked ? '' : `onclick="window.selectCardForSwap('${mode}', '${c.id}', '${c.uniqueId}', '${c.name}')"`;
+        if (listData.length === 0) return showToast("No cards found.", 'error');
 
+        // DOM Creation
+        const modalId = 'card-selector-modal';
+        let modal = document.getElementById(modalId);
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal-overlay hidden';
+            document.body.appendChild(modal);
+        }
+
+        const gridHTML = listData.map(c => {
+            const rarityColor = getRarityColor(c.rarity);
             return `
-                <div class="card-stack" style="${lockedStyle} border-color: ${rarityColor};" ${clickAction}>
-                    ${lockedBadge}
-                    <img src="${c.image || 'images/default_card.png'}" class="card-image">
-                    <h4>${c.name}</h4>
-                    ${levelBadge}
+                <div onclick="window.selectCardForSwap('${mode}', ${c.id}, '${c.uniqueId}', '${c.name}')" 
+                     style="text-align:center; cursor:pointer; padding:8px; background:#222; border-radius:8px; border:1px solid ${rarityColor};">
+                    <img src="${c.img || 'images/default_card.png'}" style="width:50px; height:50px; border-radius:4px; object-fit:cover;">
+                    <div style="font-size:0.7em; margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ddd;">
+                        ${c.name}
+                    </div>
                 </div>
             `;
         }).join('');
 
-        // Inject Modal to DOM (Singleton Pattern)
-        cardSelectorModal = document.getElementById('card-selector-modal');
-        if (!cardSelectorModal) {
-            cardSelectorModal = document.createElement('div');
-            cardSelectorModal.id = 'card-selector-modal';
-            cardSelectorModal.className = 'modal-overlay hidden';
-            document.body.appendChild(cardSelectorModal);
-        }
-        
-        cardSelectorModal.innerHTML = `
-            <div class="modal-content">
-                <button class="modal-close-btn" onclick="window.closeModal('card-selector-modal')">&times;</button>
-                <h3 style="color:var(--primary-accent); text-align:center;">${title}</h3>
-                <div class="card-grid" style="max-height: 60vh; overflow-y: auto; margin-top:15px;">
-                    ${cardsHTML}
+        modal.innerHTML = `
+            <div class="modal-content" style="max-height:70vh;">
+                <button class="modal-close-btn" onclick="window.closeModal('${modalId}')">&times;</button>
+                <h3 style="text-align:center; color:#fff; margin-bottom:15px;">${modalTitle}</h3>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; overflow-y:auto; max-height:50vh; padding-right:5px;">
+                    ${gridHTML}
                 </div>
             </div>
         `;
-        window.openModal('card-selector-modal');
+        openModal(modalId);
 
     } catch (e) {
         console.error(e);
-        showToast("Unexpected error.", 'error');
+        showToast("Error loading list.", 'error');
     }
 }
 
-/**
- * Callback function triggered when a user selects a card from the modal.
- * Updates the global SwapOfferData state and refreshes the UI.
- */
-window.selectCardForSwap = function(mode, masterId, uniqueId, name) {
-    if (!window.SwapOfferData) window.SwapOfferData = {};
-
+window.selectCardForSwap = (mode, masterId, uniqueId, name) => {
     if (mode === 'offer') {
         window.SwapOfferData.offerCardId = masterId;
-        window.SwapOfferData.offerInstanceId = uniqueId; // Needed for DB Lock
+        window.SwapOfferData.offerInstanceId = uniqueId;
         window.SwapOfferData.offerCardName = name;
     } else {
-        window.SwapOfferData.requestCardId = masterId;   // Needed for DB Request
+        window.SwapOfferData.requestCardId = masterId;
         window.SwapOfferData.requestCardName = name;
     }
-
     window.closeModal('card-selector-modal');
-    renderCreateRequestUI(); // Re-render to show selected names
-}
+    renderCreateRequestUI();
+};
 
-/**
- * Submits the final trade request to the API.
- * Locks the offered card and creates the swap_requests record.
- */
 async function finalizeSwapRequest() {
-    // 1. Validation
-    if (!window.SwapOfferData || !window.SwapOfferData.offerInstanceId) {
-        return showToast("Please select a card to offer first.", 'error');
-    }
-    if (!window.SwapOfferData.requestCardId) {
-        return showToast("Please select a card to request.", 'error');
-    }
+    const { offerInstanceId, offerCardId, requestCardId } = window.SwapOfferData;
     
-    showToast("Posting offer...", 'info');
+    if (!offerInstanceId || !requestCardId) return;
     
-    // 2. API Call
+    const btn = document.getElementById('finalize-swap-btn');
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+
     const { error } = await api.createSwapRequest(
         state.currentUser.id,
-        window.SwapOfferData.offerInstanceId, // Instance to lock
-        window.SwapOfferData.offerCardId,     // Type offered
-        window.SwapOfferData.requestCardId    // Type requested
+        offerInstanceId,
+        offerCardId,
+        requestCardId
     );
-    
-    // 3. Handle Result
-    if (!error) {
-        showToast("Trade Offer Created! Your card is locked.", 'success');
-        window.SwapOfferData = null; // Clear state
-        await refreshPlayerState();
-        handleSwapTabSwitch('my_requests'); // Redirect to My Requests
+
+    if (error) {
+        showToast(error.message, 'error');
+        btn.disabled = false;
+        btn.innerText = "Publish Offer";
     } else {
-        showToast(`Failed to create offer: ${error.message}`, 'error');
+        showToast("Offer published!", 'success');
+        window.SwapOfferData = { offerInstanceId: null, requestCardId: null }; // Reset
+        await refreshPlayerState();
+        handleSwapTabSwitch('my_requests');
     }
 }
 
-// --------------------------------------------------------
-// --- 3. BROWSING & ACCEPTING REQUESTS
-// --------------------------------------------------------
+// ========================================================
+// --- 3. BROWSE UI ---
+// ========================================================
 
-/**
- * Renders active requests from other players.
- */
 async function renderBrowseRequests() {
     const content = document.getElementById('swap-content-browse');
-    content.innerHTML = '<p style="text-align:center;">Loading market...</p>';
+    content.innerHTML = '<p style="text-align:center; padding:20px;">Refreshing market...</p>';
     
     const { data: requests, error } = await api.fetchActiveSwapRequests(state.currentUser.id);
 
-    if (error) return content.innerHTML = '<p class="error-error">Error loading data.</p>';
-    if (!requests || requests.length === 0) return content.innerHTML = '<p style="text-align:center; margin-top:20px; color:#aaa;">No active offers found. Be the first!</p>';
+    if (error) return content.innerHTML = `<p class="error-text">Connection error.</p>`;
+    if (!requests || requests.length === 0) return content.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">Market is currently empty.</p>';
 
     content.innerHTML = requests.map(req => {
-        const username = req.player_id_offering.substring(0, 8); // Masked ID
+        const shortUser = req.player_id_offering.slice(0, 6);
+        const offerColor = getRarityColor(req.offer_card.rarity_level);
+        const requestColor = getRarityColor(req.request_card.rarity_level);
+
         return `
-            <div class="swap-request-card">
-                <div class="card-header" style="display:flex; justify-content:space-between; font-size:0.8em; color:#888; margin-bottom:10px;">
-                    <span>Seller: <span style="color:#fff;">User-${username}</span></span>
-                    <span>${new Date(req.created_at).toLocaleDateString()}</span>
+            <div class="swap-card" style="background:#1a1a1a; border:1px solid #333; border-radius:12px; padding:12px; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.75em; color:#666; margin-bottom:10px;">
+                    <span>Merchant: <b style="color:#ccc;">${shortUser}</b></span>
+                    <span>Price: 0 🪙</span> <!-- Placeholder for future pricing -->
                 </div>
                 
-                <div class="trade-display-wrapper">
-                    <!-- Left: They Offer -->
-                    <div class="trade-card-item">
-                        <div style="position:relative;">
-                            <img src="${req.offer_card.image_url || 'images/default_card.png'}" alt="Offer">
-                            <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:0.7em; padding:2px;">OFFER</div>
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <!-- OFFER -->
+                    <div style="text-align:center; width:40%;">
+                        <div style="position:relative; display:inline-block;">
+                            <img src="${req.offer_card.image_url}" style="width:55px; height:55px; border-radius:6px; border:2px solid ${offerColor};">
+                            <div style="font-size:0.6em; background:#333; color:#fff; padding:1px 4px; border-radius:4px; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);">OFFER</div>
                         </div>
-                        <h4>${req.offer_card.name}</h4>
+                        <div style="font-size:0.75em; margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${req.offer_card.name}</div>
                     </div>
-                    
-                    <div class="trade-icon" style="align-self:center; font-size:1.5em; color:var(--primary-accent);">⇄</div>
-                    
-                    <!-- Right: They Want -->
-                    <div class="trade-card-item">
-                        <div style="position:relative;">
-                            <img src="${req.request_card.image_url || 'images/default_card.png'}" alt="Request" style="filter: sepia(0.5);">
-                            <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.7); font-size:0.7em; padding:2px;">REQUEST</div>
+
+                    <div style="color:var(--primary-accent); font-size:1.5em;">➜</div>
+
+                    <!-- REQUEST -->
+                    <div style="text-align:center; width:40%;">
+                        <div style="position:relative; display:inline-block;">
+                            <img src="${req.request_card.image_url}" style="width:55px; height:55px; border-radius:6px; border:2px dashed ${requestColor}; opacity:0.8;">
+                            <div style="font-size:0.6em; background:#333; color:#fff; padding:1px 4px; border-radius:4px; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);">WANT</div>
                         </div>
-                        <h4>${req.request_card.name}</h4>
+                        <div style="font-size:0.75em; margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${req.request_card.name}</div>
                     </div>
                 </div>
 
-                <div class="actions" style="text-align:center; margin-top:15px;">
-                    <button class="action-button small" onclick="window.handleAcceptSwap('${req.id}')">
-                        Accept Trade
-                    </button>
-                </div>
+                <button class="action-button small" style="width:100%; margin-top:15px; background:var(--accent-blue); border:none;" 
+                    onclick="window.handleAcceptSwap('${req.id}')">
+                    Accept Trade
+                </button>
             </div>
         `;
     }).join('');
 }
 
 /**
- * Triggered when a player clicks "Accept Trade".
- * Step 1: Verifies they have the requested card.
- * Step 2: Asks them to select WHICH specific copy to give.
+ * User clicks "Accept Trade".
+ * Validates ownership of the requested card before executing.
  */
 async function handleAcceptSwap(requestId) {
-    // Fetch request details to know what is needed
-    const { data: request, error: fetchError } = await api.supabaseClient
-        .from('swap_requests')
-        .select('item_id_request, request_card_details:item_id_request(name)')
-        .eq('id', requestId)
-        .single();
-        
-    if (fetchError || !request) return showToast("Offer no longer available.", 'error');
+    showToast("Checking requirements...", 'info');
 
-    const requiredCardId = request.item_id_request;
-    const requiredCardName = request.request_card_details.name;
-    
-    // Fetch player's cards
-    const { data: myCards, error: cardsError } = await api.fetchPlayerCards(state.currentUser.id);
-    
-    // Filter: Do I have the required card? And is it unlocked?
-    const matchingCards = myCards.filter(pc => pc.card_id === requiredCardId && !pc.is_locked);
-    
-    if (matchingCards.length === 0) {
-        return showToast(`You do not own a "${requiredCardName}" to trade.`, 'error');
+    const { data: request } = await api.supabaseClient.from('swap_requests').select('*, item_id_request').eq('id', requestId).single();
+    if (!request) return showToast("Offer expired.", 'error');
+
+    // Check Inventory
+    const { data: myCards } = await api.fetchPlayerCards(state.currentUser.id);
+    const matching = myCards.filter(c => c.card_id === request.item_id_request && !c.is_locked);
+
+    if (matching.length === 0) {
+        return showToast("You don't have the required card to trade.", 'error');
     }
 
-    // Show selection modal
-    let modal = document.getElementById('accept-selector-modal');
+    // Show Instance Selector
+    const modalId = 'accept-selector-modal';
+    let modal = document.getElementById(modalId);
     if (!modal) {
         modal = document.createElement('div');
-        modal.id = 'accept-selector-modal';
+        modal.id = modalId;
         modal.className = 'modal-overlay hidden';
         document.body.appendChild(modal);
     }
-    
-    const cardsHTML = matchingCards.map(pc => `
-        <div class="card-stack" onclick="window.executeAcceptance('${requestId}', '${pc.instance_id}')" style="cursor:pointer;">
-            <img src="${pc.cards.image_url || 'images/default_card.png'}" class="card-image">
-            <h4>${pc.cards.name}</h4>
-            <div class="card-details">LVL ${pc.level}</div>
+
+    const listHTML = matching.map(c => `
+        <div onclick="window.executeAcceptance('${requestId}', '${c.instance_id}')" 
+             style="background:#252525; padding:10px; margin-bottom:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; border:1px solid #444;">
+             <div style="display:flex; align-items:center; gap:10px;">
+                <img src="${c.cards.image_url}" style="width:40px; height:40px; border-radius:4px;">
+                <div>
+                    <div style="color:#fff; font-size:0.9em;">${c.cards.name}</div>
+                    <div style="font-size:0.75em; color:#888;">Lvl ${c.level} • Pwr ${c.power_score}</div>
+                </div>
+             </div>
+             <div style="color:var(--success-color); font-weight:bold; font-size:0.8em;">SELECT</div>
         </div>
     `).join('');
-    
+
     modal.innerHTML = `
         <div class="modal-content">
-            <button class="modal-close-btn" onclick="window.closeModal('accept-selector-modal')">&times;</button>
-            <h3>Complete Trade</h3>
-            <p>You own ${matchingCards.length} copies of "${requiredCardName}".<br>Select which one to trade:</p>
-            <div class="card-grid">${cardsHTML}</div>
+            <button class="modal-close-btn" onclick="window.closeModal('${modalId}')">&times;</button>
+            <h3>Confirm Payment</h3>
+            <p style="font-size:0.85em; color:#aaa; margin-bottom:15px;">Select which copy you want to give:</p>
+            <div style="max-height:300px; overflow-y:auto;">
+                ${listHTML}
+            </div>
         </div>
     `;
-    window.openModal('accept-selector-modal');
+    openModal(modalId);
 }
 
-/**
- * Step 3: Executes the actual trade via Atomic DB Function.
- */
-async function executeAcceptance(requestId, counterOfferInstanceId) {
+async function executeAcceptance(requestId, paymentInstanceId) {
     window.closeModal('accept-selector-modal');
-    showToast("Processing trade...", 'info');
-    
-    // Calls the secure RPC function we updated
+    showToast("Executing trade...", 'info');
+
     const { error, newCardName } = await api.acceptSwapRequest(
         requestId,
         state.currentUser.id,
-        counterOfferInstanceId 
+        paymentInstanceId
     );
-    
-    if (!error) {
-        showToast(`Trade successful! You received: ${newCardName}`, 'success');
-        await refreshPlayerState();
-        renderBrowseRequests(); // Refresh list
+
+    if (error) {
+        showToast(error.message, 'error');
     } else {
-        showToast(`Trade failed: ${error.message}`, 'error');
+        showToast(`Trade Complete! Received: ${newCardName}`, 'success');
+        await refreshPlayerState();
+        renderBrowseRequests();
     }
 }
 
-// --------------------------------------------------------
-// --- 4. MANAGE MY REQUESTS
-// --------------------------------------------------------
+// ========================================================
+// --- 4. MY REQUESTS UI ---
+// ========================================================
 
 async function renderMyRequests() {
     const content = document.getElementById('swap-content-my_requests');
-    content.innerHTML = '<p style="text-align:center;">Loading...</p>';
+    content.innerHTML = '<p style="text-align:center;">Syncing...</p>';
     
     const { data: requests, error } = await api.fetchMySwapRequests(state.currentUser.id);
 
-    if (error) return content.innerHTML = '<p class="error-error">Error loading requests.</p>';
-    if (requests.length === 0) return content.innerHTML = '<p style="text-align:center; margin-top:20px;">You have no active trade offers.</p>';
+    if (error) return content.innerHTML = '<p class="error-text">Network error.</p>';
+    if (!requests || requests.length === 0) return content.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">You have no active offers.</p>';
 
-    content.innerHTML = requests.map(req => {
-        return `
-            <div class="swap-request-card my-request" style="border-left: 4px solid var(--primary-accent);">
-                <div class="card-header">
-                    <span style="color:var(--primary-accent);">My Offer</span>
-                    <span>${new Date(req.created_at).toLocaleDateString()}</span>
+    content.innerHTML = requests.map(req => `
+        <div class="swap-card" style="background:#1e1e1e; border-left:4px solid var(--primary-accent); border-radius:10px; padding:15px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#888; margin-bottom:10px;">
+                <span style="color:var(--primary-accent); font-weight:bold;">ACTIVE OFFER</span>
+                <span>${new Date(req.created_at).toLocaleDateString()}</span>
+            </div>
+            
+            <div style="display:flex; align-items:center; justify-content:space-around;">
+                <div style="text-align:center;">
+                    <img src="${req.offer_card.image_url}" style="width:45px; height:45px; border-radius:5px; opacity:0.7;">
+                    <div style="font-size:0.7em;">You Give</div>
                 </div>
-                
-                <div class="trade-display-wrapper">
-                    <div class="trade-card-item">
-                        <img src="${req.offer_card.image_url || 'images/default_card.png'}" style="border: 2px solid var(--success-color);">
-                        <p>Giving</p>
-                        <h4>${req.offer_card.name}</h4>
-                    </div>
-                    <div class="trade-icon">➡️</div>
-                    <div class="trade-card-item">
-                        <img src="${req.request_card.image_url || 'images/default_card.png'}" style="border: 2px dashed var(--accent-blue);">
-                        <p>Asking For</p>
-                        <h4>${req.request_card.name}</h4>
-                    </div>
-                </div>
-
-                <div class="actions" style="justify-content:center;">
-                    <button class="action-button small danger" onclick="window.handleCancelOffer('${req.id}')">
-                        Cancel & Refund Card
-                    </button>
+                <div style="font-size:1.2em;">➜</div>
+                <div style="text-align:center;">
+                    <img src="${req.request_card.image_url}" style="width:45px; height:45px; border-radius:5px; opacity:0.7;">
+                    <div style="font-size:0.7em;">You Ask</div>
                 </div>
             </div>
-        `;
-    }).join('');
+
+            <button class="action-button small danger" style="width:100%; margin-top:15px;" onclick="window.handleCancelOffer('${req.id}')">
+                Cancel Offer
+            </button>
+        </div>
+    `).join('');
 }
 
-/**
- * Cancels the offer and unlocks the card.
- * Export added to prevent import errors in other modules.
- */
 export async function handleCancelOffer(requestId) {
-    if(!confirm("Are you sure you want to cancel this offer and unlock your card?")) return;
-    
-    showToast("Cancelling...", 'info');
-    
-    // Fetch missing details first (need instance ID to unlock)
-    const { data: request } = await api.supabaseClient
-        .from('swap_requests')
-        .select('card_instance_id_offer, player_id_offering')
-        .eq('id', requestId)
-        .single();
+    if (!confirm("Cancel this offer? Your card will be returned to you.")) return;
 
+    // Need to fetch request first to know which instance to unlock
+    const { data: request } = await api.supabaseClient.from('swap_requests').select('card_instance_id_offer, player_id_offering').eq('id', requestId).single();
+    
     if (request) {
-        const { error } = await api.cancelSwapRequest(
-            requestId,
-            request.player_id_offering,
-            request.card_instance_id_offer
-        );
-        
+        const { error } = await api.cancelSwapRequest(requestId, request.player_id_offering, request.card_instance_id_offer);
         if (!error) {
-            showToast("Offer cancelled. Card unlocked.", 'success');
+            showToast("Offer cancelled.", 'success');
             await refreshPlayerState();
             renderMyRequests();
         } else {
-            showToast("Cancellation failed.", 'error');
+            showToast("Failed to cancel.", 'error');
         }
     }
 }
 
-// --- Helper: Rarity Color Logic ---
+// ========================================================
+// --- HELPER & BINDING ---
+// ========================================================
+
 function getRarityColor(level) {
     switch(level) {
-        case 0: return '#95a5a6'; // Common (Gray)
-        case 2: return '#3498db'; // Rare (Blue)
-        case 4: return '#9b59b6'; // Epic (Purple)
-        case 6: return '#f39c12'; // Legendary (Orange)
-        case 8: return '#f1c40f'; // Diamond (Gold)
-        default: return '#555';
+        case 0: return '#95a5a6';
+        case 2: return '#3498db';
+        case 4: return '#9b59b6';
+        case 6: return '#f39c12';
+        case 8: return '#f1c40f';
+        default: return '#666';
     }
 }
 
-// --------------------------------------------------------
-// --- GLOBAL SCOPE EXPOSURE (Vital for HTML onclicks)
-// --------------------------------------------------------
-window.handleCancelOffer = handleCancelOffer;
+// Export global handlers for HTML onclick
+window.openCardSelectorModal = openCardSelectorModal;
+window.selectCardForSwap = (mode, masterId, uniqueId, name) => {
+    if (mode === 'offer') {
+        window.SwapOfferData.offerCardId = masterId;
+        window.SwapOfferData.offerInstanceId = uniqueId;
+        window.SwapOfferData.offerCardName = name;
+    } else {
+        window.SwapOfferData.requestCardId = masterId;
+        window.SwapOfferData.requestCardName = name;
+    }
+    window.closeModal('card-selector-modal');
+    renderCreateRequestUI();
+};
+window.finalizeSwapRequest = finalizeSwapRequest;
 window.handleAcceptSwap = handleAcceptSwap;
 window.executeAcceptance = executeAcceptance;
-window.openCardSelectorModal = openCardSelectorModal;
-window.selectCardForSwap = selectCardForSwap;
-window.finalizeSwapRequest = finalizeSwapRequest;
+window.handleCancelOffer = handleCancelOffer;
