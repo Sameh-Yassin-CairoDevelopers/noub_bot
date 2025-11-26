@@ -1,10 +1,9 @@
 /*
  * Filename: js/auth.js
- * Version: NOUB v3.0.0 (Pure JS Seeding)
+ * Version: NOUB v3.1.0 (Client-Side Profile Creation)
  * Description: 
- * Manages User Authentication and Initialization.
- * CRITICAL: Handles "Seeding" (Starter Pack) via explicit API calls 
- * to ensure the player has factories and currency upon first login.
+ * Handles Auth & Initialization.
+ * KEY CHANGE: explicitly INSERTS the profile row since SQL triggers are removed.
  */
 
 import { supabaseClient } from './config.js';
@@ -23,7 +22,7 @@ const STARTER_CONFIG = {
     NOUB: 2000,
     PRESTIGE: 10,
     TICKETS: 5,
-    FACTORIES: [1, 2, 3] // IDs for Limestone, Papyrus, Clay
+    FACTORIES: [1, 2, 3]
 };
 
 // --- UI Toggles ---
@@ -39,44 +38,47 @@ window.showRegisterForm = showRegisterForm;
 window.showLoginForm = showLoginForm;
 
 /**
- * SEEDING PROTOCOL:
- * Grants initial assets to a new player using direct API calls.
- * This replaces SQL Triggers for better control and debugging.
+ * SEEDING PROTOCOL (Pure JS):
+ * Creates the profile row AND grants starter assets.
  */
-async function seedNewPlayer(userId) {
-    console.log(`🌱 Seeding new player: ${userId}`);
+async function seedNewPlayer(user) {
+    console.log(`🌱 Creating profile for: ${user.id}`);
     
-    // 1. Grant Currency & Status
-    const { error: profileError } = await api.updatePlayerProfile(userId, {
-        noub_score: STARTER_CONFIG.NOUB,
-        prestige: STARTER_CONFIG.PRESTIGE,
-        spin_tickets: STARTER_CONFIG.TICKETS,
-        level: 1,
-        is_new_player: false // Mark as seeded
-    });
+    // 1. CREATE PROFILE ROW (Upsert handles insertion if missing)
+    const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .upsert({
+            id: user.id,
+            username: user.user_metadata?.username || 'Explorer',
+            noub_score: STARTER_CONFIG.NOUB,
+            prestige: STARTER_CONFIG.PRESTIGE,
+            spin_tickets: STARTER_CONFIG.TICKETS,
+            level: 1,
+            created_at: new Date(),
+            is_new_player: false // Mark as seeded immediately
+        });
     
     if (profileError) {
-        console.error("Seeding Profile Error:", profileError);
+        console.error("Profile Creation Error:", profileError);
+        showToast("فشل إنشاء الملف الشخصي. حاول مجدداً.", 'error');
         return false;
     }
     
-    // 2. Construct Initial Factories
-    // execute sequentially to ensure stability
+    // 2. Grant Initial Factories
     for (const factoryId of STARTER_CONFIG.FACTORIES) {
-        await api.buildFactory(userId, factoryId);
+        await api.buildFactory(user.id, factoryId);
     }
     
-    await api.logActivity(userId, 'STARTER_PACK', `Kingdom established. Welcome, Scribe.`);
+    await api.logActivity(user.id, 'STARTER_PACK', `Kingdom established.`);
     return true;
 }
 
 /**
- * SYNC: Refreshes all local state from the database.
+ * SYNC: Refreshes all local state.
  */
 export async function refreshPlayerState() {
     if (!state.currentUser) return;
     
-    // Parallel Fetching for Performance
     const [profileResult, inventoryResult, consumablesResult, ucpResult, specializationsResult] = await Promise.all([
         api.fetchProfile(state.currentUser.id),
         api.fetchPlayerInventory(state.currentUser.id),
@@ -85,7 +87,6 @@ export async function refreshPlayerState() {
         api.fetchPlayerSpecializations(state.currentUser.id) 
     ]);
 
-    // Update State Objects
     if (profileResult.data) {
         state.playerProfile = profileResult.data;
         updateHeaderUI(state.playerProfile);
@@ -121,37 +122,34 @@ export async function refreshPlayerState() {
 }
 
 /**
- * MAIN INIT: Handles the logic after a user is authenticated.
+ * MAIN INIT
  */
 async function initializeApp(user) {
     state.currentUser = user;
     
-    // Check if profile exists (basic check)
+    // Check if profile exists
     const { data: profile } = await api.fetchProfile(user.id);
 
-    // Determine if Seeding is needed
-    // Either profile is missing, or 'is_new_player' flag is true
-    if (!profile || profile.is_new_player) {
-        showToast("Initializing your legacy...", 'info');
-        const success = await seedNewPlayer(user.id);
-        if (!success) {
-            showToast("Initialization failed. Please refresh.", 'error');
-            return;
-        }
+    // If NO profile, creates one (First time login)
+    if (!profile) {
+        showToast("Initializing Kingdom...", 'info');
+        const success = await seedNewPlayer(user);
+        if (!success) return; // Stop if failed
     }
 
-    // Load Game Data
     await refreshPlayerState();
 
     if (!state.playerProfile) {
-        showToast("Network Error: Could not load profile.", 'error'); 
-        return;
+        // Fallback: If refresh failed but user exists, try seeding one last time
+        await seedNewPlayer(user);
+        await refreshPlayerState();
     }
     
-    // Launch UI
-    authOverlay.classList.add('hidden');
-    appContainer.classList.remove('hidden');
-    navigateTo('home-screen');
+    if (state.playerProfile) {
+        authOverlay.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+        navigateTo('home-screen');
+    }
 }
 
 // --- Auth Actions ---
@@ -164,8 +162,6 @@ async function login(email, password) {
 }
 
 async function signUp(email, password, username) {
-    // Only creates the Auth User. The Profile Trigger (SQL) handles the basic row creation,
-    // and 'seedNewPlayer' (JS) handles the game data.
     const { data, error } = await supabaseClient.auth.signUp({
         email,
         password,
@@ -175,9 +171,8 @@ async function signUp(email, password, username) {
     if (error) return { error };
 
     if (data.user) {
-        showToast('Account created! Logging in...', 'success');
-        // Auto-login after signup
-        await initializeApp(data.user); 
+        // Force init to ensure profile creation happens NOW
+        await initializeApp(data.user);
         return { message: 'Success' };
     }
     
@@ -186,7 +181,7 @@ async function signUp(email, password, username) {
 
 export async function logout() {
     await supabaseClient.auth.signOut();
-    window.location.reload(); // Hard reset to clear all state
+    window.location.reload();
 }
 
 // --- Event Listeners ---
