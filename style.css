@@ -1563,16 +1563,18 @@ input:focus, textarea:focus, select:focus {
     transform: rotateY(180deg); /* Flip the arrow for RTL */
 }
 
-/* Soul Card Special Effects */
+/* Soul Card Specific Styles */
 .soul-card {
+    background: linear-gradient(135deg, #1a1a1a, #000000);
     border: 2px solid var(--primary-accent);
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
-    animation: soulPulse 3s infinite;
-    background: linear-gradient(to bottom, #222, #000);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); /* Gold Glow */
+    animation: soulPulse 4s infinite ease-in-out;
+    position: relative;
+    overflow: hidden;
 }
 
 @keyframes soulPulse {
-    0% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
-    50% { box-shadow: 0 0 25px rgba(212, 175, 55, 0.8); border-color: #fff; }
-    100% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+    0% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); border-color: #8a7020; }
+    50% { box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); border-color: #fff; }
+    100% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); border-color: #8a7020; }
 }
