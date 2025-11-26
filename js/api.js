@@ -470,6 +470,27 @@ export async function acceptSwapRequest(requestId, playerReceivingId, counterOff
     return { error: null, newCardName: data.new_card_name };
 }
 
+/**
+ * Calls the secure Database RPC to mint the Soul Card based on user DNA.
+ */
+export async function mintUserSoulCard(playerId) {
+    // استدعاء دالة الـ SQL التي بنيناها
+    const { data, error } = await supabaseClient.rpc('mint_soul_card', {
+        p_player_id: playerId
+    });
+
+    if (error) {
+        console.error("Minting Error:", error);
+        return { error: { message: "فشل الاتصال ببروتوكول التجسيد." } };
+    }
+
+    // التحقق من الرسائل المنطقية القادمة من قاعدة البيانات
+    if (!data.success) {
+        return { error: { message: data.message } };
+    }
+
+    return { data, error: null };
+}
 
 
 
