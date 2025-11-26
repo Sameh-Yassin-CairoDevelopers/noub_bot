@@ -1562,3 +1562,17 @@ input:focus, textarea:focus, select:focus {
 [dir="rtl"] #swap-icon-btn {
     transform: rotateY(180deg); /* Flip the arrow for RTL */
 }
+
+/* Soul Card Special Effects */
+.soul-card {
+    border: 2px solid var(--primary-accent);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    animation: soulPulse 3s infinite;
+    background: linear-gradient(to bottom, #222, #000);
+}
+
+@keyframes soulPulse {
+    0% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+    50% { box-shadow: 0 0 25px rgba(212, 175, 55, 0.8); border-color: #fff; }
+    100% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+}
