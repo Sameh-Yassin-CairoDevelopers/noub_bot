@@ -198,11 +198,29 @@ export async function fetchAllMasterFactories() {
 }
 
 export async function fetchPlayerFactories(playerId) {
+    // تم تبسيط الاستعلام لإصلاح خطأ العلاقات (Error 400)
     return await supabaseClient
         .from('player_factories')
-        .select(`id, level, production_start_time, assigned_card_instance_id, 
-                factories!inner (id, name, output_item_id, base_production_time, type, image_url), 
-                factory_recipes (input_quantity, items (id, name))`)
+        .select(`
+            id, 
+            level, 
+            production_start_time, 
+            assigned_card_instance_id,
+            factories!inner (
+                id, 
+                name, 
+                output_item_id, 
+                base_production_time, 
+                type, 
+                image_url,
+                required_level,
+                build_cost_noub,
+                factory_recipes (
+                    input_quantity,
+                    items (id, name)
+                )
+            )
+        `)
         .eq('player_id', playerId);
 }
 
@@ -561,3 +579,4 @@ export async function cancelSwapRequest(requestId, playerOfferingId, offeredInst
         .update({ status: 'cancelled' })
         .eq('id', requestId);
 }
+
