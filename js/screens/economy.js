@@ -1,10 +1,10 @@
 /*
  * Filename: js/screens/economy.js
- * Version: NOUB v4.0.0 (The Definitive Restoration)
+ * Version: NOUB v4.1.0 (Original UI Restoration)
  * Description: 
- * Central Economy Controller.
- * RESTORED: Full UI Layout for Production Modal, Expert Cards, and Progress Bars.
- * INTEGRATED: Pure JS API logic for all transactions.
+ * Restores the EXACT UI layout for Factory Modal and Expert Cards.
+ * Fixes Audio 404s and removes custom icons.
+ * Integrates Pure JS API logic seamlessly.
  */
 
 import { state } from '../state.js';
@@ -73,7 +73,6 @@ async function handleSelectSpecialization(pathId) {
     
     const { error: unlockError } = await api.unlockSpecialization(state.currentUser.id, pathId);
     if (unlockError) {
-        console.error("Unlock Error:", unlockError);
         return showToast('Error unlocking path.', 'error');
     }
 
@@ -83,7 +82,6 @@ async function handleSelectSpecialization(pathId) {
         for (const factoryId of factoryIdsToSeed) {
              await api.buildFactory(state.currentUser.id, factoryId);
         }
-        showToast(`New workshops constructed!`, 'success');
     }
     
     await refreshPlayerState(); 
@@ -104,17 +102,13 @@ function renderSpecializationChoice() {
         if (pathsToDisplay.length === 0) return;
 
         const modalHTML = `
-            <div class="modal-content specialization-choice-container" style="text-align:center;">
-                <h2 style="color:var(--primary-accent); margin-bottom:10px;">Choose Your Path</h2>
-                <p style="color:#aaa; font-size:0.9em; margin-bottom:20px;">
-                    Level ${SPECIALIZATION_UNLOCK_LEVEL} Reached. Select a guild to unlock advanced technology.
-                </p>
-                <div id="specialization-options" style="display:grid; gap:12px;">
+            <div class="modal-content specialization-choice-container">
+                <h2>Choose Your Path</h2>
+                <div id="specialization-options">
                     ${pathsToDisplay.map(path => `
-                        <div class="specialization-card" data-path-id="${path.id}" 
-                             style="background:#222; border:1px solid var(--primary-accent); padding:15px; border-radius:10px; cursor:pointer; transition:0.2s;">
-                            <h3 style="margin:0; color:#fff;">${path.name}</h3>
-                            <p style="font-size:0.8em; color:#888; margin-top:5px;">${path.description}</p>
+                        <div class="specialization-card" data-path-id="${path.id}">
+                            <h3>${path.name}</h3>
+                            <p>${path.description}</p>
                         </div>
                     `).join('')}
                 </div>
@@ -137,12 +131,10 @@ async function handleBuildFactory(masterFactory) {
     const buildCostNoub = masterFactory.build_cost_noub || 1000; 
 
     if ((state.playerProfile.noub_score || 0) < buildCostNoub) {
-        return showToast(`Insufficient Funds. Need ${buildCostNoub} 🪙`, 'error');
+        return showToast(`Not enough NOUB. Requires ${buildCostNoub} 🪙.`, 'error');
     }
 
-    if (!confirm(`Construct ${masterFactory.name} for ${buildCostNoub} NOUB?`)) return;
-
-    showToast(`Building...`, 'info');
+    if (!confirm(`Build ${masterFactory.name} for ${buildCostNoub} NOUB?`)) return;
 
     const { error: costError } = await api.updatePlayerProfile(state.currentUser.id, {
         noub_score: (state.playerProfile.noub_score || 0) - buildCostNoub
@@ -153,7 +145,7 @@ async function handleBuildFactory(masterFactory) {
     const { error: buildError } = await api.buildFactory(state.currentUser.id, masterFactory.id);
     if (buildError) return showToast('Construction Error.', 'error');
 
-    playSound('construction');
+    playSound('click'); // Standard UI Sound
     showToast(`${masterFactory.name} Ready!`, 'success');
     await refreshPlayerState();
     renderProduction();
@@ -163,10 +155,9 @@ async function executeFactoryUpgrade(playerFactory) {
     if (!state.currentUser || !playerFactory) return;
 
     if (playerFactory.level >= FACTORY_UPGRADE_LEVEL_CAP) {
-        return showToast('Factory is at Max Level.', 'info');
+        return showToast('Max Level Reached.', 'info');
     }
 
-    // Resource Check
     const requiredMaterialEntry = Array.from(state.inventory.values()).find(item => 
         item.details.name === FACTORY_UPGRADE_ITEM_NAME
     );
@@ -178,16 +169,12 @@ async function executeFactoryUpgrade(playerFactory) {
         return showToast(`Upgrade requires: ${FACTORY_UPGRADE_COST}🪙 and ${FACTORY_UPGRADE_QTY} Blocks`, 'error');
     }
 
-    showToast('Upgrading...', 'info');
-
-    // Deduct
     const newNoub = playerNoub - FACTORY_UPGRADE_COST;
     const newMaterialQty = playerMaterialQty - FACTORY_UPGRADE_QTY;
     
     await api.updatePlayerProfile(state.currentUser.id, { noub_score: newNoub });
     await api.updateItemQuantity(state.currentUser.id, materialId, newMaterialQty);
 
-    // Update Factory
     const newLevel = playerFactory.level + 1;
     const { error } = await api.updatePlayerFactoryLevel(playerFactory.id, newLevel); 
     
@@ -197,8 +184,6 @@ async function executeFactoryUpgrade(playerFactory) {
     
     showToast(`Upgraded to Level ${newLevel}!`, 'success');
     await refreshPlayerState(); 
-    
-    // Re-open modal to show new stats if needed, or just refresh grid
     renderProduction();
 }
 
@@ -207,7 +192,6 @@ async function executeFactoryUpgrade(playerFactory) {
 // ========================================================
 
 async function handleStartProduction(factoryId, recipes) {
-    // Validate
     for (const r of recipes) {
         const current = state.inventory.get(r.items.id)?.qty || 0;
         if (current < r.input_quantity) {
@@ -215,9 +199,6 @@ async function handleStartProduction(factoryId, recipes) {
         }
     }
     
-    showToast('Starting...', 'info');
-
-    // Consume
     for (const r of recipes) {
         const current = state.inventory.get(r.items.id)?.qty || 0;
         await api.updateItemQuantity(state.currentUser.id, r.items.id, current - r.input_quantity);
@@ -230,19 +211,15 @@ async function handleStartProduction(factoryId, recipes) {
     
     showToast('Production Started.', 'success');
     await refreshPlayerState();
-    renderProduction(); // Will auto-refresh modal via updateProductionCard logic if open? 
-    // Better to just close modal to force refresh visual
+    renderProduction(); 
     window.closeModal('production-modal');
     renderProduction();
 }
 
 async function handleClaimProduction(playerFactory, outputItem) {
-    showToast('Claiming...', 'info');
-    
     const currentQty = state.inventory.get(outputItem.id)?.qty || 0;
     let quantityProduced = 1;
     
-    // Expert Bonus Logic
     const assignedCard = playerFactory.player_cards;
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
@@ -250,7 +227,7 @@ async function handleClaimProduction(playerFactory, outputItem) {
             const chance = effect.values[Math.min(assignedCard.level-1, 4)];
             if (Math.random() * 100 < chance) {
                 quantityProduced = 2;
-                showToast("Expert Bonus! x2 Output", 'success');
+                showToast("Expert Bonus! Double Production!", 'success');
             }
         }
     }
@@ -259,7 +236,7 @@ async function handleClaimProduction(playerFactory, outputItem) {
     
     if (error) return showToast('Claim Error.', 'error');
 
-    playSound('claim_reward');
+    playSound('claim_reward'); // Known sound
     trackDailyActivity('resources', quantityProduced, outputItem.name);
     await trackTaskProgress('production_claim', 1);
     await api.addXp(state.currentUser.id, 5);
@@ -271,21 +248,17 @@ async function handleClaimProduction(playerFactory, outputItem) {
 }
 
 // ========================================================
-// --- 6. UI RENDERING (Restored to Original Specs) ---
+// --- 6. UI RENDERING (RESTORED ORIGINAL LOOK) ---
 // ========================================================
 
-/**
- * Handles the live update of the production timer and progress bar inside the card/modal.
- */
 function updateProductionCard(factory, outputItem) {
     const cardId = `factory-card-${factory.factories.id}`;
     const card = document.getElementById(cardId);
-    // If modal is open, update modal timer too
     const modalTimer = document.querySelector('#production-modal .prod-timer');
     
     if (!card && !modalTimer) return;
 
-    const itemName = outputItem ? outputItem.name : "Resource";
+    const itemName = outputItem ? outputItem.name : "Item";
     const assignedCard = factory.player_cards;
     const startTime = factory.production_start_time;
     
@@ -303,7 +276,6 @@ function updateProductionCard(factory, outputItem) {
         const timeElapsed = new Date().getTime() - new Date(startTime).getTime();
         const timeLeft = masterTime - timeElapsed;
 
-        // Update Grid Card
         if (card) {
             const statusEl = card.querySelector('.status');
             const progressEl = card.querySelector('.progress-bar-inner');
@@ -318,16 +290,12 @@ function updateProductionCard(factory, outputItem) {
             }
         }
 
-        // Update Modal
         if (modalTimer && !modalTimer.closest('.hidden')) {
             const modalTimeEl = modalTimer.querySelector('.time-left');
             const modalProgEl = modalTimer.querySelector('.progress-bar-inner');
-            
             if (timeLeft <= 0) {
-                if(modalTimeEl) modalTimeEl.innerHTML = `<span style="color:var(--success-color)">COMPLETE</span>`;
+                if(modalTimeEl) modalTimeEl.textContent = "COMPLETED";
                 if(modalProgEl) modalProgEl.style.width = '100%';
-                // Reload modal content to show Claim button? 
-                // Complex in animation frame. Better to let user click Claim button (which is enabled).
             } else {
                 if(modalTimeEl) modalTimeEl.textContent = `Time Left: ${formatTime(timeLeft)}`;
                 if(modalProgEl) modalProgEl.style.width = `${(timeElapsed / masterTime) * 100}%`;
@@ -338,7 +306,6 @@ function updateProductionCard(factory, outputItem) {
             requestAnimationFrame(() => updateProductionCard(factory, outputItem));
         }
     } else {
-        // Reset
         if (card) {
             card.querySelector('.status').textContent = 'Idle';
             card.querySelector('.progress-bar-inner').style.width = '0%';
@@ -347,7 +314,6 @@ function updateProductionCard(factory, outputItem) {
 }
 
 function openProductionModal(playerFactory, outputItem) {
-    // SAFETY: Prevent crash if DB join failed
     if (!outputItem) {
         outputItem = { id:0, name:"Unknown", image_url:"images/default_item.png" };
     }
@@ -357,7 +323,6 @@ function openProductionModal(playerFactory, outputItem) {
     const startTime = playerFactory.production_start_time;
     const assignedCard = playerFactory.player_cards;
 
-    // Recalculate time with expert
     if (assignedCard && EXPERT_EFFECTS[assignedCard.cards.name]) {
         const effect = EXPERT_EFFECTS[assignedCard.cards.name];
         if (effect.type === 'TIME_REDUCTION_PERCENT') {
@@ -366,117 +331,83 @@ function openProductionModal(playerFactory, outputItem) {
         }
     }
     
-    // Recipe Check
     const recipes = factory.factory_recipes || [];
     let canStart = true;
     const requirementsHTML = recipes.map(r => {
         const myQty = state.inventory.get(r.items.id)?.qty || 0;
         if (myQty < r.input_quantity) canStart = false;
-        
-        return `
-            <div class="prod-item" style="text-align:center;">
-                <img src="${r.items.image_url}" style="width:35px; margin-bottom:3px;">
-                <p style="font-size:0.8em; margin:0;">${r.input_quantity} x ${r.items.name}</p>
-                <div class="label" style="font-size:0.7em; color:${myQty >= r.input_quantity ? '#0f0' : '#f55'}">
-                    (Has: ${myQty})
-                </div>
-            </div>
-        `;
+        return `<div class="prod-item"><img src="${r.items.image_url}"><p>${r.input_quantity} x <span style="color:${myQty >= r.input_quantity ? 'var(--success-color)' : 'var(--danger-color)'}">${r.items.name}</span></p><div class="label">(Has: ${myQty})</div></div>`;
     }).join('');
     
     const isRunning = startTime !== null;
-    let timeElapsed = isRunning ? (new Date().getTime() - new Date(startTime).getTime()) : 0;
-    let timeLeft = masterTime - timeElapsed;
-    if (timeLeft < 0) timeLeft = 0;
-
-    // --- 1. ACTION BUTTON ---
     let buttonHTML = '';
+    let timeElapsed = isRunning ? (new Date().getTime() - new Date(startTime).getTime()) : 0;
+    const timeLeft = masterTime - timeElapsed;
+
     if (isRunning) {
-        if (timeLeft <= 0) {
-            buttonHTML = `<button id="claim-prod-btn" class="action-button" style="width:100%; background:var(--success-color);">✨ Claim ${outputItem.name}</button>`;
-        } else {
-            buttonHTML = `<button class="action-button" disabled style="width:100%; opacity:0.6;">Production in Progress...</button>`;
-        }
+        buttonHTML = (timeLeft <= 0) 
+            ? `<button id="claim-prod-btn" class="action-button">Claim ${outputItem.name}</button>` 
+            : `<button class="action-button" disabled>Working...</button>`;
     } else {
-        buttonHTML = `<button id="start-prod-btn" class="action-button" style="width:100%;" ${canStart ? '' : 'disabled'}>Start Production</button>`;
+        buttonHTML = `<button id="start-prod-btn" class="action-button" ${canStart ? '' : 'disabled'}>Start Production</button>`;
     }
 
-    // --- 2. EXPERT SECTION (Restored Layout) ---
-    let expertSectionHTML = `<div id="expert-assignment-section" style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">`;
-    
+    // --- EXPERT CARD UI RESTORATION ---
+    let expertSectionHTML = `<div id="expert-assignment-section" style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;"><h4>Assigned Expert</h4>`;
     if (assignedCard) {
-        // The "Good" Layout: Card Stack style
+        // Render it EXACTLY like a 'card-stack' to match the user's preference
         expertSectionHTML += `
-            <h4 style="text-align:center; margin-bottom:8px; color:#aaa; font-size:0.9em;">Assigned Expert</h4>
-            <div class="expert-card" style="display: flex; align-items: center; justify-content:space-between; background: linear-gradient(to right, #2a2a2e, #1a1a1a); padding: 10px; border-radius: 8px; border:1px solid var(--primary-accent);">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <img src="${assignedCard.cards.image_url}" style="width: 45px; height: 45px; border-radius: 5px; object-fit:cover;">
-                    <div style="text-align:left;">
-                        <h5 style="margin: 0; color:#fff; font-size:0.95em;">${assignedCard.cards.name}</h5>
-                        <p style="font-size: 0.75em; margin: 2px 0 0 0; color: var(--success-color);">Level ${assignedCard.level}</p>
-                    </div>
-                </div>
-                <button id="unassign-expert-btn" class="action-button danger small" style="width:auto; padding:5px 10px; font-size:0.7em;">Dismiss</button>
+            <div class="card-stack" style="margin: 0 auto; display:inline-block;">
+                <img src="${assignedCard.cards.image_url}" class="card-image">
+                <h4>${assignedCard.cards.name}</h4>
+                <div class="card-details"><span class="card-level">LVL ${assignedCard.level}</span></div>
             </div>
+            <br>
+            <button id="unassign-expert-btn" class="action-button small danger" style="margin-top: 10px;">Dismiss</button>
         `;
     } else {
         expertSectionHTML += `
-            <div class="expert-placeholder" style="border: 2px dashed #444; padding: 15px; border-radius: 8px; text-align:center; background:rgba(0,0,0,0.2);">
-                <p style="color:#888; font-size:0.8em; margin-bottom:10px;">No Expert Assigned</p>
-                <button id="assign-expert-btn" class="action-button small" style="background:#333; border:1px solid #555;">+ Assign Expert</button>
+            <div class="expert-placeholder">
+                <p>No Expert Assigned</p>
+                <button id="assign-expert-btn" class="action-button small">Assign Expert</button>
             </div>
         `;
     }
     expertSectionHTML += `</div>`;
 
-    // --- 3. UPGRADE SECTION ---
+    // Upgrade UI
     const playerNoub = state.playerProfile.noub_score || 0;
     const canUpgrade = playerFactory.level < FACTORY_UPGRADE_LEVEL_CAP;
-    
     const upgradeHTML = `
-        <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px; text-align: center;">
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8em; color:#ccc; margin-bottom:8px;">
-                <span>Level ${playerFactory.level} / ${FACTORY_UPGRADE_LEVEL_CAP}</span>
-                <span>Next: <b>${FACTORY_UPGRADE_COST}</b> 🪙</span>
-            </div>
-            ${canUpgrade 
-                ? `<button id="upgrade-factory-btn" class="text-button" style="color:var(--accent-blue); width:100%;">⬆ Upgrade Factory</button>` 
-                : `<span style="color:var(--success-color); font-size:0.8em;">MAX LEVEL REACHED</span>`
-            }
+        <div style="margin-top: 15px; border-top: 1px solid #3a3a3c; padding-top: 10px; text-align: center;">
+            <h4>Upgrade (Lvl ${playerFactory.level + 1})</h4>
+            <div class="cost-item">${FACTORY_UPGRADE_COST} 🪙</div>
+            <button id="upgrade-factory-btn" class="action-button small" ${canUpgrade ? '' : 'disabled'}>Upgrade</button>
         </div>
     `;
 
-    // --- ASSEMBLE MODAL ---
     productionModal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="window.closeModal('production-modal')">&times;</button>
-            
-            <!-- HEADER -->
-            <div class="prod-modal-header" style="text-align:center; border-bottom:1px solid #444; padding-bottom:15px; margin-bottom:15px;">
-                <img src="${factory.image_url}" alt="${factory.name}" style="width:70px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.5);">
-                <h3 style="color:var(--primary-accent); margin:10px 0 0 0;">${factory.name}</h3>
+            <div class="prod-modal-header">
+                <img src="${factory.image_url}" alt="${factory.name}">
+                <h3>${factory.name}</h3>
+                <p class="level">Level: ${playerFactory.level}</p>
             </div>
-            
-            <!-- INPUT / OUTPUT -->
             <div class="prod-modal-body">
-                <div class="prod-io" style="display:flex; justify-content:center; align-items:center; gap:15px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; margin-bottom:15px;">
-                    ${requirementsHTML || '<div style="font-size:0.8em;">None</div>'}
-                    <span class="arrow" style="color:#666;">➜</span>
-                    <div class="prod-item" style="text-align:center;">
-                        <img src="${outputItem.image_url}" style="width:40px; margin-bottom:3px;">
-                        <p style="font-size:0.8em; margin:0;">${outputItem.name}</p>
+                <div class="prod-io">
+                    ${requirementsHTML || '<div class="prod-item"><p>None</p></div>'}
+                    <span class="arrow">➡️</span>
+                    <div class="prod-item">
+                        <img src="${outputItem.image_url}">
+                        <p>1 x ${outputItem.name}</p>
                     </div>
                 </div>
-                
-                <!-- TIMER -->
-                <div class="prod-timer" style="margin-bottom:20px;">
-                    ${isRunning ? `<div class="time-left" style="text-align:center; font-size:1.2em; font-weight:bold; margin-bottom:5px;">${formatTime(timeLeft)}</div>` : ''}
-                    <div class="progress-bar" style="height:8px; background:#333; border-radius:4px; overflow:hidden;">
-                        <div class="progress-bar-inner" style="height:100%; width:${isRunning ? ((timeElapsed / masterTime) * 100) : 0}%; background:var(--success-color); transition: width 1s linear;"></div>
-                    </div>
+                <div class="prod-timer">
+                    ${isRunning ? `<div class="time-left">${formatTime(timeLeft)}</div>` : ''}
+                    <div class="progress-bar"><div class="progress-bar-inner" style="width:${isRunning ? ((timeElapsed / masterTime) * 100) : 0}%"></div></div>
                 </div>
             </div>
-            
             ${buttonHTML}
             ${expertSectionHTML}
             ${upgradeHTML}
@@ -484,7 +415,6 @@ function openProductionModal(playerFactory, outputItem) {
         
     openModal('production-modal');
 
-    // --- EVENT LISTENERS (Local Scope Binding) ---
     document.getElementById('start-prod-btn')?.addEventListener('click', () => handleStartProduction(playerFactory.id, recipes));
     document.getElementById('claim-prod-btn')?.addEventListener('click', () => handleClaimProduction(playerFactory, outputItem));
     document.getElementById('assign-expert-btn')?.addEventListener('click', () => openExpertSelectionModal(playerFactory.id));
@@ -495,7 +425,7 @@ function openProductionModal(playerFactory, outputItem) {
     });
 }
 
-// --- EXPERT SELECTION MODAL ---
+// --- EXPERT SELECTION ---
 
 async function openExpertSelectionModal(factoryId) {
     const [{ data: playerCards }, { data: factories }] = await Promise.all([
@@ -503,10 +433,7 @@ async function openExpertSelectionModal(factoryId) {
         api.fetchPlayerFactories(state.currentUser.id)
     ]);
 
-    // Logic: Card is "busy" if assigned to ANY factory
     const busyIds = new Set(factories.map(f => f.assigned_card_instance_id).filter(Boolean));
-    
-    // Filter: Not Busy AND Not Soul Card AND Not Locked (Trade)
     const available = playerCards.filter(c => !busyIds.has(c.instance_id) && c.card_id !== 9999 && !c.is_locked);
 
     const modalId = 'expert-select-modal';
@@ -517,73 +444,66 @@ async function openExpertSelectionModal(factoryId) {
         modal.className = 'modal-overlay hidden';
         document.body.appendChild(modal);
     }
-    
+
+    // Render as nice card stack list
+    const listHTML = available.map(c => `
+        <div class="card-stack" onclick="window.executeAssign('${factoryId}', '${c.instance_id}')" style="cursor:pointer; margin:5px;">
+            <img src="${c.cards.image_url}" class="card-image">
+            <h4>${c.cards.name}</h4>
+            <div class="card-details">Lvl ${c.level}</div>
+        </div>
+    `).join('');
+
     modal.innerHTML = `
         <div class="modal-content">
-            <button class="modal-close-btn" onclick="closeModal('${modalId}')">&times;</button>
-            <h3 style="text-align:center;">Select Expert</h3>
-            <div class="card-grid" style="max-height:50vh; overflow-y:auto; margin-top:15px;">
-                ${available.map(c => `
-                    <div class="card-stack" onclick="window.executeAssign('${factoryId}', '${c.instance_id}')" 
-                         style="cursor:pointer; border:1px solid #444;">
-                        <img src="${c.cards.image_url}" class="card-image">
-                        <h4>${c.cards.name}</h4>
-                        <div class="card-details">Level ${c.level}</div>
-                    </div>
-                `).join('')}
+            <button class="modal-close-btn" onclick="window.closeModal('${modalId}')">&times;</button>
+            <h3>Select Expert</h3>
+            <div class="card-grid" style="max-height:50vh; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(80px, 1fr)); gap:10px;">
+                ${available.length ? listHTML : '<p>No experts available.</p>'}
             </div>
-            ${available.length === 0 ? '<p style="text-align:center; padding:20px; color:#888;">No experts available.</p>' : ''}
         </div>
     `;
     openModal(modalId);
 }
 
-// Exposed to window for HTML onclick binding within the generated modal string
 window.executeAssign = async (factoryId, cardId) => {
     window.closeModal('expert-select-modal');
-    // Note: No need to close parent modal, it updates live or on re-open. 
-    // But closing it provides better feedback loop.
-    window.closeModal('production-modal'); 
+    window.closeModal('production-modal');
     
     const { error } = await api.supabaseClient
         .from('player_factories')
         .update({ assigned_card_instance_id: cardId })
         .eq('id', factoryId);
         
-    if (error) showToast("Assignment Failed", 'error');
-    else {
-        showToast("Expert Assigned!", 'success');
+    if (!error) {
+        showToast("Expert Assigned", 'success');
         await refreshPlayerState();
         renderProduction();
     }
 };
 
 async function unassignExpert(factoryId) {
-    if (!confirm("Dismiss this expert? They will return to your deck.")) return;
-    
     const { error } = await api.supabaseClient
         .from('player_factories')
         .update({ assigned_card_instance_id: null })
         .eq('id', factoryId);
 
     if (!error) {
-        showToast("Expert Dismissed.", "success");
+        showToast("Expert Dismissed.", 'success');
         await refreshPlayerState();
         window.closeModal('production-modal');
         renderProduction();
-    } else {
-        showToast("Failed to dismiss.", 'error');
     }
 }
 
 // ========================================================
-// --- 7. MAIN RENDER (Grid & Stock) ---
+// --- 7. MAIN RENDER ---
 // ========================================================
 
 export async function renderProduction() {
     if (!state.currentUser) return;
     
-    // 1. Pre-check Specialization
+    // Specialization Check
     if ((state.playerProfile.level || 1) >= SPECIALIZATION_UNLOCK_LEVEL) {
         if (!state.specializations || state.specializations.size === 0) {
             renderSpecializationChoice();
@@ -614,42 +534,38 @@ export async function renderProduction() {
         card.id = `factory-card-${master.id}`;
 
         if (isOwned) {
-            // Safe Access to Output Item (Nested due to API join)
             const outputItem = pf.factories.items || pf.factories.output_item || null;
-            
-            // Visual Badge for Expert
+            // Original Badge style (Gold star indicator is fine, but ensure consistency if requested)
             const expertBadge = pf.assigned_card_instance_id 
-                ? '<div style="position:absolute; top:5px; right:5px; font-size:1.2em; text-shadow:0 0 5px gold;">⭐</div>' 
+                ? '<div style="position:absolute; top:5px; right:5px; color:gold; font-size:1.2em;">★</div>' 
                 : '';
 
             card.innerHTML = `
                 ${expertBadge}
-                <img src="${master.image_url}" style="width:100%; border-radius:6px;">
+                <img src="${master.image_url}" style="width:100%;">
                 <h4>${master.name}</h4>
                 <div class="level">Lvl ${pf.level}</div>
-                <div class="status" style="font-weight:bold;">${pf.production_start_time ? 'Running...' : 'Ready'}</div>
+                <div class="status" style="color: ${pf.production_start_time ? 'var(--accent-blue)' : 'var(--success-color)'}">
+                    ${pf.production_start_time ? 'Working...' : 'Idle'}
+                </div>
                 <div class="progress-bar"><div class="progress-bar-inner" style="width:0%"></div></div>
             `;
             card.onclick = () => openProductionModal(pf, outputItem);
 
-            // Init Timer Loop
             if (pf.production_start_time) {
                 requestAnimationFrame(() => updateProductionCard(pf, outputItem));
             }
 
         } else {
-            // Logic for Locked Factories
             const unlockable = playerLevel >= master.required_level;
             card.classList.add(unlockable ? 'unlockable' : 'locked');
-            
             card.innerHTML = `
-                <img src="${master.image_url}" style="width:100%; border-radius:6px; filter:grayscale(${unlockable ? 0 : 1});">
+                <img src="${master.image_url}" style="width:100%; filter:grayscale(1);">
                 <h4>${master.name}</h4>
-                <div class="status" style="margin-top:5px; font-size:0.8em; color:${unlockable?'#0f0':'#888'};">
+                <div class="status">
                     ${unlockable ? `Build: ${master.build_cost_noub} 🪙` : `Locked (Lvl ${master.required_level})`}
                 </div>
             `;
-            
             if (unlockable) {
                 card.onclick = () => handleBuildFactory(master);
             }
@@ -663,22 +579,18 @@ export async function renderProduction() {
 function renderStock() {
     const fill = (cont, type) => {
         cont.innerHTML = '';
-        let hasItems = false;
         state.inventory.forEach(item => {
             if (item.qty > 0 && item.details && item.details.type === type) {
-                hasItems = true;
                 cont.innerHTML += `
                     <div class="stock-item">
                         <img src="${item.details.image_url}" style="width:35px;">
-                        <div style="font-size:0.7em; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.details.name}</div>
-                        <strong style="color:var(--primary-accent);">${item.qty}</strong>
+                        <div style="font-size:0.8em;">${item.details.name}</div>
+                        <strong>x${item.qty}</strong>
                     </div>
                 `;
             }
         });
-        if (!hasItems) cont.innerHTML = '<p style="font-size:0.8em; color:#444; padding:10px;">Empty</p>';
     };
-
     fill(stockResourcesContainer, 'RESOURCE');
     fill(stockMaterialsContainer, 'MATERIAL');
     fill(stockGoodsContainer, 'GOOD');
