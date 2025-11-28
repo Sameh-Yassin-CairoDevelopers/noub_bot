@@ -223,17 +223,25 @@ export async function fetchAllMasterFactories() {
 }
 
 export async function fetchPlayerFactories(playerId) {
-    // Fetches factories AND their recipe requirements nested
     return await supabaseClient
         .from('player_factories')
-        .select(`id, level, production_start_time, assigned_card_instance_id, 
-                factories!inner (
-                    id, name, output_item_id, base_production_time, type, image_url, required_level, build_cost_noub,
-                    factory_recipes (input_quantity, items (id, name))
-                )`)
+        .select(`
+            id, 
+            level, 
+            production_start_time, 
+            assigned_card_instance_id,
+            factories!inner (
+                id, name, output_item_id, base_production_time, type, image_url, required_level, build_cost_noub,
+                items (id, name, image_url, type),  
+                factory_recipes (input_quantity, items (id, name, image_url))
+            ),
+            player_cards (
+                instance_id, level, 
+                cards (name, image_url, rarity_level)
+            )
+        `)
         .eq('player_id', playerId);
 }
-
 export async function buildFactory(playerId, factoryId) {
     return await supabaseClient.from('player_factories').insert({
         player_id: playerId,
@@ -628,3 +636,4 @@ export async function cancelSwapRequest(requestId, playerOfferingId, offeredInst
     // Cancel
     return await supabaseClient.from('swap_requests').update({ status: 'cancelled' }).eq('id', requestId);
 }
+
