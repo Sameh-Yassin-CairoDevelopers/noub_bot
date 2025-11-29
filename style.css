@@ -155,55 +155,76 @@ header, .bottom-nav {
     z-index: 100;
 }
 header {
+    position: fixed;
     top: 0;
-    padding: 7px 10px;
-    border-bottom: 1px solid #3a3a3c;
-    height: 50px; 
+    left: 0;
+    right: 0;
+    height: 55px; 
+    z-index: 100;
+    padding: 0 15px;
+    
+    /* --- 3D Glass Effect --- */
+    /* خلفية داكنة لكن نصف شفافة (0.85) */
+    background: rgba(30, 30, 32, 0.75);
+    
+    /* تأثير الضبابية (Blur) لما خلف الشريط */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    
+    /* حافة سفلية لإبراز الـ 3D */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    
+    /* ظل ناعم للأسفل */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    
     display: flex;
     align-items: center;
 }
+
 .balance-bar {
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    justify-content: space-between; /* توزيع العناصر (يسار - وسط - يمين) */
+    position: relative;
 }
+
+/* تحسين مظهر زر البروفايل (3D Circle) */
+.header-profile-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-accent);
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5); /* ظل للزر */
+    transition: transform 0.2s;
+}
+.header-profile-btn:active {
+    transform: scale(0.95); /* ضغطة واقعية */
+}
+
+/* تحسين مظهر عرض العملة (3D Pill) */
 .currency-display {
     display: flex;
     align-items: center;
-    font-weight: bold;
-    font-size: 0.9em;
-    background: var(--input-bg);
-    padding: 3px 7px;
-    border-radius: 6px;
-    flex-grow: 1;
-    max-width: 150px;
     justify-content: center;
+    background: rgba(0, 0, 0, 0.6); /* خلفية أغمق للتباين */
+    padding: 5px 15px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); /* ظل داخلي للعمق */
+    font-weight: bold;
+    font-size: 1em;
+    color: var(--primary-accent);
+    min-width: 100px;
 }
-.currency-display .currency-img { 
-    width: 18px; 
-    height: 18px; 
-    margin-right: 5px; 
-}
-.ton-connect-btn { 
-    width: 35px; 
-    height: 35px; 
-    border-radius: 50%; 
-    overflow: hidden; 
-}
-.header-profile-btn { 
-    display: block; 
-    width: 35px; 
-    height: 35px; 
-    border-radius: 50%; 
-    overflow: hidden; 
-    border: 2px solid var(--primary-accent); 
-}
-#header-avatar-img { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
+
+/* زر المحفظة (ضبط الحجم والظل) */
+.ton-connect-btn {
+    width: 40px; /* توحيد الحجم مع البروفايل */
+    height: 40px;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
 
