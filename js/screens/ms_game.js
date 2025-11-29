@@ -1,51 +1,42 @@
 /*
  * Filename: js/screens/ms_game.js
- * Version: NOUB v4.0.0 (The Unified Reward Center)
+ * Version: NOUB v5.0.0 (Unified Rewards Hub: Vault + Wheel Vertical Stack)
  * Author: Sameh Yassin & Engineering Partner
  * 
  * -----------------------------------------------------------------------------
- * MODULE ARCHITECTURE & RESPONSIBILITY
+ * MODULE DESCRIPTION
  * -----------------------------------------------------------------------------
- * This module acts as the central "Passive & RNG Economy" controller. 
- * It aggregates three distinct game loops into a single UI container:
+ * This module consolidates the passive income generation (Idle Vault) and the 
+ * probability-based mini-game (Wheel/Dice) into a single view (Tab 1), 
+ * while keeping the Royal Calendar in a separate view (Tab 2).
  * 
- * 1. The Royal Vault (Idle Game): 
- *    - Linear progression logic based on time deltas.
- *    - Deterministic resource generation (Math.min cap).
- * 
- * 2. Fortune Dice (RNG Game):
- *    - Probability-based reward system (Client-side visualization, Server-side secure).
- *    - Consumes 'spin_tickets' asset.
- * 
- * 3. Royal Calendar (Time-based Events):
- *    - Date-checking logic to unlock specific daily rewards.
- *    - State persistence via 'player_event_claims' table.
- * 
+ * STRUCTURAL COMPOSITION:
+ * 1. Constants & Config: Aggregates configs for both systems.
+ * 2. State Management: Handles local intervals for timers and animations.
+ * 3. Logic Layer: Contains business logic for claiming, upgrading, and spinning.
+ * 4. Presentation Layer: 
+ *    - renderMsGame: Main tab controller.
+ *    - renderDropAndWheel: Renders the combined Vault + Dice UI.
+ *    - renderCalendarContent: Renders the daily rewards list.
  * -----------------------------------------------------------------------------
  */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, playSound, triggerHaptic } from '../ui.js';
+import { showToast, playSound, openModal } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
-// ========================================================
-// --- 1. CONFIGURATION & CONSTANTS ---
-// ========================================================
+// DOM Container Reference
+const msGameContainer = document.getElementById('ms-game-screen');
 
-const DOM_ELEMENTS = {
-    container: document.getElementById('ms-game-screen'),
-};
+// =============================================================================
+// SECTION 1: CONFIGURATION & CONSTANTS
+// =============================================================================
 
-const TIME_CONSTANTS = {
-    ONE_SECOND: 1000,
-    ONE_HOUR: 3600000
-};
+const ONE_SECOND = 1000;
 
-// --- IDLE GENERATOR MATH ---
-// Logic: Level 1 = 0.25 coins/min. Level 10 = Much higher.
-// Formula: Rate + (Level * Increment)
-const IDLE_CONFIG = {
+// --- A. Idle Generator Configuration ---
+const IDLE_GENERATOR_CONFIG = {
     BASE_RATE_PER_MINUTE: 0.25, 
     BASE_CAPACITY_HOURS: 8,     
     CAPACITY_INCREASE_PER_LEVEL: 0.5, 
@@ -54,446 +45,514 @@ const IDLE_CONFIG = {
     UPGRADE_COST_MULTIPLIER: 1.5,
 };
 
-// --- WHEEL PROBABILITY MATRIX ---
+// --- B. Wheel (Dice) Configuration ---
+// Copied verbatim from original wheel.js
+const SPIN_COST = 1; 
 const WHEEL_PRIZES = [
-    { id: 1, type: 'noub', value: 100, label: 'Small Gold', icon: '🐍' }, 
-    { id: 2, type: 'noub', value: 300, label: 'Medium Gold', icon: '🏺' }, 
+    { id: 1, type: 'noub', value: 100, label: 'Small NOUB Find', icon: '🐍' }, 
+    { id: 2, type: 'noub', value: 300, label: '300 NOUB', icon: '🏺' }, 
     { id: 3, type: 'spin_ticket', value: 2, label: '2 Tickets', icon: '📜' }, 
-    { id: 4, type: 'noub', value: 50, label: 'Minor Find', icon: '𓋹' }, 
+    { id: 4, type: 'noub', value: 50, label: 'Minor NOUB Find', icon: '𓋹' }, 
     { id: 5, type: 'prestige', value: 3, label: '3 Prestige', icon: '🐞' }, 
-    { id: 6, type: 'noub', value: 500, label: 'Large Gold', icon: '🪙' }, 
+    { id: 6, type: 'noub', value: 500, label: '500 NOUB', icon: '🪙' }, 
     { id: 7, type: 'ankh_premium', value: 5, label: '5 Ankh', icon: '☥' }, 
-    { id: 8, type: 'noub', value: 150, label: 'Gold Stash', icon: '🏛️' }, 
-    { id: 9, type: 'noub', value: 750, label: 'Jackpot', icon: '👑' }, 
-    { id: 10, type: 'prestige', value: 10, label: 'Fame Boost', icon: '🌟' } 
+    { id: 8, type: 'card_pack', value: 1, label: '1x Papyrus Pack', icon: '🏛️' }, 
+    { id: 9, type: 'noub', value: 750, label: 'Major NOUB Find', icon: '👑' }, 
+    { id: 10, type: 'jackpot', value: 50, label: '50 Prestige JACKPOT!', icon: '🌟' } 
 ];
 
-const SPIN_COST = 1; 
+// =============================================================================
+// SECTION 2: STATE VARIABLES
+// =============================================================================
 
-// State Tracking
-let idleTimerInterval = null; // Controls the UI countdown
-let isSpinning = false;       // Locks the button during animation
+// Tracks the Interval ID for the Idle Generator countdown
+let idleGeneratorInterval = null;
 
-// ========================================================
-// --- 2. HELPER FUNCTIONS ---
-// ========================================================
+// Tracks the status of the Wheel animation to prevent double-clicking
+let isSpinning = false;
 
-/**
- * Converts milliseconds to HH:MM:SS format.
- */
+// =============================================================================
+// SECTION 3: HELPER FUNCTIONS
+// =============================================================================
+
 function formatTime(ms) {
     if (ms < 0) return '00:00';
-    const totalSeconds = Math.floor(ms / TIME_CONSTANTS.ONE_SECOND);
+    const totalSeconds = Math.floor(ms / ONE_SECOND);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
     const pad = (num) => String(num).padStart(2, '0');
-    return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+    if (hours > 0) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+    return `${pad(minutes)}:${pad(seconds)}`;
 }
 
 /**
- * Calculates current generator stats based on player level.
- * Returns object with capacity, rate, and upgrade cost.
+ * Calculates the current production stats based on level.
+ * Returns { capacityMs, ratePerMinute, ratePerMs, maxNoub, upgradeCost }
  */
-function calculateIdleStats(level) {
-    const cfg = IDLE_CONFIG;
-    const capacityMins = (cfg.BASE_CAPACITY_HOURS * 60) + ((level - 1) * cfg.CAPACITY_INCREASE_PER_LEVEL * 60);
-    const ratePerMin = cfg.BASE_RATE_PER_MINUTE + ((level - 1) * cfg.RATE_INCREASE_PER_LEVEL);
-    
+function calculateIdleDrop(level) {
+    const config = IDLE_GENERATOR_CONFIG;
+    const capacityMinutes = (config.BASE_CAPACITY_HOURS * 60) + ((level - 1) * config.CAPACITY_INCREASE_PER_LEVEL * 60);
+    const ratePerMinute = config.BASE_RATE_PER_MINUTE + ((level - 1) * config.RATE_INCREASE_PER_LEVEL);
+    const ratePerMs = ratePerMinute / (60 * 1000); 
+    const maxNoub = Math.floor(ratePerMinute * capacityMinutes);
+
     return {
-        capacityMs: capacityMins * 60 * 1000,
-        ratePerMinute: ratePerMin,
-        ratePerMs: ratePerMin / 60000,
-        maxStorage: Math.floor(ratePerMin * capacityMins),
-        upgradeCost: Math.floor(cfg.UPGRADE_COST_BASE * Math.pow(cfg.UPGRADE_COST_MULTIPLIER, level - 1))
+        capacityMs: capacityMinutes * 60 * 1000,
+        ratePerMinute: ratePerMinute,
+        ratePerMs: ratePerMs,
+        maxNoub: maxNoub,
+        upgradeCost: Math.floor(config.UPGRADE_COST_BASE * Math.pow(config.UPGRADE_COST_MULTIPLIER, level - 1))
     };
 }
 
-// ========================================================
-// --- 3. IDLE VAULT LOGIC ---
-// ========================================================
+/**
+ * Selects a prize based on a simple 1-10 random roll (Deterministic RNG).
+ */
+function getSimpleRandomPrize() {
+    const rollResult = Math.floor(Math.random() * 10) + 1;
+    return WHEEL_PRIZES.find(p => p.id === rollResult);
+}
 
-async function handleClaimVault() {
+// =============================================================================
+// SECTION 4: BUSINESS LOGIC (IDLE VAULT)
+// =============================================================================
+
+async function handleClaimIdleDrop() {
+    if (!state.currentUser) return;
+    const playerId = state.currentUser.id;
+    const profile = state.playerProfile; 
+    
+    const generatorLevel = profile.idle_generator_level || 1;
+    const generatorState = calculateIdleDrop(generatorLevel);
+    const lastClaimTime = new Date(profile.last_claim_time).getTime();
+    const elapsedTime = Date.now() - lastClaimTime;
+    
+    const timeToCount = Math.min(elapsedTime, generatorState.capacityMs);
+    const noubGenerated = Math.floor(timeToCount * generatorState.ratePerMs);
+
+    if (noubGenerated < 1) return showToast("Vault is not ready yet.", 'info');
+
+    const updateObject = {
+        noub_score: (profile.noub_score || 0) + noubGenerated,
+        last_claim_time: new Date().toISOString() // Reset timer
+    };
+
+    const { error } = await api.updatePlayerProfile(playerId, updateObject);
+    
+    if (!error) {
+        // Feedback
+        playSound('claim_reward');
+        triggerHaptic('medium');
+        showToast(`Collected ${noubGenerated} NOUB from Vault!`, 'success');
+        
+        await api.addXp(state.currentUser.id, 1);
+        await refreshPlayerState();
+        // Re-render to update UI states immediately
+        renderDropAndWheel(); 
+    } else {
+        showToast("Connection error while claiming.", 'error');
+    }
+}
+
+async function handleUpgradeIdleDrop(currentLevel, upgradeCost) {
+    if ((state.playerProfile.noub_score || 0) < upgradeCost) return showToast("Insufficient NOUB for upgrade.", 'error');
+    
+    const newLevel = currentLevel + 1;
+    const { error } = await api.updatePlayerProfile(state.currentUser.id, {
+        noub_score: state.playerProfile.noub_score - upgradeCost,
+        idle_generator_level: newLevel
+    });
+
+    if (!error) {
+        playSound('construction'); // Reused standard sound
+        showToast(`Vault upgraded to Level ${newLevel}!`, 'success');
+        await api.addXp(state.currentUser.id, 50);
+        await refreshPlayerState();
+        renderDropAndWheel();
+    } else {
+        showToast("Upgrade transaction failed.", 'error');
+    }
+}
+
+// =============================================================================
+// SECTION 5: BUSINESS LOGIC (WHEEL/DICE)
+// =============================================================================
+
+async function runWheelSpin() {
+    if (!state.currentUser) return;
+    const spins = state.playerProfile.spin_tickets || 0;
+    const spinBtn = document.getElementById('wheel-spin-button');
+
+    if (isSpinning || spins < SPIN_COST) {
+        return showToast('Not enough Spin Tickets!', 'error');
+    }
+    
+    isSpinning = true;
+    if (spinBtn) spinBtn.disabled = true;
+    const diceResultEl = document.getElementById('dice-icon-display');
+    const prizeDescEl = document.getElementById('prize-description');
+
+    // 1. Transaction: Deduct Ticket
+    const newTickets = spins - SPIN_COST;
+    await api.updatePlayerProfile(state.currentUser.id, { spin_tickets: newTickets });
+    
+    showToast("Rolling the dice...", 'info');
+
+    // 2. Logic: Determine Winner
+    const prize = getSimpleRandomPrize();
+    const rollResult = prize.id;
+    
+    // 3. Animation Loop
+    let animationCount = 0;
+    const animationInterval = setInterval(() => {
+        const tempPrize = WHEEL_PRIZES[Math.floor(Math.random() * WHEEL_PRIZES.length)];
+        if (diceResultEl) {
+            diceResultEl.textContent = tempPrize.icon;
+            diceResultEl.style.color = `hsl(${Math.random() * 360}, 70%, 70%)`; // Visual flash
+        }
+        animationCount++;
+        
+        // End Animation
+        if (animationCount > 30) { 
+            clearInterval(animationInterval);
+            if (diceResultEl) {
+                diceResultEl.textContent = prize.icon;
+                diceResultEl.style.color = 'var(--primary-accent)';
+            }
+            if (prizeDescEl) {
+                prizeDescEl.textContent = `Result: ${prize.label}`;
+            }
+            
+            // 4. Grant Reward & Refresh
+            handleWheelPrize(prize).then(() => {
+                isSpinning = false;
+                // Button re-enabled by render refresh inside handleWheelPrize
+            });
+        }
+    }, 50);
+}
+
+async function handleWheelPrize(prize) {
+    let profileUpdates = {};
+    
+    // Mapping prize types to DB columns
+    switch (prize.type) {
+        case 'noub':
+            profileUpdates.noub_score = (state.playerProfile.noub_score || 0) + prize.value;
+            break;
+        case 'prestige':
+            profileUpdates.prestige = (state.playerProfile.prestige || 0) + prize.value;
+            break;
+        case 'ankh_premium':
+            profileUpdates.ankh_premium = (state.playerProfile.ankh_premium || 0) + prize.value;
+            break;
+        case 'spin_ticket':
+            profileUpdates.spin_tickets = (state.playerProfile.spin_tickets || 0) + prize.value;
+            break;
+        case 'card_pack':
+            const { data: masterCards } = await api.fetchAllMasterCards();
+            if (masterCards && masterCards.length > 0) {
+                const randomCard = masterCards[Math.floor(Math.random() * masterCards.length)];
+                await api.addCardToPlayerCollection(state.currentUser.id, randomCard.id);
+            }
+            break;
+        case 'jackpot':
+            profileUpdates.prestige = (state.playerProfile.prestige || 0) + prize.value;
+            break;
+    }
+    
+    if (Object.keys(profileUpdates).length > 0) {
+        await api.updatePlayerProfile(state.currentUser.id, profileUpdates);
+    }
+    
+    await api.logActivity(state.currentUser.id, 'WHEEL_ROLL', `Rolled a ${prize.id} and won ${prize.label}.`);
+    
+    playSound('reward_grand'); // Use grand sound for any win to feel good
+    showToast(`WIN: ${prize.label}`, 'success');
+    
+    await refreshPlayerState();
+    // Refresh the UI to update ticket count
+    renderDropAndWheel();
+}
+
+// =============================================================================
+// SECTION 6: BUSINESS LOGIC (CALENDAR)
+// =============================================================================
+
+async function handleClaimEvent(event) {
     if (!state.currentUser) return;
     
-    // 1. Calculate Amount
-    const profile = state.playerProfile;
-    const stats = calculateIdleStats(profile.idle_generator_level || 1);
-    const elapsed = Date.now() - new Date(profile.last_claim_time).getTime();
-    const timeCapped = Math.min(elapsed, stats.capacityMs);
-    const amount = Math.floor(timeCapped * stats.ratePerMs);
-
-    if (amount < 1) return showToast("Vault is empty.", 'info');
-
-    // 2. Database Update
-    const { error } = await api.updatePlayerProfile(state.currentUser.id, {
-        noub_score: (profile.noub_score || 0) + amount,
-        last_claim_time: new Date().toISOString() // Reset timer
-    });
-
-    if (error) return showToast("Claim Error.", 'error');
-
-    // 3. Feedback
-    playSound('claim_reward');
-    triggerHaptic('medium');
-    showToast(`Collected: ${amount} 🪙`, 'success');
+    const today = new Date();
+    const currentYear = today.getFullYear();
     
-    await refreshPlayerState();
-    renderVaultTab(); // Refresh UI
-}
-
-async function handleUpgradeVault(currentLevel, cost) {
-    if ((state.playerProfile.noub_score || 0) < cost) {
-        return showToast("Insufficient Gold.", 'error');
+    // 1. Grant Reward
+    const profileUpdate = {};
+    if (event.reward_type === 'NOUB') {
+        profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + Number(event.reward_amount);
+    } else if (event.reward_type === 'PRESTIGE') {
+        profileUpdate.prestige = (state.playerProfile.prestige || 0) + Number(event.reward_amount);
     }
-
-    const { error } = await api.updatePlayerProfile(state.currentUser.id, {
-        noub_score: state.playerProfile.noub_score - cost,
-        idle_generator_level: currentLevel + 1
-    });
-
-    if (error) return showToast("Upgrade Failed.", 'error');
-
-    playSound('construction'); // or standard click
-    showToast(`Vault Upgraded to Level ${currentLevel + 1}!`, 'success');
     
-    await refreshPlayerState();
-    renderVaultTab();
-}
-
-// ========================================================
-// --- 4. WHEEL OF FORTUNE LOGIC (Complete Port) ---
-// ========================================================
-
-async function handleSpinWheel() {
-    const tickets = state.playerProfile.spin_tickets || 0;
-    
-    // Validation
-    if (isSpinning) return;
-    if (tickets < SPIN_COST) return showToast("No Tickets!", 'error');
-
-    isSpinning = true;
-    const btn = document.getElementById('wheel-spin-btn');
-    if (btn) btn.disabled = true;
-
-    // 1. Deduct Ticket (Optimistic UI update happens on refresh)
-    await api.updatePlayerProfile(state.currentUser.id, { spin_tickets: tickets - SPIN_COST });
-
-    // 2. Visual Animation Loop
-    const iconEl = document.getElementById('dice-icon');
-    let frames = 0;
-    const maxFrames = 25; // approx 2 seconds at 80ms
-
-    const animInterval = setInterval(() => {
-        // Pick random icon for effect
-        const randomPrize = WHEEL_PRIZES[Math.floor(Math.random() * WHEEL_PRIZES.length)];
-        if (iconEl) {
-            iconEl.textContent = randomPrize.icon;
-            iconEl.style.transform = `rotate(${Math.random() * 360}deg) scale(1.2)`;
-        }
-        frames++;
-
-        if (frames >= maxFrames) {
-            clearInterval(animInterval);
-            finalizeSpin();
-        }
-    }, 80);
-}
-
-async function finalizeSpin() {
-    // 1. Determine Winner (RNG)
-    const winner = WHEEL_PRIZES[Math.floor(Math.random() * WHEEL_PRIZES.length)];
-    
-    // 2. Update DB with Rewards
-    const profile = state.playerProfile;
-    const updates = {};
-
-    if (winner.type === 'noub') updates.noub_score = (profile.noub_score || 0) + winner.value;
-    else if (winner.type === 'prestige') updates.prestige = (profile.prestige || 0) + winner.value;
-    else if (winner.type === 'ankh_premium') updates.ankh_premium = (profile.ankh_premium || 0) + winner.value;
-    else if (winner.type === 'spin_ticket') updates.spin_tickets = (profile.spin_tickets || 0) + winner.value;
-
-    await api.updatePlayerProfile(state.currentUser.id, updates);
-
-    // 3. UI Feedback
-    const iconEl = document.getElementById('dice-icon');
-    if (iconEl) {
-        iconEl.textContent = winner.icon;
-        iconEl.style.transform = "scale(1.5) rotate(0deg)";
-        iconEl.style.textShadow = "0 0 10px gold";
-    }
-
-    playSound('reward_grand');
-    triggerHaptic('heavy');
-    showToast(`WIN: ${winner.label}`, 'success');
-
-    // 4. Reset State
-    isSpinning = false;
-    await refreshPlayerState();
-    renderWheelTab(); // Re-render to update ticket count
-}
-
-// ========================================================
-// --- 5. CALENDAR LOGIC (Complete Port) ---
-// ========================================================
-
-/**
- * Checks if an event is claimable today.
- */
-async function handleClaimEvent(eventId, rewardType, rewardAmount) {
-    showToast("Verifying...", 'info');
-
-    // 1. Double check DB to prevent hacks
-    const { data: claims } = await api.supabaseClient.from('player_event_claims')
-        .select('*')
-        .eq('player_id', state.currentUser.id)
-        .eq('event_id', eventId)
-        .eq('claimed_year', new Date().getFullYear());
-    
-    if (claims && claims.length > 0) {
-        return showToast("Already claimed.", 'error');
-    }
-
-    // 2. Grant Reward
-    const profile = state.playerProfile;
-    const updates = {};
-    // Map DB Types to Profile Columns
-    if (rewardType.toUpperCase() === 'NOUB') updates.noub_score = (profile.noub_score || 0) + Number(rewardAmount);
-    if (rewardType.toUpperCase() === 'PRESTIGE') updates.prestige = (profile.prestige || 0) + Number(rewardAmount);
-    // Add more types as needed
-
-    const { error: updateError } = await api.updatePlayerProfile(state.currentUser.id, updates);
-    if (updateError) return showToast("Error updating profile.", 'error');
-
-    // 3. Log Claim
+    // 2. Update Profile & Log Claim
+    await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
     await api.supabaseClient.from('player_event_claims').insert({
         player_id: state.currentUser.id,
-        event_id: eventId,
-        claimed_year: new Date().getFullYear()
+        event_id: event.id,
+        claimed_year: currentYear
     });
 
     playSound('claim_reward');
-    showToast(`Daily Reward: ${rewardAmount} ${rewardType}`, 'success');
+    showToast(`Event Claimed: +${event.reward_amount} ${event.reward_type}`, 'success');
     
     await refreshPlayerState();
-    renderCalendarTab();
+    renderCalendarContent();
 }
 
-// ========================================================
-// --- 6. UI RENDERERS ---
-// ========================================================
+// =============================================================================
+// SECTION 7: UI RENDERERS (COMBINED)
+// =============================================================================
 
-// --- A. VAULT RENDERER ---
-function renderVaultTab() {
-    const content = document.getElementById('ms-content-vault');
+/**
+ * Renders Tab 1: The Idle Vault + The Fortune Dice (Stacked Vertically)
+ */
+function renderDropAndWheel() {
+    const content = document.getElementById('ms-content-drop');
     if (!content) return;
-
+    
+    // --- A. Prepare Idle Vault Data ---
     const profile = state.playerProfile;
     const level = profile.idle_generator_level || 1;
-    const stats = calculateIdleStats(level);
-    const elapsed = Date.now() - new Date(profile.last_claim_time).getTime();
-    const timeCapped = Math.min(elapsed, stats.capacityMs);
-    const amount = Math.floor(timeCapped * stats.ratePerMs);
-    const remainingMs = Math.max(0, stats.capacityMs - elapsed);
-    const percent = (timeCapped / stats.capacityMs) * 100;
-    const isFull = remainingMs <= 0;
+    const generatorState = calculateIdleDrop(level);
+    const lastClaimTime = new Date(profile.last_claim_time).getTime();
+    const now = Date.now();
+    
+    const elapsedTime = now - lastClaimTime;
+    const timeToCount = Math.min(elapsedTime, generatorState.capacityMs);
+    const noubGenerated = Math.floor(timeToCount * generatorState.ratePerMs);
+    const remainingTimeMs = generatorState.capacityMs - timeToCount;
+    const capacityPercent = (timeToCount / generatorState.capacityMs) * 100;
+    const isFull = remainingTimeMs <= 0;
+    const timeDisplay = isFull ? 'FULL' : formatTime(remainingTimeMs);
 
+    // --- B. Prepare Wheel Data ---
+    const spins = profile.spin_tickets || 0;
+
+    // --- C. Render Combined HTML ---
     content.innerHTML = `
-        <div class="game-container" style="text-align:center; padding:20px;">
-            <h3 style="color:var(--primary-accent);">Royal Vault (Lvl ${level})</h3>
-            <div style="font-size:3em; margin:15px 0; animation: float 3s infinite;">🏺</div>
-            
-            <!-- Progress Bar -->
-            <div style="background:#333; height:15px; border-radius:8px; overflow:hidden; margin-bottom:10px;">
-                <div style="width:${percent}%; height:100%; background:linear-gradient(90deg, var(--accent-blue), var(--success-color)); transition:width 1s linear;"></div>
+        <!-- SECTION: ROYAL VAULT -->
+        <div class="idle-generator-card game-container" style="margin-bottom: 20px;">
+            <div class="generator-header" style="border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px; text-align: center;">
+                <h3 style="margin:0; color: var(--primary-accent);">Royal Vault (Lvl ${level})</h3>
+                <div style="font-size: 2.5em; margin-top: 5px;">🏺</div>
             </div>
             
-            <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#aaa; margin-bottom:20px;">
-                <span>Gen: ${stats.ratePerMinute.toFixed(2)}/min</span>
-                <span>Max: ${stats.maxStorage}</span>
+            <div class="generator-timer" style="text-align: center; margin-bottom: 10px;">
+                <div style="font-size: 1.5em; font-weight: bold; color: ${isFull ? 'var(--danger-color)' : '#fff'};">
+                    ${noubGenerated} / ${generatorState.maxNoub} 🪙
+                </div>
+                <div style="font-size: 0.8em; color: #aaa;">
+                    ${isFull ? 'STORAGE FULL' : `Fills in: ${timeDisplay}`}
+                </div>
+            </div>
+            
+            <div class="progress-bar" style="height: 12px; background: #333; border-radius: 6px; overflow: hidden; margin-bottom: 15px;">
+                <div class="progress-bar-inner" style="width: ${capacityPercent}%; height: 100%; background: linear-gradient(90deg, #4caf50, var(--primary-accent)); transition: width 0.5s;"></div>
             </div>
 
-            <h2 style="color:#fff; margin:0 0 10px 0;">${amount} 🪙</h2>
-            <div style="font-size:0.8em; color:${isFull ? 'var(--danger-color)' : '#ccc'}; margin-bottom:20px;">
-                ${isFull ? 'STORAGE FULL' : `Full in: ${formatTime(remainingMs)}`}
-            </div>
-
-            <button id="vault-claim-btn" class="action-button" ${amount < 1 ? 'disabled' : ''}>
-                Collect Loot
-            </button>
-
-            <div style="margin-top:20px; border-top:1px solid #444; padding-top:10px;">
-                <button id="vault-upgrade-btn" class="text-button" style="color:var(--primary-accent);">
-                    ⬆ Upgrade Capacity (${stats.upgradeCost} 🪙)
+            <div style="display: flex; gap: 10px;">
+                <button id="claim-idle-btn" class="action-button" ${noubGenerated < 1 ? 'disabled' : ''} style="flex: 2;">
+                    Claim Gold
+                </button>
+                <button id="upgrade-idle-btn" class="action-button small" style="flex: 1; background-color: #444; border: 1px solid #666; font-size: 0.8em;">
+                    Upgrade (${generatorState.upgradeCost}🪙)
                 </button>
             </div>
         </div>
-    `;
 
-    document.getElementById('vault-claim-btn').onclick = handleClaimVault;
-    document.getElementById('vault-upgrade-btn').onclick = () => handleUpgradeVault(level, stats.upgradeCost);
+        <!-- SEPARATOR -->
+        <hr style="border-color: #333; opacity: 0.5; margin-bottom: 20px;">
 
-    // Loop
-    if (idleTimerInterval) clearInterval(idleTimerInterval);
-    if (!isFull) idleTimerInterval = setInterval(renderVaultTab, 1000);
-}
-
-// --- B. WHEEL RENDERER ---
-function renderWheelTab() {
-    const content = document.getElementById('ms-content-dice');
-    if (!content) return;
-
-    const tickets = state.playerProfile.spin_tickets || 0;
-
-    content.innerHTML = `
-        <div class="game-container" style="text-align:center; padding:20px;">
-            <h3 style="color:var(--primary-accent);">Destiny Dice</h3>
+        <!-- SECTION: FORTUNE DICE -->
+        <div class="wheel-container game-container" style="text-align: center;">
+            <h3 style="color: var(--primary-accent); margin-bottom: 15px;">Fortune Dice</h3>
             
-            <!-- Dice Box -->
-            <div style="margin:30px auto; width:120px; height:120px; background:#222; border:2px solid var(--primary-accent); border-radius:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(212,175,55,0.2);">
-                <span id="dice-icon" style="font-size:4em;">🎲</span>
+            <div id="dice-result-container" class="dice-result-container" style="margin: 0 auto 15px auto;">
+                <span id="dice-icon-display" class="icon-lg" style="display: block;">🎲</span>
             </div>
-
-            <p style="color:#aaa; margin-bottom:20px; font-size:0.9em;">
-                Tickets Remaining: <strong style="color:#fff; font-size:1.2em;">${tickets}</strong>
+            
+            <p id="prize-description" style="min-height: 20px; color: var(--text-secondary); margin-bottom: 15px;">
+                Roll for glory!
             </p>
-
-            <button id="wheel-spin-btn" class="action-button" ${tickets < 1 ? 'disabled' : ''}>
-                ROLL (Cost: ${SPIN_COST} 🎟️)
+            
+            <button id="wheel-spin-button" class="action-button spin-button" ${isSpinning || spins < SPIN_COST ? 'disabled' : ''}>
+                ROLL DICE (${SPIN_COST} 🎟️)
             </button>
-
-            <div style="margin-top:20px; font-size:0.7em; color:#666;">
-                *Prizes include Gold, Prestige, and Ankh.
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 0 10px;">
+                <p id="wheel-spins-left" class="balance-info" style="margin: 0;">Tickets: ${spins}</p>
+                <button id="prize-info-btn" class="text-button" onclick="window.openPrizeModal()">Prizes?</button>
             </div>
         </div>
     `;
 
-    const btn = document.getElementById('wheel-spin-btn');
-    if(btn) btn.onclick = handleSpinWheel;
+    // --- D. Bind Events ---
+    document.getElementById('claim-idle-btn').onclick = handleClaimIdleDrop;
+    document.getElementById('upgrade-idle-btn').onclick = () => handleUpgradeIdleDrop(level, generatorState.upgradeCost);
+    document.getElementById('wheel-spin-button').onclick = runWheelSpin;
+    
+    // Bind Modal for Prizes (using global scope as per original wheel.js logic)
+    window.openPrizeModal = () => {
+        // Simple alert or reuse modal logic from wheel.js if UI exists
+        let modal = document.getElementById('wheel-prize-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'wheel-prize-modal';
+            modal.className = 'modal-overlay hidden';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="document.getElementById('wheel-prize-modal').classList.add('hidden')">&times;</button>
+                <h2>Prize List</h2>
+                <ul style="list-style:none; padding:0; text-align:left;">
+                    ${WHEEL_PRIZES.map(p => `<li style="padding:5px; border-bottom:1px solid #333;">${p.icon} ${p.label}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+    };
+
+    // --- E. Timer Loop (Only for Idle) ---
+    if (idleGeneratorInterval) clearInterval(idleGeneratorInterval);
+    if (!isFull) {
+        idleGeneratorInterval = setInterval(() => {
+            // Smart Update: Only re-render the specific bar/text to save performance, 
+            // OR just re-call renderDropAndWheel if the UI is simple enough.
+            // For strict adherence to original logic: Re-rendering is safer.
+            renderDropAndWheel(); 
+        }, 1000);
+    }
 }
 
-// --- C. CALENDAR RENDERER ---
-async function renderCalendarTab() {
-    const content = document.getElementById('ms-content-calendar');
+/**
+ * Renders Tab 2: The Royal Calendar
+ */
+async function renderCalendarContent() {
+    const content = document.getElementById('ms-content-events');
     if (!content) return;
     
-    content.innerHTML = '<p style="text-align:center; padding:20px;">Reading stars...</p>';
+    content.innerHTML = '<p style="text-align:center; padding:20px;">Checking dates...</p>';
 
-    // Parallel Fetch
     const [{ data: events }, { data: claims }] = await Promise.all([
         api.supabaseClient.from('game_events').select('*').order('event_month').order('event_day'),
-        api.supabaseClient.from('player_event_claims').select('event_id').eq('player_id', state.currentUser.id).eq('claimed_year', new Date().getFullYear())
+        api.supabaseClient.from('player_event_claims').select('*').eq('player_id', state.currentUser.id)
     ]);
 
-    if (!events) return content.innerHTML = '<p class="error-text">Calendar Unavailable</p>';
+    if (!events) return content.innerHTML = '<p>No events found.</p>';
 
-    const claimedIds = new Set(claims ? claims.map(c => c.event_id) : []);
+    const claimSet = new Set(claims ? claims.map(c => c.event_id + '-' + c.claimed_year) : []);
     const today = new Date();
+    const currentYear = today.getFullYear();
     const tDay = today.getDate();
     const tMonth = today.getMonth() + 1;
 
-    content.innerHTML = `<div style="display:flex; flex-direction:column; gap:10px;"></div>`;
-    const list = content.querySelector('div');
+    content.innerHTML = `<div style="display: flex; flex-direction: column; gap: 10px;"></div>`;
+    const listContainer = content.querySelector('div');
 
     events.forEach(ev => {
         const isToday = ev.event_day === tDay && ev.event_month === tMonth;
-        const isClaimed = claimedIds.has(ev.id);
+        const claimKey = ev.id + '-' + currentYear;
+        const isClaimed = claimSet.has(claimKey);
         
-        // Card Style Logic
-        let opacity = '0.5'; // Locked/Past
-        let border = '1px solid #444';
-        
-        if (isToday) { opacity = '1'; border = '2px solid gold'; }
-        if (isClaimed) { opacity = '0.7'; border = '1px solid var(--success-color)'; }
-
         const item = document.createElement('div');
-        item.style.cssText = `background:#1a1a1a; padding:15px; border-radius:8px; border:${border}; opacity:${opacity}; display:flex; justify-content:space-between; align-items:center;`;
+        item.className = `event-card ${isClaimed ? 'claimed' : (isToday ? 'claimable' : 'default')}`;
+        item.style.opacity = isClaimed ? '0.6' : '1';
         
-        item.innerHTML = `
-            <div>
-                <div style="color:${isToday ? 'gold' : '#fff'}; font-weight:bold;">${ev.title}</div>
-                <div style="font-size:0.8em; color:#888;">${ev.event_day}/${ev.event_month} - ${ev.description_lore || ''}</div>
-            </div>
-            <div style="text-align:right;">
-                <div style="font-size:0.9em; color:var(--success-color); margin-bottom:5px;">+${ev.reward_amount} ${ev.reward_type}</div>
-            </div>
-        `;
-
-        // Action Button
+        let actionBtn = '';
         if (isToday && !isClaimed) {
-            const btn = document.createElement('button');
-            btn.className = 'action-button small';
-            btn.innerText = "Claim";
-            btn.style.fontSize = "0.7em";
-            btn.onclick = () => handleClaimEvent(ev.id, ev.reward_type, ev.reward_amount);
-            item.lastElementChild.appendChild(btn);
+            actionBtn = `<button class="action-button small" id="claim-ev-${ev.id}">Claim</button>`;
         } else if (isClaimed) {
-            item.lastElementChild.innerHTML += `<span style="font-size:0.7em; color:#aaa;">✓ CLAIMED</span>`;
+            actionBtn = `<span style="color: #aaa; font-size: 0.8em;">CLAIMED</span>`;
         } else {
-            item.lastElementChild.innerHTML += `<span style="font-size:0.7em; color:#444;">LOCKED</span>`;
+            actionBtn = `<span style="color: #666; font-size: 0.8em;">LOCKED</span>`;
         }
 
-        list.appendChild(item);
+        item.innerHTML = `
+            <div class="event-date">${ev.event_day}/${ev.event_month}</div>
+            <div class="event-details">
+                <h4>${ev.title}</h4>
+                <p style="font-size:0.8em; color:#aaa; margin:0;">${ev.description_lore || ''}</p>
+            </div>
+            <div class="event-actions" style="text-align:right;">
+                <div class="reward-info" style="margin-bottom:5px;">+${ev.reward_amount}</div>
+                ${actionBtn}
+            </div>
+        `;
+        
+        if (isToday && !isClaimed) {
+            // Defer listener attachment
+            setTimeout(() => {
+                document.getElementById(`claim-ev-${ev.id}`).onclick = () => handleClaimEvent(ev);
+            }, 0);
+        }
+
+        listContainer.appendChild(item);
     });
 }
 
-
-// ========================================================
-// --- 7. MAIN ENTRY POINT (Tabs) ---
-// ========================================================
+// =============================================================================
+// SECTION 8: MAIN ENTRY POINT (TABS CONTROLLER)
+// =============================================================================
 
 export function renderMsGame() {
-    if (!DOM_ELEMENTS.container) return;
+    if (!state.currentUser) return;
     
-    // One-time HTML Build
-    if (!document.getElementById('ms-tabs')) {
-        DOM_ELEMENTS.container.innerHTML = `
-            <h2 class="screen-title" style="text-align:center; color:var(--primary-accent); margin-bottom:15px;">Rewards Hub</h2>
+    // Ensure container exists in index.html
+    if (!msGameContainer) return;
+
+    // One-time Tab Setup
+    if (!document.getElementById('ms-tab-buttons')) {
+        msGameContainer.innerHTML = `
+            <h2 class="screen-title" style="text-align: center;">Royal Vault & Calendar</h2>
             
-            <div id="ms-tabs" style="display:flex; justify-content:space-between; margin-bottom:20px; background:#222; border-radius:25px; padding:5px;">
-                <button class="ms-tab-btn active" data-tab="vault" style="flex:1; padding:8px; background:transparent; border:none; border-radius:20px; color:#fff; cursor:pointer;">Vault</button>
-                <button class="ms-tab-btn" data-tab="dice" style="flex:1; padding:8px; background:transparent; border:none; border-radius:20px; color:#888; cursor:pointer;">Dice</button>
-                <button class="ms-tab-btn" data-tab="calendar" style="flex:1; padding:8px; background:transparent; border:none; border-radius:20px; color:#888; cursor:pointer;">Calendar</button>
+            <div id="ms-tab-buttons" style="display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px;">
+                <button class="ms-tab-btn active" data-target="drop" style="background:none; border:none; color:gold; font-weight:bold; cursor:pointer;">Vault & Dice</button>
+                <button class="ms-tab-btn" data-target="events" style="background:none; border:none; color:#888; cursor:pointer;">Calendar</button>
             </div>
 
-            <div id="ms-content-vault" class="ms-content"></div>
-            <div id="ms-content-dice" class="ms-content hidden"></div>
-            <div id="ms-content-calendar" class="ms-content hidden"></div>
+            <div id="ms-content-drop" class="ms-tab-content"></div>
+            <div id="ms-content-events" class="ms-tab-content hidden"></div>
         `;
-
+        
         // Bind Tab Switching
-        DOM_ELEMENTS.container.querySelectorAll('.ms-tab-btn').forEach(btn => {
+        msGameContainer.querySelectorAll('.ms-tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // Reset Styles
-                document.querySelectorAll('.ms-tab-btn').forEach(b => {
+                // UI Updates
+                msGameContainer.querySelectorAll('.ms-tab-btn').forEach(b => {
                     b.classList.remove('active');
-                    b.style.background = 'transparent';
                     b.style.color = '#888';
                 });
-                // Set Active
                 e.target.classList.add('active');
-                e.target.style.background = 'var(--primary-accent)';
-                e.target.style.color = '#000';
-                e.target.style.fontWeight = 'bold';
+                e.target.style.color = 'gold';
 
-                // Show Content
-                document.querySelectorAll('.ms-content').forEach(div => div.classList.add('hidden'));
-                const tabName = e.target.dataset.tab;
-                
-                if (tabName === 'vault') {
-                    document.getElementById('ms-content-vault').classList.remove('hidden');
-                    renderVaultTab();
-                } else if (tabName === 'dice') {
-                    document.getElementById('ms-content-dice').classList.remove('hidden');
-                    renderWheelTab();
+                // Content Toggle
+                msGameContainer.querySelectorAll('.ms-tab-content').forEach(c => c.classList.add('hidden'));
+                const target = e.target.dataset.target;
+                document.getElementById(`ms-content-${target}`).classList.remove('hidden');
+
+                // Logic Switch
+                if (target === 'drop') {
+                    renderDropAndWheel();
                 } else {
-                    document.getElementById('ms-content-calendar').classList.remove('hidden');
-                    renderCalendarTab();
+                    // Stop Vault Interval when viewing calendar to save resources
+                    if (idleGeneratorInterval) clearInterval(idleGeneratorInterval);
+                    renderCalendarContent();
                 }
             });
         });
     }
 
-    // Default Load
-    renderVaultTab();
+    // Initial View
+    renderDropAndWheel();
 }
