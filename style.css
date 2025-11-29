@@ -212,30 +212,63 @@ header {
    --- 3. Main Navigation (Header & Footer) ---
    (Footer and Nav Items)
    ================================================================================= */
+/* =================================================================================
+   --- تعديل الشريط السفلي (3D Style & Highlight) ---
+   ================================================================================= */
 
 .bottom-nav {
+    position: fixed;
     bottom: 0;
+    left: 0;
+    right: 0;
     display: flex;
     justify-content: space-around;
-    padding: 7px 0 14px 0;
-    border-top: 1px solid #3a3a3c;
+    padding: 10px 0 15px 0;
+    z-index: 100;
+    
+    /* تأثير الـ 3D والخلفية العميقة */
+    background: linear-gradient(to top, #000000, #1e1e1e); 
+    border-top: 1px solid rgba(212, 175, 55, 0.3); /* خط ذهبي خافت من الأعلى */
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.8); /* ظل قوي للأعلى ليعطي عمقاً */
     overflow-x: auto;
 }
+
 .nav-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    color: var(--text-secondary);
     text-decoration: none;
     font-size: 10px;
     cursor: pointer;
     user-select: none;
     flex-grow: 1;
     flex-shrink: 0;
-    padding: 0 5px; 
+    padding: 0 5px;
+    
+    /* الحالة الافتراضية: معتمة قليلاً وغير بارزة */
+    color: var(--text-secondary);
+    opacity: 0.6; 
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* حركة ناعمة */
+    transform: scale(0.9); 
 }
-.nav-item.active { color: var(--primary-accent); }
-.nav-item .icon { font-size: 20px; margin-bottom: 3px; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif; }
+
+.nav-item .icon { 
+    font-size: 22px; 
+    margin-bottom: 4px; 
+    filter: grayscale(100%); /* رمادي في الحالة العادية */
+    transition: all 0.3s;
+}
+
+/* الحالة النشطة (Selected) */
+.nav-item.active { 
+    color: var(--primary-accent); /* اللون الذهبي */
+    opacity: 1;
+    transform: scale(1.1) translateY(-5px); /* تكبير وارتفاع للأعلى (3D Pop) */
+}
+
+.nav-item.active .icon {
+    filter: grayscale(0%) drop-shadow(0 0 5px var(--primary-accent)); /* توهج للأيقونة */
+}
 
 /* =================================================================================
    --- 4. Generic UI Components ---
