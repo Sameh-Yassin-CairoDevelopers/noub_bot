@@ -218,6 +218,23 @@ header {
     color: var(--primary-accent);
     min-width: 100px;
 }
+.currency-display .currency-img {
+    width: 22px;  /* تحديد حجم صغير وثابت */
+    height: 22px;
+    object-fit: contain; /* منع تمطيط الصورة */
+    
+    /* مسافة بين الأيقونة والرقم */
+    margin-right: 8px; 
+    
+    /* ظل خفيف للأيقونة نفسها لتناسب الـ 3D */
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); 
+}
+
+/* تصحيح المسافة في الوضع العربي (RTL) */
+[dir="rtl"] .currency-display .currency-img {
+    margin-right: 0;
+    margin-left: 8px; 
+}
 
 /* زر المحفظة (ضبط الحجم والظل) */
 .ton-connect-btn {
