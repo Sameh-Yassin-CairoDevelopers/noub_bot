@@ -238,8 +238,8 @@ header {
 
 /* زر المحفظة (ضبط الحجم والظل) */
 .ton-connect-btn {
-    width: 34px; /* توحيد الحجم مع البروفايل */
-    height: 34px;
+    width: 55px; /* توحيد الحجم مع البروفايل */
+    height: 24px;
     border-radius: 50%;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
