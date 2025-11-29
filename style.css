@@ -536,9 +536,11 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* --- CORRECTED: Secondary actions 4x2 grid (Fixed size on large screens) --- */
+/* تعديل شبكة الأيقونات لتناسب 6 عناصر */
 .home-secondary-actions {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* 3 أعمدة متساوية لملء المساحة */
+    grid-template-columns: repeat(3, 1fr); 
     gap: 15px;
     max-width: 480px; 
     margin: 0 auto; 
