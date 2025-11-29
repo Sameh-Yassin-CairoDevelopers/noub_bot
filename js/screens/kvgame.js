@@ -443,7 +443,35 @@ function renderKVGameContent() {
     hintDisplayDiv = document.getElementById('kv-hints-list');
     kvGameControlsEl = document.getElementById('kv-game-controls-content');
     kvMessageLabel = document.getElementById('kv-message-label');
+        // التأكد من وجود الحاويات
+    const introContainer = document.getElementById('kv-game-intro-content');
     
+    // 1. إضافة زر الهيستوري في شاشة البداية (Intro)
+    if (introContainer) {
+        // تنظيف أي أزرار قديمة مكررة (Best Practice)
+        const oldHistoryBtn = document.getElementById('kv-history-btn');
+        if (oldHistoryBtn) oldHistoryBtn.remove();
+
+        // إنشاء الزر الجديد
+        const historyBtn = document.createElement('button');
+        historyBtn.id = 'kv-history-btn';
+        historyBtn.className = 'action-button small';
+        historyBtn.style.cssText = "margin-top: 10px; background-color: #444; border: 1px solid #666;";
+        historyBtn.textContent = "📜 Review Expedition Logs"; // أو "سجل البعثات"
+        
+        // ربط الزر
+        historyBtn.onclick = () => {
+            navigateTo('history-screen'); // يذهب لشاشة السجل
+        };
+
+        // إضافته تحت زر "Start"
+        if (newGameBtn && newGameBtn.parentNode === introContainer) {
+            introContainer.insertBefore(historyBtn, newGameBtn.nextSibling);
+        } else {
+            introContainer.appendChild(historyBtn);
+        }
+    }
+
     if (!levelNameEl || !guessInputEl || !newGameBtn) {
          console.error("KV Game UI elements are missing from index.html. Cannot initialize game logic.");
          return;
@@ -499,3 +527,4 @@ async function updateKVProgressInfo() {
 export async function renderKVGame() {
     renderKVGameContent();
 }
+
