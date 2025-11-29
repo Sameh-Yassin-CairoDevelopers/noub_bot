@@ -62,86 +62,73 @@
 
         <main id="content-container">
             
-            <!-- Home Screen: Main dashboard (v2.0 Layout) -->
+<!-- Home Screen: Main dashboard (Cleaned & Reordered) -->
             <div id="home-screen" class="screen active">
                 <div class="home-layout">
+                    
+                    <!-- القسم العلوي: الألعاب والدخل (2 كروت كبار) -->
                     <div class="home-section">
-                        <h3>Games & Challenges</h3>
+                        <h3>Active Gameplay</h3>
                         <div class="home-featured-actions">
-                            <a class="action-card-link" data-target="kv-game-screen"><div class="icon-box large">🗝️</div><span>KV Game</span></a>
-                            <a class="action-card-link" data-target="wheel-screen"><div class="icon-box large">🎡</div><span>Wheel of Fortune</span></a>
+                            <!-- 1. لعبة وادي الملوك -->
+                            <a class="action-card-link" data-target="kv-game-screen">
+                                <div class="icon-box large">🗝️</div>
+                                <span>KV Game</span>
+                            </a>
+                            
+                            <!-- 2. الخزنة (Idle Drop) - تم نقله هنا -->
+                            <a class="action-card-link" data-target="ms-game-screen">
+                                <div class="icon-box large">🏺</div>
+                                <span>Royal Vault</span>
+                            </a>
                         </div>
                     </div>
-                    <!-- Home Screen: Main dashboard (Cleaned & Reordered) -->
-                    <div id="home-screen" class="screen active">
-                        <div class="home-layout">
+            
+                    <!-- القسم السفلي: الإدارة (6 أيقونات - شبكة منظمة) -->
+                    <div class="home-section">
+                        <h3>Kingdom Management</h3>
+                        <div class="home-secondary-actions" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                             
-                            <!-- القسم العلوي: الألعاب والدخل (2 كروت كبار) -->
-                            <div class="home-section">
-                                <h3>Active Gameplay</h3>
-                                <div class="home-featured-actions">
-                                    <!-- 1. لعبة وادي الملوك -->
-                                    <a class="action-card-link" data-target="kv-game-screen">
-                                        <div class="icon-box large">🗝️</div>
-                                        <span>KV Game</span>
-                                    </a>
-                                    
-                                    <!-- 2. الخزنة (Idle Drop) - تم نقله هنا -->
-                                    <a class="action-card-link" data-target="ms-game-screen">
-                                        <div class="icon-box large">🏺</div>
-                                        <span>Royal Vault</span>
-                                    </a>
-                                </div>
-                            </div>
-                    
-                            <!-- القسم السفلي: الإدارة (6 أيقونات - شبكة منظمة) -->
-                            <div class="home-section">
-                                <h3>Kingdom Management</h3>
-                                <div class="home-secondary-actions" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                                    
-                                    <!-- 1. العقود -->
-                                    <a class="action-icon-link" data-target="contracts-screen">
-                                        <div class="icon-box">📜</div>
-                                        <span>Contracts</span>
-                                    </a>
-                    
-                                    <!-- 2. المشاريع الكبرى -->
-                                    <a class="action-icon-link" data-target="projects-screen">
-                                        <div class="icon-box">🏗️</div>
-                                        <span>Projects</span>
-                                    </a>
-                    
-                                    <!-- 3. سوق التبادل -->
-                                    <a class="action-icon-link" data-target="swap-screen">
-                                        <div class="icon-box">🤝</div>
-                                        <span>P2P Market</span>
-                                    </a>
-                    
-                                    <!-- 4. الموسوعة -->
-                                    <a class="action-icon-link" data-target="library-screen">
-                                        <div class="icon-box">📚</div>
-                                        <span>Library</span>
-                                    </a>
-                    
-                                    <!-- 5. الصرافة -->
-                                    <a class="action-icon-link" data-target="exchange-screen">
-                                        <div class="icon-box">💹</div>
-                                        <span>Exchange</span>
-                                    </a>
-                    
-                                    <!-- 6. المحادثة -->
-                                    <a class="action-icon-link" data-target="chat-screen">
-                                        <div class="icon-box">💬</div>
-                                        <span>Eve Chat</span>
-                                    </a>
-                    
-                                </div>
-                            </div>
+                            <!-- 1. العقود -->
+                            <a class="action-icon-link" data-target="contracts-screen">
+                                <div class="icon-box">📜</div>
+                                <span>Contracts</span>
+                            </a>
+            
+                            <!-- 2. المشاريع الكبرى -->
+                            <a class="action-icon-link" data-target="projects-screen">
+                                <div class="icon-box">🏗️</div>
+                                <span>Projects</span>
+                            </a>
+            
+                            <!-- 3. سوق التبادل -->
+                            <a class="action-icon-link" data-target="swap-screen">
+                                <div class="icon-box">🤝</div>
+                                <span>P2P Market</span>
+                            </a>
+            
+                            <!-- 4. الموسوعة -->
+                            <a class="action-icon-link" data-target="library-screen">
+                                <div class="icon-box">📚</div>
+                                <span>Library</span>
+                            </a>
+            
+                            <!-- 5. الصرافة -->
+                            <a class="action-icon-link" data-target="exchange-screen">
+                                <div class="icon-box">💹</div>
+                                <span>Exchange</span>
+                            </a>
+            
+                            <!-- 6. المحادثة -->
+                            <a class="action-icon-link" data-target="chat-screen">
+                                <div class="icon-box">💬</div>
+                                <span>Eve Chat</span>
+                            </a>
+            
                         </div>
                     </div>
                 </div>
-            </div>
-            
+            </div>            
             <!-- All other screens -->
             <div id="collection-screen" class="screen hidden"><h2>My Cards</h2><div class="card-grid" id="collection-container"></div></div>
             
@@ -313,5 +300,6 @@
     </script>
 </body>
 </html>
+
 
 
