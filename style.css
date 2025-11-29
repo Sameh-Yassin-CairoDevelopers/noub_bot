@@ -219,8 +219,8 @@ header {
     min-width: 100px;
 }
 .currency-display .currency-img {
-    width: 22px;  /* تحديد حجم صغير وثابت */
-    height: 22px;
+    width: 18px;  /* تحديد حجم صغير وثابت */
+    height: 18px;
     object-fit: contain; /* منع تمطيط الصورة */
     
     /* مسافة بين الأيقونة والرقم */
@@ -261,7 +261,7 @@ header {
     right: 0;
     display: flex;
     justify-content: space-around;
-    padding: 12px 0 15px 0; /* مساحة مريحة */
+    padding: 8px 0 10px 0; /* مساحة مريحة */
     z-index: 100;
     
     /* --- 3D Effect for the Bar --- */
@@ -282,7 +282,7 @@ header {
     text-decoration: none;
     
     /* استعادة الحجم الطبيعي */
-    font-size: 11px; 
+    font-size: 10px; 
     
     cursor: pointer;
     user-select: none;
@@ -298,7 +298,7 @@ header {
 
 .nav-item .icon { 
     /* استعادة حجم الأيقونة الكبير */
-    font-size: 24px; 
+    font-size: 20px; 
     margin-bottom: 4px;
     /* ظل خفيف للأيقونة نفسها لتبرز عن الشريط */
     filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
