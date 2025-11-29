@@ -261,7 +261,7 @@ header {
     right: 0;
     display: flex;
     justify-content: space-around;
-    padding: 8px 0 10px 0; /* مساحة مريحة */
+    padding: 6px 0 8px 0; /* مساحة مريحة */
     z-index: 100;
     
     /* --- 3D Effect for the Bar --- */
