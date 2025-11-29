@@ -159,7 +159,7 @@ header {
     top: 0;
     left: 0;
     right: 0;
-    height: 55px; 
+    height: 45px; 
     z-index: 100;
     padding: 0 15px;
     
@@ -191,8 +191,8 @@ header {
 
 /* تحسين مظهر زر البروفايل (3D Circle) */
 .header-profile-btn {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     border: 2px solid var(--primary-accent);
     overflow: hidden;
@@ -238,8 +238,8 @@ header {
 
 /* زر المحفظة (ضبط الحجم والظل) */
 .ton-connect-btn {
-    width: 40px; /* توحيد الحجم مع البروفايل */
-    height: 40px;
+    width: 34px; /* توحيد الحجم مع البروفايل */
+    height: 34px;
     border-radius: 50%;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
