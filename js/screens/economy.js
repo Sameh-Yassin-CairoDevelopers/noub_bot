@@ -42,10 +42,26 @@ import { trackTaskProgress } from './tasks.js';
 // ========================================================
 
 // Multipliers for Expert Cards based on Level (Index 0 = Lvl 1)
+// ========================================================
+// --- 1. CONFIGURATION & CONSTANTS (CALIBRATED) ---
+// ========================================================
+
+// Expert Curves: Level 1 (20%) -> Level 5 (50%) -> Level 10 (95%)
 const EXPERT_EFFECTS = {
-    'Imhotep': { type: 'TIME_REDUCTION_PERCENT', values: [10, 12, 15, 18, 22] },
-    'Osiris (Underworld)': { type: 'TIME_REDUCTION_PERCENT', values: [20, 24, 28, 33, 40] },
-    'Ptah (Creator)': { type: 'EXTRA_RESOURCE_CHANCE', values: [15, 17, 20, 24, 30] }
+    'Imhotep': { 
+        type: 'TIME_REDUCTION_PERCENT', 
+        // Levels: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+        values: [20, 25, 30, 40, 50, 60, 70, 80, 90, 95] 
+    },
+    'Osiris (Underworld)': { 
+        type: 'TIME_REDUCTION_PERCENT', 
+        values: [20, 25, 30, 40, 50, 60, 70, 80, 90, 95] 
+    },
+    'Ptah (Creator)': { 
+        type: 'EXTRA_RESOURCE_CHANCE', 
+        // Chance to double output: 15% start -> 60% max
+        values: [15, 20, 25, 30, 35, 40, 45, 50, 55, 60] 
+    }
 };
 
 const TIME_CONSTANTS = {
@@ -651,3 +667,4 @@ function renderStock() {
     fill(UI.stock.materials, 'MATERIAL');
     fill(UI.stock.goods, 'GOOD');
 }
+
