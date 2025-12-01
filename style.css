@@ -1590,7 +1590,57 @@ input:focus, textarea:focus, select:focus {
     border-radius: 8px;
     border: 1px solid #444;
 }
+/* =================================================================================
+   --- إصلاح عاجل لتنسيق شبكة الكروت والألبومات (Final Grid Fix) ---
+   ================================================================================= */
 
+/* 1. إجبار حاوية الكروت على العمل كشبكة */
+#coll-content-inventory, 
+.card-grid {
+    display: grid !important;
+    /* توزيع الأعمدة: كروت بعرض 95px تملأ الشاشة تلقائياً */
+    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    padding: 10px 5px 60px 5px; /* مساحة سفلية للتمرير */
+    box-sizing: border-box;
+}
+
+/* 2. ضبط أبعاد الكروت لتتناسب مع الشبكة */
+.card-stack, 
+.album-card {
+    width: 100%; /* يأخذ عرض العمود المتاح */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    margin: 0 !important; /* إزالة أي هوامش جانبية */
+}
+
+/* 3. ضبط صور الكروت */
+.card-stack .card-image {
+    width: 100% !important;
+    height: auto;
+    aspect-ratio: 1/1; /* ضمان المربع */
+    object-fit: cover;
+}
+
+/* 4. إصلاح حاوية التبويبات العلوية */
+#coll-tabs-ctrl {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-around;
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 5px;
+    margin-bottom: 15px;
+}
+
+/* 5. إخفاء العناصر غير النشطة تماماً */
+.coll-content-tab.hidden {
+    display: none !important;
+}
 /* هام: نعتمد على .card-grid الموجودة مسبقاً في الملف */
 /* لن نقوم بإعادة تعريفها هنا لتجنب التضارب */
 
