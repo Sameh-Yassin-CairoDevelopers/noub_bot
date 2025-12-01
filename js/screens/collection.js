@@ -522,9 +522,9 @@ window.openAlbumDetails = async (albumId) => {
 window.renderCollection = renderCollection; // للوصول لها من القائمة الرئيسية
 window.openInstanceSelectionModal = openInstanceSelectionModal; // لفتح قائمة النسخ
 window.selectInstance = selectInstance; // لاختيار نسخة محددة
-window.executeBurn = executeBurn; // لتنفيذ الحرق
 window.openAlbumDetail = openAlbumDetail; // لفتح الألبوم
 
 // ملاحظة: تأكد أن هذه الأسماء تطابق أسماء الدوال المكتوبة داخل الملف
+
 
 
