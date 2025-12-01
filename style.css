@@ -1681,6 +1681,35 @@ input:focus, textarea:focus, select:focus {
     margin: 0 !important;   /* إزالة الهوامش الجانبية الزائدة */
 }
 
+
+
+/* =================================================================================
+   --- الترياق النهائي الذكي (Smart Grid Fix) ---
+   ================================================================================= */
+
+/* 1. تطبيق الشبكة فقط عندما تكون القائمة نشطة (ليست مخفية) */
+#coll-view-inventory:not(.hidden) {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    padding-bottom: 60px;
+}
+
+/* 2. تطبيق الفليكس للألبومات فقط عندما تكون نشطة */
+#coll-view-albums:not(.hidden) {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 15px !important;
+    width: 100% !important;
+}
+
+/* 3. ضمان أن كلاس الإخفاء يعمل بقوة قصوى */
+.hidden {
+    display: none !important;
+}
+
+
 /* هام: نعتمد على .card-grid الموجودة مسبقاً في الملف */
 /* لن نقوم بإعادة تعريفها هنا لتجنب التضارب */
 
