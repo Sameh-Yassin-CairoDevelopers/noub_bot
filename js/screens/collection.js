@@ -85,18 +85,24 @@ const CARD_BURN_REWARDS = {
 // =============================================================================
 
 /**
- * Initializes the screen layout and handles Tab Switching.
- * Implements Singleton check to prevent re-rendering the container.
+ * Initializes the Collection Screen Layout.
+ * ACADEMIC NOTE: Implements a Singleton UI pattern to prevent re-rendering 
+ * the tab structure on every refresh, ensuring DOM stability.
  */
 export async function renderCollection() {
     if (!state.currentUser) return;
 
-    // 1. Structure Layout (Only once)
+    // 1. Layout Hard-Reset: Force block display to contain Tabs + Grid properly
+    collectionContainer.style.display = 'block'; 
+    collectionContainer.style.padding = '10px';
+
+    // 2. Construct Tab Interface (Once)
     if (!document.getElementById('coll-tabs-ctrl')) {
         collectionContainer.innerHTML = `
-            <h2 class="screen-title" style="text-align:center; color:var(--primary-accent); margin-bottom:15px;">Archives</h2>
+            <h2 class="screen-title" style="text-align:center; color:var(--primary-accent); margin-bottom:15px;">Treasury</h2>
             
-            <div id="coll-tabs-ctrl" style="display:flex; justify-content:space-around; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">
+            <!-- TABS CONTROLLER -->
+            <div id="coll-tabs-ctrl" style="display:flex; justify-content:space-around; margin-bottom:20px; border-bottom:1px solid #444; padding-bottom:5px;">
                 <button class="coll-tab-btn active" data-target="inventory" 
                         style="flex:1; background:none; border:none; color:#fff; font-weight:bold; padding:10px; border-bottom:2px solid var(--primary-accent); cursor:pointer;">
                     My Cards
@@ -107,75 +113,84 @@ export async function renderCollection() {
                 </button>
             </div>
 
-            <div id="coll-view-inventory" class="coll-view card-grid"></div>
-            <div id="coll-view-albums" class="coll-view hidden"></div>
+            <!-- DYNAMIC VIEWPORTS -->
+            <div id="coll-view-inventory" class="coll-view"></div>
+            <div id="coll-view-albums" class="coll-view hidden" style="display:flex; flex-direction:column; gap:15px;"></div>
         `;
 
-        // Bind Tab Switching Logic
-        const tabs = collectionContainer.querySelectorAll('.coll-tab-btn');
-        tabs.forEach(btn => {
+        // 3. Bind Tab Switching Logic
+        collectionContainer.querySelectorAll('.coll-tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // Update Button Styles
-                tabs.forEach(b => {
+                // Reset Styles
+                document.querySelectorAll('.coll-tab-btn').forEach(b => {
                     b.classList.remove('active');
                     b.style.color = '#888';
                     b.style.borderBottom = 'none';
                 });
+                // Active Style
                 e.target.classList.add('active');
                 e.target.style.color = '#fff';
                 e.target.style.borderBottom = '2px solid var(--primary-accent)';
 
-                // Toggle Views
+                // View Switching
                 document.querySelectorAll('.coll-view').forEach(v => v.classList.add('hidden'));
                 const target = e.target.dataset.target;
-                document.getElementById(`coll-view-${target}`).classList.remove('hidden');
+                const activeView = document.getElementById(`coll-view-${target}`);
+                activeView.classList.remove('hidden');
 
-                // Trigger Render Logic for selected tab
+                // Dispatch Renderer
                 if (target === 'inventory') renderInventoryView();
                 else renderAlbumsView();
             });
         });
     }
 
-    // Initial Render (Default Tab)
+    // 4. Initial Load
     renderInventoryView();
 }
-
 // =============================================================================
 // SECTION 3: INVENTORY LOGIC (My Cards)
 // =============================================================================
 
 /**
- * Renders the grid of owned cards.
- * Features: Aggregation by ID, Soul Card priority sorting, Assigned status indication.
+ * Renders the User's Card Inventory.
+ * LOGIC: 
+ * 1. Parallel Fetch (Cards + Factories).
+ * 2. O(1) Assignment Check via Set.
+ * 3. Grouping by Master ID -> Sorting (Soul First).
  */
 async function renderInventoryView() {
     const container = document.getElementById('coll-view-inventory');
-    container.innerHTML = '<div class="loading-spinner"></div>';
+    
+    // Force Grid Layout Programmatically (Safety Net)
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(90px, 1fr))';
+    container.style.gap = '12px';
+    
+    container.innerHTML = '<div class="loading-spinner" style="grid-column:1/-1; text-align:center;">Loading...</div>';
 
-    // Parallel Fetch for Performance
+    // Fetch Data
     const [{ data: playerCards }, { data: factories }] = await Promise.all([
         api.fetchPlayerCards(state.currentUser.id),
         api.fetchPlayerFactories(state.currentUser.id)
     ]);
 
     if (!playerCards || playerCards.length === 0) {
-        return container.innerHTML = '<div class="empty-state"><p>Inventory Empty</p></div>';
+        container.style.display = 'block'; // Reset for text message
+        return container.innerHTML = '<div class="empty-state" style="text-align:center; padding:20px;">Collection Empty</div>';
     }
 
-    // Create a Set of Assigned Card IDs for O(1) lookup
+    // Logic: Identify Busy Experts
     const assignedIds = new Set(factories.map(f => f.assigned_card_instance_id).filter(Boolean));
 
-    // Aggregate: Group instances by Master Card ID
+    // Grouping
     const cardMap = new Map();
     playerCards.forEach(pc => {
-        if (!cardMap.has(pc.card_id)) {
-            cardMap.set(pc.card_id, { master: pc.cards, instances: [] });
-        }
+        if (!cardMap.has(pc.card_id)) cardMap.set(pc.card_id, { master: pc.cards, instances: [] });
         cardMap.get(pc.card_id).instances.push(pc);
     });
 
-    // Sort: Soul Card (9999) -> Then ascending ID
+    // Sorting: Soul Card First -> Then ID
     const sorted = Array.from(cardMap.values()).sort((a, b) => {
         if (a.master.id == 9999) return -1;
         if (b.master.id == 9999) return 1;
@@ -186,43 +201,41 @@ async function renderInventoryView() {
     
     sorted.forEach(group => {
         const { master, instances } = group;
-        // Logic: Display the "best" instance stats on the cover
-        const displayInst = instances.reduce((best, curr) => curr.level > best.level ? curr : best, instances[0]);
-        
-        // Check if ANY instance in this group is assigned
-        const isGroupAssigned = instances.some(i => assignedIds.has(i.instance_id));
+        // Display best stats
+        const bestInst = instances.reduce((max, curr) => curr.level > max.level ? curr : max, instances[0]);
+        const isAssigned = instances.some(i => assignedIds.has(i.instance_id));
 
         const el = document.createElement('div');
+        // Inline styles to ensure stability regardless of CSS file state
+        el.style.cssText = "position:relative; cursor:pointer;";
         
         if (master.id == 9999) {
-            // Soul Card Styling
+            // Soul Card
             el.className = 'card-stack soul-card';
-            const dna = state.playerProfile.dna_eve_code || 'DNA';
             el.innerHTML = `
                 <div class="soul-glow"></div>
-                <img src="${master.image_url}" class="card-image">
-                <h4 style="color:var(--primary-accent); text-shadow:0 0 5px gold;">${master.name}</h4>
-                <div class="card-details"><span style="color:cyan;">Power: ${displayInst.power_score}</span></div>
-                <div style="font-size:0.5em; font-family:monospace; color:#aaa; margin-top:2px;">${dna}</div>
+                <img src="${master.image_url}" class="card-image" style="width:100%; border-radius:6px;">
+                <h4 style="color:var(--primary-accent); text-shadow:0 0 5px gold; margin:4px 0; font-size:0.8em;">${master.name}</h4>
+                <div class="card-details"><span style="color:cyan;">${bestInst.power_score} PWR</span></div>
             `;
         } else {
-            // Standard Card Styling
+            // Standard Card
             el.className = 'card-stack';
             el.setAttribute('data-rarity', master.rarity_level || 0);
-            if (isGroupAssigned) el.classList.add('assigned-expert');
+            if (isAssigned) el.classList.add('assigned-expert');
             
             el.innerHTML = `
-                ${isGroupAssigned ? '<div style="position:absolute; top:2px; right:2px; font-size:1em;">⭐</div>' : ''}
-                <img src="${master.image_url || 'images/default_card.png'}" class="card-image">
-                <h4>${master.name}</h4>
-                <div class="card-details">
-                    <span>Lvl ${displayInst.level}</span>
+                ${isAssigned ? '<div style="position:absolute; top:0; right:0; font-size:1.2em;">⭐</div>' : ''}
+                <img src="${master.image_url || 'images/default_card.png'}" class="card-image" style="width:100%; border-radius:6px;">
+                <h4 style="margin:4px 0; font-size:0.8em;">${master.name}</h4>
+                <div class="card-details" style="display:flex; justify-content:space-between; font-size:0.7em; color:#aaa;">
+                    <span>Lvl ${bestInst.level}</span>
                     <span>x${instances.length}</span>
                 </div>
             `;
         }
 
-        // Click -> Open Instance Selector
+        // Connect to Instance Selection Modal (The new logic)
         el.onclick = () => {
             playSound('click');
             openInstanceSelectionModal(group, assignedIds);
@@ -231,7 +244,6 @@ async function renderInventoryView() {
         container.appendChild(el);
     });
 }
-
 // =============================================================================
 // SECTION 4: INSTANCE SELECTION & MODAL LOGIC
 // =============================================================================
@@ -517,3 +529,4 @@ window.openAlbumDetails = async (albumId) => {
     `;
     openModal(modalId);
 };
+
