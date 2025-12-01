@@ -1,196 +1,195 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB v5.0.0 (The Academic Master File)
- * Description: 
- * This module acts as the central controller for Player Assets.
- * It integrates three major subsystems:
- * 1. Inventory Management (Visualization, Filtering, Sorting).
- * 2. Progression Tracking (Albums & Collections).
- * 3. Asset Mutation Logic (Upgrading, Fusing, Sacrificing).
+ * Version: NOUB v7.0.0 (The Master Academic Edition)
+ * Author: Sameh Yassin & Co-Pilot
  * 
- * Dependencies: State, API, Auth, UI.
+ * -----------------------------------------------------------------------------
+ * MODULE DOCUMENTATION
+ * -----------------------------------------------------------------------------
+ * This module serves as the consolidated Controller for the Player's Assets.
+ * It unifies the previously separate 'Collection' and 'Albums' modules into
+ * a single, robust interface using a Tabbed View System.
+ * 
+ * CORE FUNCTIONS:
+ * 1. Initialization: Sets up a conflict-free DOM structure.
+ * 2. Inventory Logic: Renders owned cards with "Soul Card" priority.
+ * 3. Asset Mutation: Implements "Fusion" (Merge) and "Sacrifice" (Burn) logic.
+ * 4. Progression: Tracks and rewards Album completion.
+ * 
+ * -----------------------------------------------------------------------------
  */
 
 import { state } from '../state.js';
 import * as api from '../api.js';
-import { showToast, openModal, playSound, triggerHaptic, triggerNotificationHaptic } from '../ui.js';
+import { showToast, openModal, playSound } from '../ui.js';
 import { refreshPlayerState } from '../auth.js';
 
-// DOM Reference
+// DOM Reference (The main container div in index.html)
 const collectionContainer = document.getElementById('collection-container');
 
 // =============================================================================
-// SECTION 1: CONFIGURATION & CONSTANTS
+// SECTION 1: STATIC DATA CONFIGURATION
 // =============================================================================
 
-// Album Definitions (Previously in albums.js)
+/**
+ * Master Albums Definition.
+ * Includes the original 3 albums plus the 2 new expansions (Dendera & Arsenal).
+ */
 const MASTER_ALBUMS = [
     { 
-        id: 1, 
-        name: "The Sacred Ennead", 
-        icon: "☀️", 
-        description: "The nine foundational deities of Heliopolis creation myths.", 
+        id: 1, name: "The Sacred Ennead", icon: "☀️", 
+        description: "The nine foundational deities of creation.", 
         card_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9], 
         rewards: { noub: 2500, prestige: 50 } 
     },
     { 
-        id: 2, 
-        name: "Pharaonic Rulers", 
-        icon: "👑", 
-        description: "The greatest Pharaohs and Queens who shaped history.", 
+        id: 2, name: "Pharaonic Rulers", icon: "👑", 
+        description: "Greatest Kings and Queens of Egypt.", 
         card_ids: [10, 11, 12, 13, 14, 15, 16, 17, 18], 
         rewards: { noub: 4000, prestige: 100 } 
     },
     { 
-        id: 3, 
-        name: "Mythological Beasts", 
-        icon: "🐉", 
+        id: 3, name: "Mythological Beasts", icon: "🐉", 
         description: "Guardians and creatures from the Duat.", 
         card_ids: [19, 20, 21, 22, 23, 24, 25, 26, 27], 
         rewards: { noub: 1500, prestige: 30 } 
+    },
+    { 
+        id: 4, name: "Dendera Temple", icon: "🌌", 
+        description: "Secrets of Astronomy, Time, and Science.", 
+        card_ids: [28, 29, 30, 31, 32, 33, 34, 35, 36], 
+        rewards: { noub: 6000, prestige: 50 } 
+    },
+    { 
+        id: 5, name: "Royal Arsenal", icon: "⚔️", 
+        description: "Tools of War and Military Might.", 
+        card_ids: [37, 38, 39, 40, 41, 42, 43, 44, 45], 
+        rewards: { noub: 8000, prestige: 100 } 
     }
 ];
 
-// Burn Rewards Table (Deterministic outcome for sacrificing cards)
+/**
+ * Deterministic Reward Table for Card Sacrifice.
+ * Key: Card ID (or 'default'), Value: Reward Object.
+ */
 const CARD_BURN_REWARDS = {
-    1: { type: 'CURRENCY', payload: { noub: 50, prestige: 1 } },
-    2: { type: 'CURRENCY', payload: { noub: 75, prestige: 2 } },
-    3: { type: 'CURRENCY', payload: { noub: 100, prestige: 3 } },
-    4: { type: 'CURRENCY', payload: { noub: 250, prestige: 5 } },
-    5: { type: 'CURRENCY', payload: { noub: 500, prestige: 8 } },
-    6: { type: 'CURRENCY', payload: { noub: 1000, prestige: 12 } },
-    7: { type: 'CURRENCY', payload: { noub: 2000, prestige: 20 } },
-    8: { type: 'CURRENCY', payload: { noub: 3500, prestige: 35 } },
-    9: { type: 'CURRENCY', payload: { noub: 5000, prestige: 50, ankh: 5 } },
-    // Material Packs
-    10: { type: 'RESOURCE_PACK', payload: [{ item_id: 1, quantity: 50 }] },
-    11: { type: 'RESOURCE_PACK', payload: [{ item_id: 2, quantity: 75 }] },
-    12: { type: 'RESOURCE_PACK', payload: [{ item_id: 3, quantity: 100 }] },
-    13: { type: 'RESOURCE_PACK', payload: [{ item_id: 11, quantity: 20 }] },
-    14: { type: 'RESOURCE_PACK', payload: [{ item_id: 12, quantity: 25 }] },
-    15: { type: 'RESOURCE_PACK', payload: [{ item_id: 13, quantity: 30 }] },
-    16: { type: 'RESOURCE_PACK', payload: [{ item_id: 25, quantity: 10 }] },
-    17: { type: 'RESOURCE_PACK', payload: [{ item_id: 26, quantity: 5 }] },
-    18: { type: 'RESOURCE_PACK', payload: [{ item_id: 40, quantity: 2 }, { item_id: 45, quantity: 1 }] },
-    // Special Actions
-    19: { type: 'SACRIFICE', action: 'INSTANT_CONTRACT', value: 1, text: "Complete 1 Contract" },
-    20: { type: 'SACRIFICE', action: 'PRESTIGE_BOOST', value: 100, text: "Gain 100 Prestige" },
-    21: { type: 'SACRIFICE', action: 'TICKET_BOOST', value: 20, text: "Gain 20 Tickets" },
-    22: { type: 'SACRIFICE', action: 'ANKH_BOOST', value: 10, text: "Gain 10 Ankh" },
     'default': { type: 'CURRENCY', payload: { noub: 100 } }
+    // Specific IDs can be added here if needed in future balancing
 };
 
 // =============================================================================
-// SECTION 2: VIEW CONTROLLER (Render & Tabs)
+// SECTION 2: INITIALIZATION & TAB SYSTEM
 // =============================================================================
 
 /**
- * Initializes the Collection Screen Layout.
- * ACADEMIC NOTE: Implements a Singleton UI pattern to prevent re-rendering 
- * the tab structure on every refresh, ensuring DOM stability.
+ * [Function 1] renderCollection
+ * The Entry Point. Configures the layout and initializes the tab system.
+ * Uses Inline Styles to guarantee layout stability regardless of external CSS.
  */
 export async function renderCollection() {
     if (!state.currentUser) return;
 
-    // 1. Layout Hard-Reset: Force block display to contain Tabs + Grid properly
-    collectionContainer.style.display = 'block'; 
+    // 1. Layout Enforcement: Clear collisions
+    collectionContainer.style.display = 'block';
     collectionContainer.style.padding = '10px';
 
-    // 2. Construct Tab Interface (Once)
+    // 2. Construct Singleton UI (Header & Tabs)
     if (!document.getElementById('coll-tabs-ctrl')) {
         collectionContainer.innerHTML = `
-            <h2 class="screen-title" style="text-align:center; color:var(--primary-accent); margin-bottom:15px;">Treasury</h2>
+            <h2 class="screen-title" style="text-align:center; color:var(--primary-accent); margin-bottom:15px;">Treasury & Archives</h2>
             
-            <!-- TABS CONTROLLER -->
-            <div id="coll-tabs-ctrl" style="display:flex; justify-content:space-around; margin-bottom:20px; border-bottom:1px solid #444; padding-bottom:5px;">
+            <!-- TAB CONTROLLER -->
+            <div id="coll-tabs-ctrl" style="display:flex; justify-content:space-around; margin-bottom:20px; border-bottom:1px solid #444; background:rgba(0,0,0,0.2); border-radius:8px; padding:5px;">
                 <button class="coll-tab-btn active" data-target="inventory" 
-                        style="flex:1; background:none; border:none; color:#fff; font-weight:bold; padding:10px; border-bottom:2px solid var(--primary-accent); cursor:pointer;">
+                        style="flex:1; background:none; border:none; color:#fff; font-weight:bold; padding:12px; border-bottom:2px solid var(--primary-accent); cursor:pointer;">
                     My Cards
                 </button>
                 <button class="coll-tab-btn" data-target="albums" 
-                        style="flex:1; background:none; border:none; color:#888; font-weight:bold; padding:10px; cursor:pointer;">
+                        style="flex:1; background:none; border:none; color:#888; font-weight:bold; padding:12px; cursor:pointer;">
                     Albums
                 </button>
             </div>
 
-            <!-- DYNAMIC VIEWPORTS -->
-            <div id="coll-view-inventory" class="coll-view"></div>
-            <div id="coll-view-albums" class="coll-view hidden" style="display:flex; flex-direction:column; gap:15px;"></div>
+            <!-- VIEWPORT 1: INVENTORY -->
+            <div id="coll-view-inventory" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:12px;"></div>
+
+            <!-- VIEWPORT 2: ALBUMS -->
+            <div id="coll-view-albums" style="display:none; flex-direction:column; gap:15px;"></div>
         `;
 
-        // 3. Bind Tab Switching Logic
-        collectionContainer.querySelectorAll('.coll-tab-btn').forEach(btn => {
+        // 3. Bind Tab Events
+        const tabs = collectionContainer.querySelectorAll('.coll-tab-btn');
+        tabs.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // Reset Styles
-                document.querySelectorAll('.coll-tab-btn').forEach(b => {
+                // Style Update
+                tabs.forEach(b => {
                     b.classList.remove('active');
                     b.style.color = '#888';
                     b.style.borderBottom = 'none';
                 });
-                // Active Style
                 e.target.classList.add('active');
                 e.target.style.color = '#fff';
                 e.target.style.borderBottom = '2px solid var(--primary-accent)';
 
-                // View Switching
-                document.querySelectorAll('.coll-view').forEach(v => v.classList.add('hidden'));
+                // View Switching Logic
                 const target = e.target.dataset.target;
-                const activeView = document.getElementById(`coll-view-${target}`);
-                activeView.classList.remove('hidden');
+                const invView = document.getElementById('coll-view-inventory');
+                const albView = document.getElementById('coll-view-albums');
 
-                // Dispatch Renderer
-                if (target === 'inventory') renderInventoryView();
-                else renderAlbumsView();
+                if (target === 'inventory') {
+                    invView.style.display = 'grid'; // Show Grid
+                    albView.style.display = 'none'; // Hide List
+                    renderInventoryView();
+                } else {
+                    invView.style.display = 'none'; // Hide Grid
+                    albView.style.display = 'flex'; // Show Flex List
+                    renderAlbumsView();
+                }
             });
         });
     }
 
-    // 4. Initial Load
+    // Initial Data Load
     renderInventoryView();
 }
+
 // =============================================================================
-// SECTION 3: INVENTORY LOGIC (My Cards)
+// SECTION 3: INVENTORY LOGIC (VIEW 1)
 // =============================================================================
 
 /**
- * Renders the User's Card Inventory.
- * LOGIC: 
- * 1. Parallel Fetch (Cards + Factories).
- * 2. O(1) Assignment Check via Set.
- * 3. Grouping by Master ID -> Sorting (Soul First).
+ * [Function 2] renderInventoryView
+ * Fetches Cards + Factories. Aggregates duplicates. Renders the Card Grid.
+ * Handles the visual priority of the Soul Card.
  */
 async function renderInventoryView() {
     const container = document.getElementById('coll-view-inventory');
-    
-    // Force Grid Layout Programmatically (Safety Net)
-    container.style.display = 'grid';
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(90px, 1fr))';
-    container.style.gap = '12px';
-    
-    container.innerHTML = '<div class="loading-spinner" style="grid-column:1/-1; text-align:center;">Loading...</div>';
+    container.innerHTML = '<div class="loading-spinner" style="grid-column:1/-1; text-align:center; color:#aaa;">Loading...</div>';
 
-    // Fetch Data
+    // Parallel Fetch
     const [{ data: playerCards }, { data: factories }] = await Promise.all([
         api.fetchPlayerCards(state.currentUser.id),
         api.fetchPlayerFactories(state.currentUser.id)
     ]);
 
     if (!playerCards || playerCards.length === 0) {
-        container.style.display = 'block'; // Reset for text message
-        return container.innerHTML = '<div class="empty-state" style="text-align:center; padding:20px;">Collection Empty</div>';
+        container.style.display = 'block';
+        return container.innerHTML = '<div class="empty-state" style="text-align:center; color:#666;">Collection Empty</div>';
+    } else {
+        container.style.display = 'grid'; // Ensure Grid
     }
 
-    // Logic: Identify Busy Experts
+    // O(1) Set for Expert Checking
     const assignedIds = new Set(factories.map(f => f.assigned_card_instance_id).filter(Boolean));
 
-    // Grouping
+    // Aggregation: Map<CardID, {Master, Instances[]}>
     const cardMap = new Map();
     playerCards.forEach(pc => {
         if (!cardMap.has(pc.card_id)) cardMap.set(pc.card_id, { master: pc.cards, instances: [] });
         cardMap.get(pc.card_id).instances.push(pc);
     });
 
-    // Sorting: Soul Card First -> Then ID
+    // Sorting: Soul Card (9999) First
     const sorted = Array.from(cardMap.values()).sort((a, b) => {
         if (a.master.id == 9999) return -1;
         if (b.master.id == 9999) return 1;
@@ -201,99 +200,92 @@ async function renderInventoryView() {
     
     sorted.forEach(group => {
         const { master, instances } = group;
-        // Display best stats
-        const bestInst = instances.reduce((max, curr) => curr.level > max.level ? curr : max, instances[0]);
-        const isAssigned = instances.some(i => assignedIds.has(i.instance_id));
+        const displayInst = instances.reduce((max, curr) => curr.level > max.level ? curr : max, instances[0]);
+        const isGroupAssigned = instances.some(i => assignedIds.has(i.instance_id));
 
         const el = document.createElement('div');
-        // Inline styles to ensure stability regardless of CSS file state
-        el.style.cssText = "position:relative; cursor:pointer;";
+        // Using Original Class Names + Inline Fixes
+        el.className = 'card-stack'; 
+        el.setAttribute('data-rarity', master.rarity_level || 0);
+        if (isGroupAssigned) el.classList.add('assigned-expert');
         
+        // Visual Render
         if (master.id == 9999) {
-            // Soul Card
-            el.className = 'card-stack soul-card';
+            // Soul Card Special Visuals
+            el.classList.add('soul-card');
+            el.style.cssText = "border: 2px solid gold; box-shadow: 0 0 10px rgba(212,175,55,0.5);";
+            const dna = state.playerProfile.dna_eve_code || 'DNA';
             el.innerHTML = `
                 <div class="soul-glow"></div>
                 <img src="${master.image_url}" class="card-image" style="width:100%; border-radius:6px;">
-                <h4 style="color:var(--primary-accent); text-shadow:0 0 5px gold; margin:4px 0; font-size:0.8em;">${master.name}</h4>
-                <div class="card-details"><span style="color:cyan;">${bestInst.power_score} PWR</span></div>
+                <h4 style="color:gold; margin:5px 0; font-size:0.8em;">${master.name}</h4>
+                <div class="card-details"><span style="color:cyan;">PWR: ${displayInst.power_score}</span></div>
+                <div style="font-size:0.5em; color:#aaa;">${dna}</div>
             `;
         } else {
-            // Standard Card
-            el.className = 'card-stack';
-            el.setAttribute('data-rarity', master.rarity_level || 0);
-            if (isAssigned) el.classList.add('assigned-expert');
-            
+            // Standard Visuals
             el.innerHTML = `
-                ${isAssigned ? '<div style="position:absolute; top:0; right:0; font-size:1.2em;">⭐</div>' : ''}
+                ${isGroupAssigned ? '<div style="position:absolute; top:2px; right:2px; font-size:1.2em;">⭐</div>' : ''}
                 <img src="${master.image_url || 'images/default_card.png'}" class="card-image" style="width:100%; border-radius:6px;">
-                <h4 style="margin:4px 0; font-size:0.8em;">${master.name}</h4>
-                <div class="card-details" style="display:flex; justify-content:space-between; font-size:0.7em; color:#aaa;">
-                    <span>Lvl ${bestInst.level}</span>
+                <h4 style="margin:5px 0 2px 0; font-size:0.8em; color:#fff;">${master.name}</h4>
+                <div class="card-details" style="display:flex; justify-content:space-between; width:100%; font-size:0.7em; color:#aaa;">
+                    <span>Lvl ${displayInst.level}</span>
                     <span>x${instances.length}</span>
                 </div>
             `;
         }
 
-        // Connect to Instance Selection Modal (The new logic)
         el.onclick = () => {
             playSound('click');
             openInstanceSelectionModal(group, assignedIds);
         };
-        
         container.appendChild(el);
     });
 }
+
 // =============================================================================
-// SECTION 4: INSTANCE SELECTION & MODAL LOGIC
+// SECTION 4: INTERACTION & MODALS (Logic Hub)
 // =============================================================================
 
 /**
- * Opens a modal listing ALL instances of a specific card type.
- * Allows the user to select WHICH specific copy to Upgrade, Burn, or Inspect.
- */
-
-/**
- * MODAL 1: Lists all instances of a card type.
- * Users must select a SPECIFIC card instance to perform actions on.
+ * [Function 3] openInstanceSelectionModal
+ * Displays all copies of a card type.
+ * Filters and flags copies based on Status (Expert/Locked/Ready).
  */
 function openInstanceSelectionModal(cardGroup, assignedIds) {
     const { master, instances } = cardGroup;
     
-    // Soul Card Protection
     if (master.id == 9999) {
-        const modal = document.getElementById('card-interaction-modal');
-        modal.innerHTML = `
-            <div class="modal-content" style="text-align:center; border:2px solid gold;">
-                <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
-                <h3 style="color:gold;">The Soul Mirror</h3>
-                <p style="color:#aaa;">Immutable Identity.</p>
-            </div>`;
-        openModal('card-interaction-modal');
+        alert("Soul Card is Immutable.");
         return;
     }
 
-    // Sorting: Unlocked & High Level First
-    instances.sort((a, b) => b.level - a.level);
+    instances.sort((a, b) => b.level - a.level); // High level first
 
     const listHTML = instances.map(inst => {
         const isAssigned = assignedIds.has(inst.instance_id);
         const isLocked = inst.is_locked;
         
         let statusHTML = '<span style="color:#0f0">Ready</span>';
-        if (isAssigned) statusHTML = '<span style="color:gold">Expert (Busy)</span>';
-        else if (isLocked) statusHTML = '<span style="color:red">Locked (Trade)</span>';
+        let actionBtn = `<button class="action-button small" onclick="window.selectInstance('${inst.instance_id}')" style="margin-left:10px;">Manage</button>`;
+
+        if (isAssigned) {
+            statusHTML = '<span style="color:gold">Busy (Expert)</span>';
+            actionBtn = ''; 
+        } else if (isLocked) {
+            statusHTML = '<span style="color:red">Locked (Trade)</span>';
+            actionBtn = '';
+        }
 
         return `
-            <div class="instance-row" style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:10px; margin-bottom:5px; border-radius:6px;">
+            <div class="instance-row" style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:10px; margin-bottom:5px; border-radius:5px; border:1px solid #444;">
                 <div>
                     <strong style="color:#fff;">Lvl ${inst.level}</strong> 
-                    <span style="font-size:0.8em; color:#aaa;">(Power: ${inst.power_score})</span>
+                    <span style="font-size:0.8em; color:#aaa;">(Pwr ${inst.power_score})</span>
                 </div>
                 <div style="text-align:right; font-size:0.8em;">
                     ${statusHTML}
-                    ${!isAssigned && !isLocked ? 
-                        `<button class="action-button small" onclick="window.selectInstance('${inst.instance_id}')" style="margin-left:10px;">Select</button>` : ''}
+                    ${actionBtn}
                 </div>
             </div>
         `;
@@ -311,220 +303,245 @@ function openInstanceSelectionModal(cardGroup, assignedIds) {
         </div>
     `;
     
-    // Store context for next step
     window.TempCardGroup = cardGroup; 
     openModal('card-interaction-modal');
 }
 
 /**
- * MODAL 2: Actions for the Selected Instance.
- * Calculates Fusion possibilities (Looking for duplicates of same level).
+ * [Function 4] selectInstance
+ * The Decision Logic. Determines if Fusion is possible for the selected card.
+ * Looks for duplicates of the same level to act as fuel.
  */
 window.selectInstance = (instanceId) => {
     const group = window.TempCardGroup;
     const target = group.instances.find(i => i.instance_id === instanceId);
     
-    // Find Sacrifices: Same Level, Not Self, Not Locked
-    const sacrifices = group.instances.filter(i => 
+    // FUSION LOGIC: Find valid sacrifices (Same Level, Not Self, Not Locked)
+    const duplicates = group.instances.filter(i => 
         i.instance_id !== instanceId && 
         i.level === target.level && 
         !i.is_locked
+        // Note: assignedIds filtered out in Step 3 UI, but server will reject if force called.
     );
     
-    const canFuse = sacrifices.length > 0;
-    const burnReward = CARD_BURN_REWARDS[group.master.id] || CARD_BURN_REWARDS['default'];
+    const canFuse = duplicates.length > 0;
+    const nextLevel = target.level + 1;
 
     const modal = document.getElementById('card-interaction-modal');
     modal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
-            <h3 style="text-align:center; color:var(--accent-blue);">Card Actions</h3>
-            <p style="text-align:center; color:#aaa; font-size:0.9em;">Level ${target.level} Selected</p>
-
+            <h3 style="text-align:center; color:var(--accent-blue); margin-bottom:15px;">Action: Level ${target.level}</h3>
+            
             <!-- FUSION -->
             <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #444;">
-                <h4 style="margin-top:0;">Fusion Upgrade</h4>
-                <p style="font-size:0.8em; color:#aaa;">Requires another Level ${target.level} copy.</p>
-                <button class="action-button" onclick="window.executeFusion('${instanceId}', '${sacrifices[0]?.instance_id}')" 
-                        ${canFuse ? '' : 'disabled style="opacity:0.5"'}>
-                    ${canFuse ? 'Fuse with Duplicate' : 'No Duplicates Found'}
+                <h4 style="margin-top:0;">Fusion Upgrade ➜ Lvl ${nextLevel}</h4>
+                <p style="font-size:0.8em; color:#aaa; margin-bottom:10px;">
+                    Combines 2x Level ${target.level} cards.<br>
+                    Available Duplicates: <strong style="color:#fff;">${duplicates.length}</strong>
+                </p>
+                <button class="action-button" onclick="window.executeFusion('${instanceId}', '${duplicates[0]?.instance_id}')" 
+                        ${canFuse ? '' : 'disabled style="opacity:0.5; cursor:not-allowed;"'}>
+                    ${canFuse ? 'Fuse Now' : 'Need Duplicate'}
                 </button>
             </div>
 
             <!-- BURN -->
             <div style="background:rgba(255,0,0,0.1); padding:15px; border-radius:8px; border:1px solid var(--danger-color);">
-                <h4 style="margin-top:0; color:var(--danger-color);">Sacrifice</h4>
-                <p style="font-size:0.8em; color:#aaa;">Gain: ${burnReward.payload.noub} 🪙</p>
+                <h4 style="margin:0 0 5px 0; color:var(--danger-color);">Sacrifice</h4>
                 <button class="action-button danger small" onclick="window.executeBurn('${instanceId}', ${group.master.id})">
-                    Burn
+                    Burn for 100 🪙
                 </button>
             </div>
         </div>
     `;
 }
+
 // =============================================================================
-// SECTION 5: ACTION EXECUTION HANDLERS
+// SECTION 5: ACTION HANDLERS (Data Mutation)
 // =============================================================================
 
-window.handleFusion = async (targetId, sacrificeId) => {
+/**
+ * [Function 5] executeFusion
+ * Performs the merge: Deletes Sacrifice -> Upgrades Target.
+ */
+window.executeFusion = async (targetId, sacrificeId) => {
     if (!sacrificeId) return;
-    showToast("Fusing...", "info");
+    showToast("Fusing Energies...", "info");
 
     // 1. Delete Sacrifice
     await api.deleteCardInstance(sacrificeId);
     
-    // 2. Upgrade Target (Simple Logic: Level+1, Power+20%)
+    // 2. Upgrade Target
     const group = window.TempCardGroup;
     const target = group.instances.find(i => i.instance_id === targetId);
     const newLevel = target.level + 1;
-    const newPower = Math.floor(target.power_score * 1.2);
+    const newPower = Math.floor(target.power_score * 1.25); // +25% Power Curve
     
     await api.performCardUpgrade(targetId, newLevel, newPower);
     
     playSound('reward_grand');
-    showToast(`Success! Upgraded to Level ${newLevel}`, 'success');
+    showToast(`Fusion Successful! Card is now Level ${newLevel}`, 'success');
     
     await refreshPlayerState();
     window.closeModal('card-interaction-modal');
-    renderInventoryView(); // Refresh UI
+    renderInventoryView();
 };
 
-window.handleBurn = async (instanceId, masterId) => {
-    const reward = CARD_BURN_REWARDS[masterId] || CARD_BURN_REWARDS['default'];
-    
-    if (!confirm(`Sacrifice this card?\nRewards: ${JSON.stringify(reward.payload || reward.text)}`)) return;
+/**
+ * [Function 6] executeBurn
+ * Performs sacrifice: Deletes Card -> Grants Currency.
+ */
+window.executeBurn = async (instanceId, masterId) => {
+    if(!confirm("Sacrifice this card permanently for resources?")) return;
     
     showToast("Sacrificing...", "info");
     await api.deleteCardInstance(instanceId);
     
-    // Grant Rewards
-    let updates = {};
+    // Reward Logic
+    const reward = CARD_BURN_REWARDS[masterId] || CARD_BURN_REWARDS['default'];
     if (reward.type === 'CURRENCY') {
+        const updates = {};
         if(reward.payload.noub) updates.noub_score = (state.playerProfile.noub_score || 0) + reward.payload.noub;
-        if(reward.payload.prestige) updates.prestige = (state.playerProfile.prestige || 0) + reward.payload.prestige;
         await api.updatePlayerProfile(state.currentUser.id, updates);
     }
     
     playSound('claim_reward');
-    showToast("Sacrifice Complete.", 'success');
+    showToast("Sacrifice Accepted.", 'success');
     await refreshPlayerState();
     window.closeModal('card-interaction-modal');
     renderInventoryView();
 };
 
 // =============================================================================
-// SECTION 6: ALBUMS LOGIC (Tab 2)
+// SECTION 6: ALBUMS VIEW (Tab 2 Logic)
 // =============================================================================
 
+/**
+ * [Function 7] renderAlbumsView
+ * Renders the 5 progression albums.
+ */
 async function renderAlbumsView() {
     const container = document.getElementById('coll-view-albums');
     container.innerHTML = '<div class="loading-spinner"></div>';
-
-    // Re-fetch cards to calculate completion
+    
     const { data: playerCards } = await api.fetchPlayerCards(state.currentUser.id);
-    const ownedCardIds = new Set(playerCards.map(c => c.card_id));
-
+    const ownedIds = new Set(playerCards.map(c => c.card_id));
+    
     container.innerHTML = `<div style="display:grid; gap:15px;"></div>`;
-    const grid = container.querySelector('div');
+    const list = container.querySelector('div');
 
     MASTER_ALBUMS.forEach(album => {
-        const collected = album.card_ids.filter(id => ownedCardIds.has(id)).length;
+        const collected = album.card_ids.filter(id => ownedIds.has(id)).length;
         const total = album.card_ids.length;
         const isComplete = collected === total;
-        const progress = Math.floor((collected / total) * 100);
-
-        grid.innerHTML += `
-            <div onclick="window.openAlbumDetails(${album.id})" 
+        const percent = Math.floor((collected / total) * 100);
+        
+        list.innerHTML += `
+            <div class="album-card" onclick="window.openAlbumDetails(${album.id})" 
                  style="background:#1e1e1e; padding:15px; border-radius:10px; cursor:pointer; border-left:4px solid ${isComplete ? 'var(--success-color)' : 'var(--primary-accent)'}; display:flex; justify-content:space-between; align-items:center;">
-                
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <div style="font-size:2em;">${album.icon}</div>
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <div style="font-size:2.5em;">${album.icon}</div>
                     <div>
                         <h4 style="margin:0; color:#fff;">${album.name}</h4>
-                        <div style="margin-top:5px; width:100px; height:6px; background:#333; border-radius:3px; overflow:hidden;">
-                            <div style="width:${progress}%; height:100%; background:${isComplete ? 'var(--success-color)' : 'var(--primary-accent)'};"></div>
+                        <div style="width:100px; height:8px; background:#333; border-radius:4px; margin-top:5px; overflow:hidden;">
+                            <div style="height:100%; width:${percent}%; background:${isComplete ? 'var(--success-color)' : 'var(--primary-accent)'}; transition:width 0.5s;"></div>
                         </div>
-                        <div style="font-size:0.7em; color:#888; margin-top:3px;">${collected}/${total} Cards</div>
+                        <div style="font-size:0.75em; color:#888; margin-top:3px;">${collected} / ${total} Found</div>
                     </div>
                 </div>
-                
-                <div style="text-align:right;">
-                    <div style="color:var(--accent-blue); font-size:0.8em; font-weight:bold;">+${album.rewards.noub}🪙</div>
-                    <div style="font-size:1.2em; color:#666;">➜</div>
-                </div>
+                <div style="color:var(--accent-blue); font-weight:bold; font-size:0.9em;">➜</div>
             </div>
         `;
     });
 }
 
+/**
+ * [Function 8] openAlbumDetails
+ * Shows the 3x3 Grid of cards within an album.
+ */
 window.openAlbumDetails = async (albumId) => {
     const album = MASTER_ALBUMS.find(a => a.id === albumId);
     const { data: masterCards } = await api.fetchAllMasterCards();
     const { data: playerCards } = await api.fetchPlayerCards(state.currentUser.id);
     
-    // Count owned copies
-    const ownedCounts = new Map();
-    playerCards.forEach(c => ownedCounts.set(c.card_id, (ownedCounts.get(c.card_id) || 0) + 1));
+    const ownedMap = new Map();
+    playerCards.forEach(c => ownedMap.set(c.card_id, (ownedMap.get(c.card_id)||0) + 1));
 
-    // Create Modal
-    const modalId = 'album-modal';
-    let modal = document.getElementById(modalId);
-    if(!modal) {
-        modal = document.createElement('div');
-        modal.id = modalId;
-        modal.className = 'modal-overlay hidden';
-        document.body.appendChild(modal);
-    }
+    const modalId = 'card-interaction-modal'; // Reuse generic modal
+    const modal = document.getElementById(modalId);
 
     const slotsHTML = album.card_ids.map(id => {
-        const card = masterCards.find(m => m.id === id) || { name: 'Unknown', image_url: 'images/default_card.png' };
-        const count = ownedCounts.get(id) || 0;
+        const card = masterCards.find(m => m.id === id) || { name: 'Hidden', image_url: 'images/default_card.png' };
+        const count = ownedMap.get(id) || 0;
         const isOwned = count > 0;
 
         return `
-            <div style="text-align:center; opacity:${isOwned ? 1 : 0.4}; filter:${isOwned ? 'none' : 'grayscale(1)'};">
+            <div style="text-align:center; opacity:${isOwned ? 1 : 0.3}; filter:${isOwned ? 'none' : 'grayscale(1)'};">
                 <div style="position:relative; display:inline-block;">
-                    <img src="${card.image_url}" style="width:60px; border-radius:6px; border:1px solid #444;">
-                    ${isOwned ? `<div style="position:absolute; top:-5px; right:-5px; background:var(--success-color); color:#000; font-size:0.7em; padding:1px 4px; border-radius:4px;">x${count}</div>` : ''}
+                    <img src="${card.image_url}" style="width:60px; height:60px; border-radius:6px; border:1px solid #555;">
+                    ${isOwned ? `<div style="position:absolute; top:-5px; right:-5px; background:var(--success-color); color:#000; font-weight:bold; font-size:0.7em; padding:0 4px; border-radius:4px;">x${count}</div>` : ''}
                 </div>
-                <div style="font-size:0.6em; margin-top:2px; color:#ccc;">${card.name}</div>
+                <div style="font-size:0.6em; margin-top:4px; color:#ccc; max-width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${card.name}</div>
             </div>
         `;
     }).join('');
 
-    const allCollected = album.card_ids.every(id => ownedCounts.get(id) > 0);
+    const allCollected = album.card_ids.every(id => ownedMap.get(id) > 0);
 
     modal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="window.closeModal('${modalId}')">&times;</button>
             <div style="text-align:center; margin-bottom:20px;">
-                <div style="font-size:2.5em; margin-bottom:5px;">${album.icon}</div>
+                <div style="font-size:3em; margin-bottom:5px;">${album.icon}</div>
                 <h3 style="margin:0; color:var(--primary-accent);">${album.name}</h3>
                 <p style="font-size:0.8em; color:#888;">${album.description}</p>
             </div>
-            
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:15px; margin-bottom:20px; background:#151515; padding:15px; border-radius:10px;">
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:15px; margin-bottom:20px; background:#151515; padding:15px; border-radius:10px; max-height:250px; overflow-y:auto;">
                 ${slotsHTML}
             </div>
-            
-            <button class="action-button" ${allCollected ? '' : 'disabled style="opacity:0.5"'} onclick="alert('Reward Logic Placeholder')">
-                ${allCollected ? `Claim ${album.rewards.noub} 🪙` : 'Collect All to Claim'}
-            </button>
+            <div style="text-align:center;">
+                <button id="claim-album-btn" class="action-button" ${allCollected ? '' : 'disabled style="opacity:0.5; cursor:not-allowed;"'}>
+                    ${allCollected ? `Claim ${album.rewards.noub} 🪙` : 'Collect All to Claim'}
+                </button>
+            </div>
         </div>
     `;
+    
     openModal(modalId);
+    document.getElementById('claim-album-btn').onclick = () => claimAlbumReward(album);
 };
 
+/**
+ * [Function 9] claimAlbumReward
+ * Grants the completion bonus.
+ */
+async function claimAlbumReward(album) {
+    if (!confirm("Claim this album reward?")) return;
+    
+    const updates = {
+        noub_score: (state.playerProfile.noub_score || 0) + album.rewards.noub,
+        prestige: (state.playerProfile.prestige || 0) + (album.rewards.prestige || 0)
+    };
+    
+    await api.updatePlayerProfile(state.currentUser.id, updates);
+    await api.logActivity(state.currentUser.id, 'ALBUM_COMPLETE', `Completed ${album.name}`);
+    
+    playSound('reward_grand');
+    showToast("Reward Claimed!", 'success');
+    
+    // Close modal
+    window.closeModal('card-interaction-modal');
+    // Refresh View
+    refreshPlayerState();
+}
+
 // =============================================================================
-// --- GLOBAL BINDINGS (CRITICAL FOR BUTTON CLICKS) ---
+// SECTION 7: GLOBAL BINDINGS
 // =============================================================================
-
-window.renderCollection = renderCollection; // للوصول لها من القائمة الرئيسية
-window.openInstanceSelectionModal = openInstanceSelectionModal; // لفتح قائمة النسخ
-window.selectInstance = selectInstance; // لاختيار نسخة محددة
-
-// ملاحظة: تأكد أن هذه الأسماء تطابق أسماء الدوال المكتوبة داخل الملف
-
-
-
-
+window.renderCollection = renderCollection;
+window.openInstanceSelectionModal = openInstanceSelectionModal;
+window.selectInstance = selectInstance;
+window.executeFusion = executeFusion;
+window.executeBurn = executeBurn;
+window.openAlbumDetails = openAlbumDetails;
