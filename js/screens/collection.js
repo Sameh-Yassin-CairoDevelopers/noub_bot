@@ -1,14 +1,14 @@
 /*
  * Filename: js/screens/collection.js
- * Version: NOUB v2.4.0 (Final Release Candidate)
+ * Version: NOUB v5.0.0 (The Academic Master File)
  * Description: 
- * This module manages the visualization and interaction logic for the player's NFT/Card collection.
- * It handles data aggregation, state derivation (Locked/Assigned), and the rendering of 
- * both standard gameplay cards and the unique "Soul Card".
+ * This module acts as the central controller for Player Assets.
+ * It integrates three major subsystems:
+ * 1. Inventory Management (Visualization, Filtering, Sorting).
+ * 2. Progression Tracking (Albums & Collections).
+ * 3. Asset Mutation Logic (Upgrading, Fusing, Sacrificing).
  * 
- * Architecture:
- * - Uses Client-Side Aggregation to group card instances.
- * - Implements Atomic Transactions via API calls for Upgrades and Burns.
+ * Dependencies: State, API, Auth, UI.
  */
 
 import { state } from '../state.js';
@@ -19,8 +19,39 @@ import { refreshPlayerState } from '../auth.js';
 // DOM Reference
 const collectionContainer = document.getElementById('collection-container');
 
-// --- CONFIGURATION: Burn Rewards Table ---
-// Defines the deterministic rewards for sacrificing cards based on Card ID.
+// =============================================================================
+// SECTION 1: CONFIGURATION & CONSTANTS
+// =============================================================================
+
+// Album Definitions (Previously in albums.js)
+const MASTER_ALBUMS = [
+    { 
+        id: 1, 
+        name: "The Sacred Ennead", 
+        icon: "☀️", 
+        description: "The nine foundational deities of Heliopolis creation myths.", 
+        card_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9], 
+        rewards: { noub: 2500, prestige: 50 } 
+    },
+    { 
+        id: 2, 
+        name: "Pharaonic Rulers", 
+        icon: "👑", 
+        description: "The greatest Pharaohs and Queens who shaped history.", 
+        card_ids: [10, 11, 12, 13, 14, 15, 16, 17, 18], 
+        rewards: { noub: 4000, prestige: 100 } 
+    },
+    { 
+        id: 3, 
+        name: "Mythological Beasts", 
+        icon: "🐉", 
+        description: "Guardians and creatures from the Duat.", 
+        card_ids: [19, 20, 21, 22, 23, 24, 25, 26, 27], 
+        rewards: { noub: 1500, prestige: 30 } 
+    }
+];
+
+// Burn Rewards Table (Deterministic outcome for sacrificing cards)
 const CARD_BURN_REWARDS = {
     1: { type: 'CURRENCY', payload: { noub: 50, prestige: 1 } },
     2: { type: 'CURRENCY', payload: { noub: 75, prestige: 2 } },
@@ -31,7 +62,7 @@ const CARD_BURN_REWARDS = {
     7: { type: 'CURRENCY', payload: { noub: 2000, prestige: 20 } },
     8: { type: 'CURRENCY', payload: { noub: 3500, prestige: 35 } },
     9: { type: 'CURRENCY', payload: { noub: 5000, prestige: 50, ankh: 5 } },
-    // ... Resource Packs
+    // Material Packs
     10: { type: 'RESOURCE_PACK', payload: [{ item_id: 1, quantity: 50 }] },
     11: { type: 'RESOURCE_PACK', payload: [{ item_id: 2, quantity: 75 }] },
     12: { type: 'RESOURCE_PACK', payload: [{ item_id: 3, quantity: 100 }] },
@@ -41,428 +72,448 @@ const CARD_BURN_REWARDS = {
     16: { type: 'RESOURCE_PACK', payload: [{ item_id: 25, quantity: 10 }] },
     17: { type: 'RESOURCE_PACK', payload: [{ item_id: 26, quantity: 5 }] },
     18: { type: 'RESOURCE_PACK', payload: [{ item_id: 40, quantity: 2 }, { item_id: 45, quantity: 1 }] },
-    // ... Special Effects
-    19: { type: 'SACRIFICE', action: 'INSTANT_CONTRACT', value: 1, text: "instantly complete one of your active contracts" },
-    20: { type: 'SACRIFICE', action: 'PRESTIGE_BOOST', value: 100, text: "gain 100 Prestige" },
-    21: { type: 'SACRIFICE', action: 'TICKET_BOOST', value: 20, text: "gain 20 Spin Tickets" },
-    22: { type: 'SACRIFICE', action: 'ANKH_BOOST', value: 10, text: "gain 10 Ankh Premium" },
-    23: { type: 'SACRIFICE', action: 'INSTANT_PROD', value: 3, text: "instantly finish production on 3 random factories" },
-    24: { type: 'SACRIFICE', action: 'GRAND_REWARD_PACK', value: 1, text: "receive a Grand Reward Pack" },
-    25: { type: 'SACRIFICE', action: 'FINISH_GREAT_PROJECT', value: 1, text: "instantly complete one active Great Project" },
-    26: { type: 'SACRIFICE', action: 'OPEN_SARCOPHAGUS', value: 1, text: "open a free Sarcophagus Crate" },
-    27: { type: 'SACRIFICE', action: 'RESET_CONTRACTS', value: 1, text: "instantly refresh your available contracts" },
+    // Special Actions
+    19: { type: 'SACRIFICE', action: 'INSTANT_CONTRACT', value: 1, text: "Complete 1 Contract" },
+    20: { type: 'SACRIFICE', action: 'PRESTIGE_BOOST', value: 100, text: "Gain 100 Prestige" },
+    21: { type: 'SACRIFICE', action: 'TICKET_BOOST', value: 20, text: "Gain 20 Tickets" },
+    22: { type: 'SACRIFICE', action: 'ANKH_BOOST', value: 10, text: "Gain 10 Ankh" },
+    'default': { type: 'CURRENCY', payload: { noub: 100 } }
 };
 
-// --------------------------------------------------------
-// --- HELPER LOGIC: Transactions & State Mutations ---
-// --------------------------------------------------------
+// =============================================================================
+// SECTION 2: VIEW CONTROLLER (Render & Tabs)
+// =============================================================================
 
 /**
- * Grants rewards to the player profile directly.
- * Used for Burn/Sacrifice outcomes.
- */
-async function grantReward(rewardObject, isGrand = false) {
-    const profileUpdate = {};
-    let rewardString = '';
-    if (rewardObject.noub) profileUpdate.noub_score = (state.playerProfile.noub_score || 0) + rewardObject.noub;
-    if (rewardObject.prestige) profileUpdate.prestige = (state.playerProfile.prestige || 0) + rewardObject.prestige;
-    if (rewardObject.tickets) profileUpdate.spin_tickets = (state.playerProfile.spin_tickets || 0) + rewardObject.tickets;
-    if (rewardObject.ankh) profileUpdate.ankh_premium = (state.playerProfile.ankh_premium || 0) + rewardObject.ankh;
-    
-    if (Object.keys(profileUpdate).length === 0) return true;
-    
-    const { error } = await api.updatePlayerProfile(state.currentUser.id, profileUpdate);
-    if (error) {
-        showToast("Error granting reward!", 'error');
-        playSound('error');
-        triggerNotificationHaptic('error');
-        return false;
-    }
-    
-    Object.keys(rewardObject).forEach(key => {
-        const icon = key === 'noub' ? '🪙' : key === 'prestige' ? '🐞' : key === 'tickets' ? '🎟️' : '☥';
-        rewardString += `${rewardObject[key]}${icon} `;
-    });
-    
-    showToast(`Reward Claimed: +${rewardString}`, 'success');
-    
-    if (isGrand) {
-        playSound('reward_grand');
-        triggerNotificationHaptic('success');
-    } else {
-        playSound('claim_reward');
-        triggerHaptic('medium');
-    }
-    return true;
-}
-
-/**
- * Handles the Card Upgrade Process.
- * Validates costs, executes the transaction, and updates the card stats.
- */
-async function handleUpgrade(playerCard, requirements) {
-    showToast('Upgrading card...', 'info');
-    
-    const currencyCosts = { 
-        noub: requirements.cost_noub, 
-        prestige: requirements.cost_prestige, 
-        ankh: requirements.cost_ankh 
-    };
-    const itemCost = requirements.cost_item_id ? { 
-        id: requirements.cost_item_id, 
-        qty: requirements.cost_item_qty, 
-        name: requirements.items?.name 
-    } : null;
-
-    // 1. Process Payment
-    const { error: costError } = await api.transactUpgradeCosts(state.currentUser.id, currencyCosts, itemCost);
-    if (costError) {
-        return showToast(`Upgrade failed: ${costError.message}`, 'error');
-    }
-    
-    // 2. Update Card Stats
-    const newLevel = playerCard.level + 1;
-    const newPowerScore = playerCard.power_score + requirements.power_increase;
-    const { error: upgradeError } = await api.performCardUpgrade(playerCard.instance_id, newLevel, newPowerScore);
-    if (upgradeError) {
-        return showToast('Failed to update card level.', 'error');
-    }
-
-    // 3. Grant XP
-    const { leveledUp, newLevel: playerNewLevel } = await api.addXp(state.currentUser.id, 20);
-    if (leveledUp) {
-        showToast(`LEVEL UP! You have reached Level ${playerNewLevel}!`, 'success');
-    }
-
-    // 4. Success Feedback
-    playSound('reward_grand');
-    triggerNotificationHaptic('success');
-    showToast(`${playerCard.cards.name} has been upgraded to Level ${newLevel}!`, 'success');
-    await refreshPlayerState();
-    window.closeModal('card-interaction-modal');
-    renderCollection();
-}
-
-// --------------------------------------------------------
-// --- MODAL RENDERERS: Upgrade & Burn Details ---
-// --------------------------------------------------------
-
-async function showUpgradeDetails(playerCard) {
-    const detailsContainer = document.getElementById('card-interaction-details');
-    detailsContainer.innerHTML = `<div class="loading-spinner small"></div>`;
-    const nextLevel = playerCard.level + 1;
-    
-    document.getElementById('card-upgrade-btn').disabled = true;
-    document.getElementById('card-burn-btn').disabled = true;
-
-    const { data: requirements, error } = await api.fetchCardUpgradeRequirements(playerCard.card_id, nextLevel);
-    
-    // Re-enable buttons
-    document.getElementById('card-upgrade-btn').disabled = false;
-    document.getElementById('card-burn-btn').disabled = false;
-
-    if (error || !requirements) {
-        detailsContainer.innerHTML = `
-            <div style="background: #2a2a2e; padding: 10px; border-radius: 6px; text-align: center;">
-                <p style="color: var(--primary-accent); font-weight: bold; margin: 0;">MAXIMUM LEVEL REACHED</p>
-            </div>`;
-        document.getElementById('card-upgrade-btn').disabled = true;
-        return;
-    }
-
-    let costsText = [];
-    if (requirements.cost_noub > 0) costsText.push(`${requirements.cost_noub} 🪙`);
-    if (requirements.cost_prestige > 0) costsText.push(`${requirements.cost_prestige} 🐞`);
-    if (requirements.cost_ankh > 0) costsText.push(`${requirements.cost_ankh} ☥`);
-    if (requirements.cost_item_id) {
-        const itemName = requirements.items?.name || `Item #${requirements.cost_item_id}`;
-        costsText.push(`${requirements.cost_item_qty} x ${itemName}`);
-    }
-
-    detailsContainer.innerHTML = `
-        <div style="background: #2a2a2e; padding: 10px; border-radius: 6px;">
-            <h4 style="color:var(--accent-blue);">Upgrade to Level ${nextLevel}</h4>
-            <p><strong>Required:</strong> ${costsText.join(', ')}</p>
-            <p><strong>Effect:</strong> Power +${requirements.power_increase}</p>
-            <button id="confirm-upgrade-btn" class="action-button small" style="margin-top:10px;">Confirm Upgrade</button>
-        </div>
-    `;
-    detailsContainer.querySelector('#confirm-upgrade-btn').onclick = () => handleUpgrade(playerCard, requirements);
-}
-
-function showBurnDetails(playerCard, burnInfo, actionType, assignedCardInstanceIds) {
-    const detailsContainer = document.getElementById('card-interaction-details');
-
-    // --- Safeguard Logic: Prevent burning active cards ---
-    if (assignedCardInstanceIds.has(playerCard.instance_id)) {
-        detailsContainer.innerHTML = `
-            <div style="background: #3a1111; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid red;">
-                <p style="color: #ff5555; font-weight: bold; margin: 0;">
-                    ⛔ Active Duty<br>
-                    <span style="font-size:0.8em; color:#ccc;">This Expert is assigned to a factory. Unassign them first.</span>
-                </p>
-            </div>`;
-        document.getElementById('card-burn-btn').disabled = true;
-        return;
-    }
-    
-    // Prevent burning locked cards (e.g. in Swap offers)
-    if (playerCard.is_locked) {
-        detailsContainer.innerHTML = `
-            <div style="background: #3a1111; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid red;">
-                 <p style="color: #ff5555; font-weight: bold; margin: 0;">
-                    🔒 Locked<br>
-                    <span style="font-size:0.8em; color:#ccc;">This card is currently locked (e.g., in a Trade Offer).</span>
-                </p>
-            </div>`;
-        document.getElementById('card-burn-btn').disabled = true;
-        return;
-    }
-
-    let confirmationText = '';
-    switch (burnInfo.type) {
-        case 'CURRENCY':
-            const currencies = Object.entries(burnInfo.payload).map(([key, value]) => `${value} ${key}`).join(', ');
-            confirmationText = `You will receive: ${currencies}.`;
-            break;
-        case 'RESOURCE_PACK':
-            confirmationText = `You will receive a Resource Pack.`;
-            break;
-        case 'SACRIFICE':
-            confirmationText = `Effect: ${burnInfo.text}. (Irreversible)`;
-            break;
-    }
-    
-    detailsContainer.innerHTML = `
-        <div style="background: #2a2a2e; padding: 10px; border-radius: 6px; border: 1px solid var(--danger-color);">
-            <h4 style="color:var(--danger-color);">Confirm ${actionType}</h4>
-            <p>${confirmationText}</p>
-            <button id="confirm-burn-btn" class="action-button danger small">Proceed</button>
-        </div>
-    `;
-    document.getElementById('card-burn-btn').disabled = false; 
-    detailsContainer.querySelector('#confirm-burn-btn').onclick = () => handleBurnOrSacrifice(playerCard, burnInfo);
-}
-
-async function handleBurnOrSacrifice(playerCard, burnInfo) {
-    showToast(`Processing...`, 'info');
-    
-    // 1. Delete Card
-    const { error: deleteError } = await api.deleteCardInstance(playerCard.instance_id);
-    if (deleteError) {
-        return showToast('Error processing request.', 'error');
-    }
-    
-    // 2. Grant Rewards
-    let success = false;
-    switch (burnInfo.type) {
-        case 'CURRENCY':
-            success = await grantReward(burnInfo.payload);
-            break;
-        case 'RESOURCE_PACK':
-            success = await grantReward({ noub: 500 }); // Fallback logic for pack
-            showToast("Resources added to inventory.", "success");
-            break;
-        case 'SACRIFICE':
-            success = await grantReward({ prestige: 100 }); // Generic sacrifice reward
-            showToast("Sacrifice Accepted.", "success");
-            break;
-    }
-
-    if (success) {
-        const { leveledUp, newLevel } = await api.addXp(state.currentUser.id, 5);
-        if (leveledUp) showToast(`LEVEL UP! Level ${newLevel}!`, 'success');
-
-        playSound('claim_reward');
-        triggerHaptic('medium');
-        await refreshPlayerState();
-        window.closeModal('card-interaction-modal');
-        renderCollection();
-    }
-}
-
-async function openCardInteractionModal(playerCard, assignedCardInstanceIds) {
-    const modal = document.getElementById('card-interaction-modal');
-    const masterCard = playerCard.cards;
-    
-    // Special Handling for Soul Card (ID 9999)
-    if (masterCard.id === 9999 || masterCard.id == '9999') {
-        modal.innerHTML = `
-            <div class="modal-content" style="text-align: center; border: 2px solid gold;">
-                <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
-                <h3 style="color: gold; margin-bottom:10px;">The Soul Mirror</h3>
-                <img src="${masterCard.image_url}" style="width: 150px; border-radius: 50%; box-shadow: 0 0 20px gold; margin-bottom:15px;">
-                <p style="color: #ccc;">"A reflection of the bearer's true essence."</p>
-                <div style="margin: 15px 0; font-family: monospace; color: cyan;">
-                    DNA Sequence: ${state.playerProfile.dna_eve_code || 'UNKNOWN'}
-                </div>
-                <p style="font-size: 0.8em; color: #888;">This card cannot be burned or traded. It is part of you.</p>
-            </div>
-        `;
-        openModal('card-interaction-modal');
-        return;
-    }
-
-    // Standard Card Modal
-    const burnInfo = CARD_BURN_REWARDS[masterCard.id] || CARD_BURN_REWARDS[1]; // Fallback
-    const actionType = burnInfo.type === 'SACRIFICE' ? 'Sacrifice' : 'Burn';
-    const isMaxLevel = playerCard.level >= 5;
-    
-    modal.innerHTML = `
-        <div class="modal-content">
-            <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
-            <div class="card-display" style="text-align: center; margin-bottom: 20px;">
-                <img src="${masterCard.image_url}" alt="${masterCard.name}" style="width: 120px; height: 120px; border-radius: 8px; border: 2px solid var(--primary-accent);">
-                <h3 style="margin: 10px 0 5px 0;">${masterCard.name}</h3>
-                <div style="display:flex; justify-content:center; gap:15px; font-size:0.9em; color:#aaa;">
-                    <span>Level: <b style="color:#fff;">${playerCard.level}</b></span>
-                    <span>Power: <b style="color:#fff;">${playerCard.power_score}</b></span>
-                </div>
-            </div>
-            
-            <div class="action-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button id="card-upgrade-btn" class="action-button small" ${isMaxLevel ? 'disabled' : ''}>
-                    ${isMaxLevel ? 'Max Lvl' : 'Upgrade'}
-                </button>
-                <button id="card-burn-btn" class="action-button danger small">
-                    ${actionType}
-                </button>
-            </div>
-            <div id="card-interaction-details" style="margin-top: 15px;"></div>
-        </div>
-    `;
-
-    const upgradeBtn = modal.querySelector('#card-upgrade-btn');
-    if (!isMaxLevel) {
-        upgradeBtn.onclick = () => showUpgradeDetails(playerCard);
-    }
-    modal.querySelector('#card-burn-btn').onclick = () => showBurnDetails(playerCard, burnInfo, actionType, assignedCardInstanceIds);
-    openModal('card-interaction-modal');
-}
-
-
-// --------------------------------------------------------
-// --- MAIN RENDER LOGIC (The Requested Function) ---
-// --------------------------------------------------------
-
-/**
- * Main Rendering Function for the "My Cards" Screen.
- * 
- * Logic Flow:
- * 1. Concurrent Data Fetching: Gets Cards & Factories to minimize latency.
- * 2. Assignment Mapping: Creates a Set of assigned IDs for O(1) checking.
- * 3. Aggregation: Groups card instances by Type (Master ID).
- * 4. Sorting: Puts Soul Card first, then sorts by ID.
- * 5. DOM Construction: Builds the grid with visual indicators for status.
+ * Initializes the screen layout and handles Tab Switching.
+ * Implements Singleton check to prevent re-rendering the container.
  */
 export async function renderCollection() {
     if (!state.currentUser) return;
-    
-    collectionContainer.innerHTML = '<div class="loading-spinner">Loading collection...</div>';
 
-    // 1. Parallel API Calls
-    const [{ data: playerCards, error: cardsError }, { data: playerFactories, error: factoriesError }] = await Promise.all([
+    // 1. Structure Layout (Only once)
+    if (!document.getElementById('coll-tabs-ctrl')) {
+        collectionContainer.innerHTML = `
+            <h2 class="screen-title" style="text-align:center; color:var(--primary-accent); margin-bottom:15px;">Archives</h2>
+            
+            <div id="coll-tabs-ctrl" style="display:flex; justify-content:space-around; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">
+                <button class="coll-tab-btn active" data-target="inventory" 
+                        style="flex:1; background:none; border:none; color:#fff; font-weight:bold; padding:10px; border-bottom:2px solid var(--primary-accent); cursor:pointer;">
+                    My Cards
+                </button>
+                <button class="coll-tab-btn" data-target="albums" 
+                        style="flex:1; background:none; border:none; color:#888; font-weight:bold; padding:10px; cursor:pointer;">
+                    Albums
+                </button>
+            </div>
+
+            <div id="coll-view-inventory" class="coll-view card-grid"></div>
+            <div id="coll-view-albums" class="coll-view hidden"></div>
+        `;
+
+        // Bind Tab Switching Logic
+        const tabs = collectionContainer.querySelectorAll('.coll-tab-btn');
+        tabs.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update Button Styles
+                tabs.forEach(b => {
+                    b.classList.remove('active');
+                    b.style.color = '#888';
+                    b.style.borderBottom = 'none';
+                });
+                e.target.classList.add('active');
+                e.target.style.color = '#fff';
+                e.target.style.borderBottom = '2px solid var(--primary-accent)';
+
+                // Toggle Views
+                document.querySelectorAll('.coll-view').forEach(v => v.classList.add('hidden'));
+                const target = e.target.dataset.target;
+                document.getElementById(`coll-view-${target}`).classList.remove('hidden');
+
+                // Trigger Render Logic for selected tab
+                if (target === 'inventory') renderInventoryView();
+                else renderAlbumsView();
+            });
+        });
+    }
+
+    // Initial Render (Default Tab)
+    renderInventoryView();
+}
+
+// =============================================================================
+// SECTION 3: INVENTORY LOGIC (My Cards)
+// =============================================================================
+
+/**
+ * Renders the grid of owned cards.
+ * Features: Aggregation by ID, Soul Card priority sorting, Assigned status indication.
+ */
+async function renderInventoryView() {
+    const container = document.getElementById('coll-view-inventory');
+    container.innerHTML = '<div class="loading-spinner"></div>';
+
+    // Parallel Fetch for Performance
+    const [{ data: playerCards }, { data: factories }] = await Promise.all([
         api.fetchPlayerCards(state.currentUser.id),
         api.fetchPlayerFactories(state.currentUser.id)
     ]);
 
-    // 2. Error & Empty State Handling
-    if (cardsError || factoriesError) {
-        console.error("Data Error:", cardsError, factoriesError);
-        return collectionContainer.innerHTML = '<p class="error-message">Could not retrieve collection.</p>';
-    }
     if (!playerCards || playerCards.length === 0) {
-        return collectionContainer.innerHTML = '<div class="empty-state"><p>Your collection is empty.</p><p>Visit the Shop to acquire your first cards.</p></div>';
+        return container.innerHTML = '<div class="empty-state"><p>Inventory Empty</p></div>';
     }
 
-    // 3. Assignment State derivation (O(1) Lookup Set)
-    const assignedCardInstanceIds = new Set(
-        playerFactories
-            .map(f => f.assigned_card_instance_id)
-            .filter(id => id !== null)
-    );
+    // Create a Set of Assigned Card IDs for O(1) lookup
+    const assignedIds = new Set(factories.map(f => f.assigned_card_instance_id).filter(Boolean));
 
-    // 4. Grouping Logic (Flat Array -> Map)
+    // Aggregate: Group instances by Master Card ID
     const cardMap = new Map();
     playerCards.forEach(pc => {
         if (!cardMap.has(pc.card_id)) {
-            cardMap.set(pc.card_id, {
-                master: pc.cards,
-                instances: []
-            });
+            cardMap.set(pc.card_id, { master: pc.cards, instances: [] });
         }
         cardMap.get(pc.card_id).instances.push(pc);
     });
 
-    // 5. Sorting Logic (Soul Card Priority)
-    const sortedCards = Array.from(cardMap.values()).sort((a, b) => {
-        if (a.master.id == 9999) return -1; // Top Priority
+    // Sort: Soul Card (9999) -> Then ascending ID
+    const sorted = Array.from(cardMap.values()).sort((a, b) => {
+        if (a.master.id == 9999) return -1;
         if (b.master.id == 9999) return 1;
-        return a.master.id - b.master.id;   // Ascending Order
+        return a.master.id - b.master.id;
     });
+
+    container.innerHTML = '';
     
-    // 6. Rendering
-    collectionContainer.innerHTML = '';
-    
-    sortedCards.forEach(cardData => {
-        const masterCard = cardData.master;
-        const instances = cardData.instances;
+    sorted.forEach(group => {
+        const { master, instances } = group;
+        // Logic: Display the "best" instance stats on the cover
+        const displayInst = instances.reduce((best, curr) => curr.level > best.level ? curr : best, instances[0]);
         
-        // Representative Instance (Highest Level)
-        const displayInstance = instances.reduce((max, current) => (current.level > max.level ? current : max), instances[0]);
+        // Check if ANY instance in this group is assigned
+        const isGroupAssigned = instances.some(i => assignedIds.has(i.instance_id));
+
+        const el = document.createElement('div');
         
-        // Check Global Assignment Status for this Card Type
-        // Note: Checks if ANY instance of this type is assigned.
-        const isAnyInstanceAssigned = instances.some(inst => assignedCardInstanceIds.has(inst.instance_id));
-        
-        const cardElement = document.createElement('div');
-        
-        if (masterCard.id == 9999) {
-            // --- Soul Card Special Render ---
-            cardElement.className = `card-stack soul-card`;
-            const dnaDisplay = state.playerProfile.dna_eve_code || 'GENESIS';
-            
-            cardElement.innerHTML = `
+        if (master.id == 9999) {
+            // Soul Card Styling
+            el.className = 'card-stack soul-card';
+            const dna = state.playerProfile.dna_eve_code || 'DNA';
+            el.innerHTML = `
                 <div class="soul-glow"></div>
-                <img src="${masterCard.image_url}" alt="Soul Mirror" class="card-image">
-                <h4 style="color: var(--primary-accent); text-shadow: 0 0 5px gold;">${masterCard.name}</h4>
-                <div class="card-details">
-                    <span class="card-level" style="color: cyan;">Power: ${displayInstance.power_score}</span>
-                </div>
-                <div style="font-size: 0.55em; color: #888; margin-top: 4px; font-family: monospace;">
-                    DNA: ${dnaDisplay}
-                </div>
+                <img src="${master.image_url}" class="card-image">
+                <h4 style="color:var(--primary-accent); text-shadow:0 0 5px gold;">${master.name}</h4>
+                <div class="card-details"><span style="color:cyan;">Power: ${displayInst.power_score}</span></div>
+                <div style="font-size:0.5em; font-family:monospace; color:#aaa; margin-top:2px;">${dna}</div>
             `;
         } else {
-            // --- Standard Card Render ---
-            cardElement.className = `card-stack`;
-            cardElement.setAttribute('data-rarity', masterCard.rarity_level || 0);
+            // Standard Card Styling
+            el.className = 'card-stack';
+            el.setAttribute('data-rarity', master.rarity_level || 0);
+            if (isGroupAssigned) el.classList.add('assigned-expert');
             
-            // Apply visual marker if Assigned
-            if (isAnyInstanceAssigned) {
-                 cardElement.classList.add('assigned-expert'); 
-            }
-            
-            cardElement.innerHTML = `
-                <img src="${masterCard.image_url || 'images/default_card.png'}" alt="${masterCard.name}" class="card-image">
-                <h4>${masterCard.name}</h4>
+            el.innerHTML = `
+                ${isGroupAssigned ? '<div style="position:absolute; top:2px; right:2px; font-size:1em;">⭐</div>' : ''}
+                <img src="${master.image_url || 'images/default_card.png'}" class="card-image">
+                <h4>${master.name}</h4>
                 <div class="card-details">
-                    <span class="card-level">LVL ${displayInstance.level}</span>
-                    <span class="card-count">x${instances.length}</span>
+                    <span>Lvl ${displayInst.level}</span>
+                    <span>x${instances.length}</span>
                 </div>
             `;
         }
 
-        // Click Interaction
-        cardElement.onclick = () => {
+        // Click -> Open Instance Selector
+        el.onclick = () => {
             playSound('click');
-            // Pass the assigned set for detailed handling in modal
-            openCardInteractionModal(displayInstance, assignedCardInstanceIds);
+            openInstanceSelectionModal(group, assignedIds);
         };
         
-        collectionContainer.appendChild(cardElement);
+        container.appendChild(el);
     });
 }
 
-// Expose globally for external calls (if necessary)
-window.openCardInteractionModal = openCardInteractionModal;
+// =============================================================================
+// SECTION 4: INSTANCE SELECTION & MODAL LOGIC
+// =============================================================================
+
+/**
+ * Opens a modal listing ALL instances of a specific card type.
+ * Allows the user to select WHICH specific copy to Upgrade, Burn, or Inspect.
+ */
+function openInstanceSelectionModal(cardGroup, assignedIds) {
+    const { master, instances } = cardGroup;
+    
+    // Special Case: Soul Card
+    if (master.id == 9999) {
+        const modal = document.getElementById('card-interaction-modal');
+        modal.innerHTML = `
+            <div class="modal-content" style="text-align:center; border:2px solid gold;">
+                <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
+                <h3 style="color:gold;">The Soul Mirror</h3>
+                <p style="color:#ccc; margin-bottom:10px;">Your digital essence.</p>
+                <p style="font-size:0.8em; color:#888;">Immutable. Indestructible.</p>
+            </div>`;
+        openModal('card-interaction-modal');
+        return;
+    }
+
+    const modal = document.getElementById('card-interaction-modal');
+    
+    // Sort instances: Assigned first, then Level descending
+    instances.sort((a, b) => {
+        const aBusy = assignedIds.has(a.instance_id);
+        const bBusy = assignedIds.has(b.instance_id);
+        if (aBusy && !bBusy) return -1;
+        if (!aBusy && bBusy) return 1;
+        return b.level - a.level;
+    });
+
+    const listHTML = instances.map(inst => {
+        const isAssigned = assignedIds.has(inst.instance_id);
+        const isLocked = inst.is_locked;
+        let statusBadge = '';
+        
+        if (isAssigned) statusBadge = '<span style="color:gold; border:1px solid gold; padding:1px 4px; border-radius:3px; font-size:0.7em;">EXPERT</span>';
+        else if (isLocked) statusBadge = '<span style="color:red; border:1px solid red; padding:1px 4px; border-radius:3px; font-size:0.7em;">LOCKED</span>';
+        else statusBadge = '<span style="color:#0f0; font-size:0.7em;">READY</span>';
+
+        return `
+            <div class="instance-row" style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:10px; margin-bottom:5px; border-radius:6px;">
+                <div>
+                    <div style="color:#fff; font-weight:bold;">Level ${inst.level}</div>
+                    <div style="font-size:0.8em; color:#aaa;">Power: ${inst.power_score}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="margin-bottom:5px;">${statusBadge}</div>
+                    ${!isAssigned && !isLocked ? 
+                        `<button class="action-button small" onclick="window.selectInstanceAction('${inst.instance_id}')">Manage</button>` : 
+                        ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
+            <div style="text-align:center; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;">
+                <img src="${master.image_url}" style="width:80px; border-radius:8px;">
+                <h3 style="margin:5px 0; color:var(--primary-accent);">${master.name}</h3>
+                <p style="font-size:0.8em; color:#888;">Total Copies: ${instances.length}</p>
+            </div>
+            <div style="max-height:300px; overflow-y:auto;">${listHTML}</div>
+        </div>
+    `;
+    
+    // Cache data for next step
+    window.TempCardGroup = cardGroup; 
+    openModal('card-interaction-modal');
+}
+
+/**
+ * Shows the Action Menu for a SPECIFIC instance.
+ * (Upgrade / Burn / Fusion)
+ */
+window.selectInstanceAction = (instanceId) => {
+    const group = window.TempCardGroup;
+    const instance = group.instances.find(i => i.instance_id === instanceId);
+    const modal = document.getElementById('card-interaction-modal');
+    const masterId = group.master.id;
+
+    // Fusion Logic: Find other cards of SAME level to sacrifice
+    const fusionCandidates = group.instances.filter(i => 
+        i.instance_id !== instanceId && 
+        i.level === instance.level && 
+        !i.is_locked && 
+        // Ensure candidate is not assigned (requires passing assigned set globally or re-checking, simplified here)
+        true 
+    );
+
+    const burnInfo = CARD_BURN_REWARDS[masterId] || CARD_BURN_REWARDS['default'];
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
+            <h3 style="color:var(--accent-blue); text-align:center;">Manage Card</h3>
+            <div style="text-align:center; font-size:0.9em; color:#ccc; margin-bottom:20px;">
+                Lvl ${instance.level} • Power ${instance.power_score}
+            </div>
+
+            <!-- FUSION UPGRADE -->
+            <div style="background:rgba(0,0,0,0.3); padding:15px; border:1px solid #444; border-radius:8px; margin-bottom:15px;">
+                <h4 style="margin-top:0;">Fusion Upgrade</h4>
+                <p style="font-size:0.8em; color:#aaa; margin-bottom:10px;">
+                    Combine with another Level ${instance.level} card to upgrade.
+                    <br>Available copies: ${fusionCandidates.length}
+                </p>
+                <button class="action-button" ${fusionCandidates.length > 0 ? '' : 'disabled style="opacity:0.5"'}
+                        onclick="window.handleFusion('${instanceId}', '${fusionCandidates[0]?.instance_id}')">
+                    ${fusionCandidates.length > 0 ? 'Fuse (Consumes Duplicate)' : 'Need Duplicate'}
+                </button>
+            </div>
+
+            <!-- SACRIFICE -->
+            <div style="background:rgba(40,10,10,0.3); padding:15px; border:1px solid var(--danger-color); border-radius:8px;">
+                <h4 style="margin-top:0; color:var(--danger-color);">Sacrifice</h4>
+                <p style="font-size:0.8em; color:#aaa;">Burn this card for rewards.</p>
+                <button class="action-button danger small" 
+                        onclick="window.handleBurn('${instanceId}', ${masterId})">
+                    Burn for Rewards
+                </button>
+            </div>
+        </div>
+    `;
+};
+
+// =============================================================================
+// SECTION 5: ACTION EXECUTION HANDLERS
+// =============================================================================
+
+window.handleFusion = async (targetId, sacrificeId) => {
+    if (!sacrificeId) return;
+    showToast("Fusing...", "info");
+
+    // 1. Delete Sacrifice
+    await api.deleteCardInstance(sacrificeId);
+    
+    // 2. Upgrade Target (Simple Logic: Level+1, Power+20%)
+    const group = window.TempCardGroup;
+    const target = group.instances.find(i => i.instance_id === targetId);
+    const newLevel = target.level + 1;
+    const newPower = Math.floor(target.power_score * 1.2);
+    
+    await api.performCardUpgrade(targetId, newLevel, newPower);
+    
+    playSound('reward_grand');
+    showToast(`Success! Upgraded to Level ${newLevel}`, 'success');
+    
+    await refreshPlayerState();
+    window.closeModal('card-interaction-modal');
+    renderInventoryView(); // Refresh UI
+};
+
+window.handleBurn = async (instanceId, masterId) => {
+    const reward = CARD_BURN_REWARDS[masterId] || CARD_BURN_REWARDS['default'];
+    
+    if (!confirm(`Sacrifice this card?\nRewards: ${JSON.stringify(reward.payload || reward.text)}`)) return;
+    
+    showToast("Sacrificing...", "info");
+    await api.deleteCardInstance(instanceId);
+    
+    // Grant Rewards
+    let updates = {};
+    if (reward.type === 'CURRENCY') {
+        if(reward.payload.noub) updates.noub_score = (state.playerProfile.noub_score || 0) + reward.payload.noub;
+        if(reward.payload.prestige) updates.prestige = (state.playerProfile.prestige || 0) + reward.payload.prestige;
+        await api.updatePlayerProfile(state.currentUser.id, updates);
+    }
+    
+    playSound('claim_reward');
+    showToast("Sacrifice Complete.", 'success');
+    await refreshPlayerState();
+    window.closeModal('card-interaction-modal');
+    renderInventoryView();
+};
+
+// =============================================================================
+// SECTION 6: ALBUMS LOGIC (Tab 2)
+// =============================================================================
+
+async function renderAlbumsView() {
+    const container = document.getElementById('coll-view-albums');
+    container.innerHTML = '<div class="loading-spinner"></div>';
+
+    // Re-fetch cards to calculate completion
+    const { data: playerCards } = await api.fetchPlayerCards(state.currentUser.id);
+    const ownedCardIds = new Set(playerCards.map(c => c.card_id));
+
+    container.innerHTML = `<div style="display:grid; gap:15px;"></div>`;
+    const grid = container.querySelector('div');
+
+    MASTER_ALBUMS.forEach(album => {
+        const collected = album.card_ids.filter(id => ownedCardIds.has(id)).length;
+        const total = album.card_ids.length;
+        const isComplete = collected === total;
+        const progress = Math.floor((collected / total) * 100);
+
+        grid.innerHTML += `
+            <div onclick="window.openAlbumDetails(${album.id})" 
+                 style="background:#1e1e1e; padding:15px; border-radius:10px; cursor:pointer; border-left:4px solid ${isComplete ? 'var(--success-color)' : 'var(--primary-accent)'}; display:flex; justify-content:space-between; align-items:center;">
+                
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <div style="font-size:2em;">${album.icon}</div>
+                    <div>
+                        <h4 style="margin:0; color:#fff;">${album.name}</h4>
+                        <div style="margin-top:5px; width:100px; height:6px; background:#333; border-radius:3px; overflow:hidden;">
+                            <div style="width:${progress}%; height:100%; background:${isComplete ? 'var(--success-color)' : 'var(--primary-accent)'};"></div>
+                        </div>
+                        <div style="font-size:0.7em; color:#888; margin-top:3px;">${collected}/${total} Cards</div>
+                    </div>
+                </div>
+                
+                <div style="text-align:right;">
+                    <div style="color:var(--accent-blue); font-size:0.8em; font-weight:bold;">+${album.rewards.noub}🪙</div>
+                    <div style="font-size:1.2em; color:#666;">➜</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+window.openAlbumDetails = async (albumId) => {
+    const album = MASTER_ALBUMS.find(a => a.id === albumId);
+    const { data: masterCards } = await api.fetchAllMasterCards();
+    const { data: playerCards } = await api.fetchPlayerCards(state.currentUser.id);
+    
+    // Count owned copies
+    const ownedCounts = new Map();
+    playerCards.forEach(c => ownedCounts.set(c.card_id, (ownedCounts.get(c.card_id) || 0) + 1));
+
+    // Create Modal
+    const modalId = 'album-modal';
+    let modal = document.getElementById(modalId);
+    if(!modal) {
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal-overlay hidden';
+        document.body.appendChild(modal);
+    }
+
+    const slotsHTML = album.card_ids.map(id => {
+        const card = masterCards.find(m => m.id === id) || { name: 'Unknown', image_url: 'images/default_card.png' };
+        const count = ownedCounts.get(id) || 0;
+        const isOwned = count > 0;
+
+        return `
+            <div style="text-align:center; opacity:${isOwned ? 1 : 0.4}; filter:${isOwned ? 'none' : 'grayscale(1)'};">
+                <div style="position:relative; display:inline-block;">
+                    <img src="${card.image_url}" style="width:60px; border-radius:6px; border:1px solid #444;">
+                    ${isOwned ? `<div style="position:absolute; top:-5px; right:-5px; background:var(--success-color); color:#000; font-size:0.7em; padding:1px 4px; border-radius:4px;">x${count}</div>` : ''}
+                </div>
+                <div style="font-size:0.6em; margin-top:2px; color:#ccc;">${card.name}</div>
+            </div>
+        `;
+    }).join('');
+
+    const allCollected = album.card_ids.every(id => ownedCounts.get(id) > 0);
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="window.closeModal('${modalId}')">&times;</button>
+            <div style="text-align:center; margin-bottom:20px;">
+                <div style="font-size:2.5em; margin-bottom:5px;">${album.icon}</div>
+                <h3 style="margin:0; color:var(--primary-accent);">${album.name}</h3>
+                <p style="font-size:0.8em; color:#888;">${album.description}</p>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:15px; margin-bottom:20px; background:#151515; padding:15px; border-radius:10px;">
+                ${slotsHTML}
+            </div>
+            
+            <button class="action-button" ${allCollected ? '' : 'disabled style="opacity:0.5"'} onclick="alert('Reward Logic Placeholder')">
+                ${allCollected ? `Claim ${album.rewards.noub} 🪙` : 'Collect All to Claim'}
+            </button>
+        </div>
+    `;
+    openModal(modalId);
+};
