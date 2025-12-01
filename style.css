@@ -1519,12 +1519,11 @@ input:focus, textarea:focus, select:focus {
     border-radius: 20px;
     box-shadow: 0 0 50px rgba(212, 175, 55, 0.9);
 }
-
 /* =================================================================================
-   --- تنسيق تبويبات الكروت والألبومات (Collection Fix) ---
+   --- (ADDITION) COLLECTION TABS & ALBUMS STYLES ---
    ================================================================================= */
 
-/* حاوية التبويبات العلوية */
+/* 1. حاوية التبويبات العلوية (Container for Buttons) */
 #coll-tabs-ctrl {
     display: flex;
     justify-content: space-around;
@@ -1535,7 +1534,7 @@ input:focus, textarea:focus, select:focus {
     padding: 5px;
 }
 
-/* أزرار التبويبات */
+/* 2. أزرار التبويبات نفسها (The Buttons) */
 .coll-tab-btn {
     flex: 1;
     background: none;
@@ -1544,7 +1543,7 @@ input:focus, textarea:focus, select:focus {
     font-weight: bold;
     padding: 12px;
     cursor: pointer;
-    font-family: 'Cairo', sans-serif;
+    font-family: 'Cairo', sans-serif; /* لضمان نفس الخط */
     transition: all 0.3s ease;
     border-radius: 6px;
 }
@@ -1553,6 +1552,7 @@ input:focus, textarea:focus, select:focus {
     background: rgba(255, 255, 255, 0.05);
 }
 
+/* الحالة النشطة للزر */
 .coll-tab-btn.active {
     color: #fff;
     background: #333;
@@ -1560,7 +1560,7 @@ input:focus, textarea:focus, select:focus {
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
-/* تنسيق كارت الألبوم (Albums List) */
+/* 3. تنسيق كارت الألبوم الجديد (Album Card Style) */
 .album-card {
     background: linear-gradient(to right, #1e1e1e, #252525);
     padding: 15px;
@@ -1576,10 +1576,10 @@ input:focus, textarea:focus, select:focus {
 }
 
 .album-card:active {
-    transform: scale(0.98);
+    transform: scale(0.98); /* تأثير الضغط */
 }
 
-/* تنسيق قائمة اختيار النسخ (Instance Selection Modal) */
+/* 4. تنسيق قائمة اختيار النسخ داخل النافذة (Selection Row) */
 .instance-row {
     display: flex;
     justify-content: space-between;
@@ -1591,13 +1591,8 @@ input:focus, textarea:focus, select:focus {
     border: 1px solid #444;
 }
 
-/* إصلاح شبكة الكروت لتكون متناسقة */
-.card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 12px;
-    padding-bottom: 20px;
-}
+/* هام: نعتمد على .card-grid الموجودة مسبقاً في الملف */
+/* لن نقوم بإعادة تعريفها هنا لتجنب التضارب */
 
 /* =================================================================================
    --- 12. RTL Overrides (COMPLETE & CLEANED) ---
