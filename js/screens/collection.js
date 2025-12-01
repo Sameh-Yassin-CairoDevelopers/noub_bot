@@ -252,131 +252,116 @@ async function renderInventoryView() {
  * Opens a modal listing ALL instances of a specific card type.
  * Allows the user to select WHICH specific copy to Upgrade, Burn, or Inspect.
  */
+
+/**
+ * MODAL 1: Lists all instances of a card type.
+ * Users must select a SPECIFIC card instance to perform actions on.
+ */
 function openInstanceSelectionModal(cardGroup, assignedIds) {
     const { master, instances } = cardGroup;
     
-    // Special Case: Soul Card
+    // Soul Card Protection
     if (master.id == 9999) {
         const modal = document.getElementById('card-interaction-modal');
         modal.innerHTML = `
             <div class="modal-content" style="text-align:center; border:2px solid gold;">
                 <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
                 <h3 style="color:gold;">The Soul Mirror</h3>
-                <p style="color:#ccc; margin-bottom:10px;">Your digital essence.</p>
-                <p style="font-size:0.8em; color:#888;">Immutable. Indestructible.</p>
+                <p style="color:#aaa;">Immutable Identity.</p>
             </div>`;
         openModal('card-interaction-modal');
         return;
     }
 
-    const modal = document.getElementById('card-interaction-modal');
-    
-    // Sort instances: Assigned first, then Level descending
-    instances.sort((a, b) => {
-        const aBusy = assignedIds.has(a.instance_id);
-        const bBusy = assignedIds.has(b.instance_id);
-        if (aBusy && !bBusy) return -1;
-        if (!aBusy && bBusy) return 1;
-        return b.level - a.level;
-    });
+    // Sorting: Unlocked & High Level First
+    instances.sort((a, b) => b.level - a.level);
 
     const listHTML = instances.map(inst => {
         const isAssigned = assignedIds.has(inst.instance_id);
         const isLocked = inst.is_locked;
-        let statusBadge = '';
         
-        if (isAssigned) statusBadge = '<span style="color:gold; border:1px solid gold; padding:1px 4px; border-radius:3px; font-size:0.7em;">EXPERT</span>';
-        else if (isLocked) statusBadge = '<span style="color:red; border:1px solid red; padding:1px 4px; border-radius:3px; font-size:0.7em;">LOCKED</span>';
-        else statusBadge = '<span style="color:#0f0; font-size:0.7em;">READY</span>';
+        let statusHTML = '<span style="color:#0f0">Ready</span>';
+        if (isAssigned) statusHTML = '<span style="color:gold">Expert (Busy)</span>';
+        else if (isLocked) statusHTML = '<span style="color:red">Locked (Trade)</span>';
 
         return `
             <div class="instance-row" style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:10px; margin-bottom:5px; border-radius:6px;">
                 <div>
-                    <div style="color:#fff; font-weight:bold;">Level ${inst.level}</div>
-                    <div style="font-size:0.8em; color:#aaa;">Power: ${inst.power_score}</div>
+                    <strong style="color:#fff;">Lvl ${inst.level}</strong> 
+                    <span style="font-size:0.8em; color:#aaa;">(Power: ${inst.power_score})</span>
                 </div>
-                <div style="text-align:right;">
-                    <div style="margin-bottom:5px;">${statusBadge}</div>
+                <div style="text-align:right; font-size:0.8em;">
+                    ${statusHTML}
                     ${!isAssigned && !isLocked ? 
-                        `<button class="action-button small" onclick="window.selectInstanceAction('${inst.instance_id}')">Manage</button>` : 
-                        ''}
+                        `<button class="action-button small" onclick="window.selectInstance('${inst.instance_id}')" style="margin-left:10px;">Select</button>` : ''}
                 </div>
             </div>
         `;
     }).join('');
 
+    const modal = document.getElementById('card-interaction-modal');
     modal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
-            <div style="text-align:center; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;">
-                <img src="${master.image_url}" style="width:80px; border-radius:8px;">
+            <div style="text-align:center; padding-bottom:10px; border-bottom:1px solid #444; margin-bottom:10px;">
+                <img src="${master.image_url}" style="width:60px; border-radius:5px;">
                 <h3 style="margin:5px 0; color:var(--primary-accent);">${master.name}</h3>
-                <p style="font-size:0.8em; color:#888;">Total Copies: ${instances.length}</p>
             </div>
             <div style="max-height:300px; overflow-y:auto;">${listHTML}</div>
         </div>
     `;
     
-    // Cache data for next step
+    // Store context for next step
     window.TempCardGroup = cardGroup; 
     openModal('card-interaction-modal');
 }
 
 /**
- * Shows the Action Menu for a SPECIFIC instance.
- * (Upgrade / Burn / Fusion)
+ * MODAL 2: Actions for the Selected Instance.
+ * Calculates Fusion possibilities (Looking for duplicates of same level).
  */
-window.selectInstanceAction = (instanceId) => {
+window.selectInstance = (instanceId) => {
     const group = window.TempCardGroup;
-    const instance = group.instances.find(i => i.instance_id === instanceId);
-    const modal = document.getElementById('card-interaction-modal');
-    const masterId = group.master.id;
-
-    // Fusion Logic: Find other cards of SAME level to sacrifice
-    const fusionCandidates = group.instances.filter(i => 
+    const target = group.instances.find(i => i.instance_id === instanceId);
+    
+    // Find Sacrifices: Same Level, Not Self, Not Locked
+    const sacrifices = group.instances.filter(i => 
         i.instance_id !== instanceId && 
-        i.level === instance.level && 
-        !i.is_locked && 
-        // Ensure candidate is not assigned (requires passing assigned set globally or re-checking, simplified here)
-        true 
+        i.level === target.level && 
+        !i.is_locked
     );
+    
+    const canFuse = sacrifices.length > 0;
+    const burnReward = CARD_BURN_REWARDS[group.master.id] || CARD_BURN_REWARDS['default'];
 
-    const burnInfo = CARD_BURN_REWARDS[masterId] || CARD_BURN_REWARDS['default'];
-
+    const modal = document.getElementById('card-interaction-modal');
     modal.innerHTML = `
         <div class="modal-content">
             <button class="modal-close-btn" onclick="window.closeModal('card-interaction-modal')">&times;</button>
-            <h3 style="color:var(--accent-blue); text-align:center;">Manage Card</h3>
-            <div style="text-align:center; font-size:0.9em; color:#ccc; margin-bottom:20px;">
-                Lvl ${instance.level} • Power ${instance.power_score}
-            </div>
+            <h3 style="text-align:center; color:var(--accent-blue);">Card Actions</h3>
+            <p style="text-align:center; color:#aaa; font-size:0.9em;">Level ${target.level} Selected</p>
 
-            <!-- FUSION UPGRADE -->
-            <div style="background:rgba(0,0,0,0.3); padding:15px; border:1px solid #444; border-radius:8px; margin-bottom:15px;">
+            <!-- FUSION -->
+            <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #444;">
                 <h4 style="margin-top:0;">Fusion Upgrade</h4>
-                <p style="font-size:0.8em; color:#aaa; margin-bottom:10px;">
-                    Combine with another Level ${instance.level} card to upgrade.
-                    <br>Available copies: ${fusionCandidates.length}
-                </p>
-                <button class="action-button" ${fusionCandidates.length > 0 ? '' : 'disabled style="opacity:0.5"'}
-                        onclick="window.handleFusion('${instanceId}', '${fusionCandidates[0]?.instance_id}')">
-                    ${fusionCandidates.length > 0 ? 'Fuse (Consumes Duplicate)' : 'Need Duplicate'}
+                <p style="font-size:0.8em; color:#aaa;">Requires another Level ${target.level} copy.</p>
+                <button class="action-button" onclick="window.executeFusion('${instanceId}', '${sacrifices[0]?.instance_id}')" 
+                        ${canFuse ? '' : 'disabled style="opacity:0.5"'}>
+                    ${canFuse ? 'Fuse with Duplicate' : 'No Duplicates Found'}
                 </button>
             </div>
 
-            <!-- SACRIFICE -->
-            <div style="background:rgba(40,10,10,0.3); padding:15px; border:1px solid var(--danger-color); border-radius:8px;">
+            <!-- BURN -->
+            <div style="background:rgba(255,0,0,0.1); padding:15px; border-radius:8px; border:1px solid var(--danger-color);">
                 <h4 style="margin-top:0; color:var(--danger-color);">Sacrifice</h4>
-                <p style="font-size:0.8em; color:#aaa;">Burn this card for rewards.</p>
-                <button class="action-button danger small" 
-                        onclick="window.handleBurn('${instanceId}', ${masterId})">
-                    Burn for Rewards
+                <p style="font-size:0.8em; color:#aaa;">Gain: ${burnReward.payload.noub} 🪙</p>
+                <button class="action-button danger small" onclick="window.executeBurn('${instanceId}', ${group.master.id})">
+                    Burn
                 </button>
             </div>
         </div>
     `;
-};
-
+}
 // =============================================================================
 // SECTION 5: ACTION EXECUTION HANDLERS
 // =============================================================================
@@ -529,4 +514,5 @@ window.openAlbumDetails = async (albumId) => {
     `;
     openModal(modalId);
 };
+
 
