@@ -1641,6 +1641,46 @@ input:focus, textarea:focus, select:focus {
 .coll-content-tab.hidden {
     display: none !important;
 }
+
+/* =================================================================================
+   --- الترياق النهائي لإصلاح شبكة الكروت (The Final Layout Fix) ---
+   ================================================================================= */
+
+/* 1. إجبار حاوية الكروت على التحول لشبكة (Grid) بدلاً من قائمة */
+#coll-view-inventory {
+    display: grid !important;
+    /* هذا السطر هو المسؤول عن رص الكروت بجوار بعضها */
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    
+    /* إلغاء التمركز الخاطئ */
+    justify-items: center;
+    align-content: start;
+    margin-top: 15px;
+}
+
+/* 2. ضبط حاوية الألبومات لتكون قائمة أنيقة */
+#coll-view-albums {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 15px !important;
+    width: 100% !important;
+    margin-top: 15px;
+}
+
+/* 3. تأمين الحاوية الأم (لكي لا تؤثر على الأبناء) */
+#collection-container {
+    display: block !important;
+    padding: 10px 5px !important;
+}
+
+/* 4. التأكد من حجم الكارت داخل الشبكة الجديدة */
+#coll-view-inventory .card-stack {
+    width: 100% !important; /* لملء خانة الشبكة */
+    margin: 0 !important;   /* إزالة الهوامش الجانبية الزائدة */
+}
+
 /* هام: نعتمد على .card-grid الموجودة مسبقاً في الملف */
 /* لن نقوم بإعادة تعريفها هنا لتجنب التضارب */
 
