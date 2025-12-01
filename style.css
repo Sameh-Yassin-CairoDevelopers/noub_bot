@@ -1520,7 +1520,84 @@ input:focus, textarea:focus, select:focus {
     box-shadow: 0 0 50px rgba(212, 175, 55, 0.9);
 }
 
+/* =================================================================================
+   --- تنسيق تبويبات الكروت والألبومات (Collection Fix) ---
+   ================================================================================= */
 
+/* حاوية التبويبات العلوية */
+#coll-tabs-ctrl {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #444;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 5px;
+}
+
+/* أزرار التبويبات */
+.coll-tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-weight: bold;
+    padding: 12px;
+    cursor: pointer;
+    font-family: 'Cairo', sans-serif;
+    transition: all 0.3s ease;
+    border-radius: 6px;
+}
+
+.coll-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.coll-tab-btn.active {
+    color: #fff;
+    background: #333;
+    border-bottom: 2px solid var(--primary-accent);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+/* تنسيق كارت الألبوم (Albums List) */
+.album-card {
+    background: linear-gradient(to right, #1e1e1e, #252525);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #333;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+
+.album-card:active {
+    transform: scale(0.98);
+}
+
+/* تنسيق قائمة اختيار النسخ (Instance Selection Modal) */
+.instance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #151515;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+/* إصلاح شبكة الكروت لتكون متناسقة */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 12px;
+    padding-bottom: 20px;
+}
 
 /* =================================================================================
    --- 12. RTL Overrides (COMPLETE & CLEANED) ---
